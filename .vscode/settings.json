@@ -1,0 +1,10 @@
+{
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"editor.codeActionsOnSave": {
+		"source.organizeImports": true
+	},
+	"[typescript][javascript][json][markdown]": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "dprint.dprint"
+	}
+}

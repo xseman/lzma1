@@ -1,0 +1,36 @@
+{
+	"name": "lzma1",
+	"version": "0.0.1",
+	"author": "Filip Seman <filip.seman@pm.me>",
+	"description": "A JavaScript implementation of the Lempel-Ziv-Markov (LZMA) chain compression algorithm",
+	"funding": "https://github.com/sponsors/xseman",
+	"homepage": "https://github.com/xseman/lzma1#readme",
+	"keywords": [
+		"lzma",
+		"compression",
+		"decompression"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xseman/lzma1.git"
+	},
+	"scripts": {
+		"build": "tsc"
+	},
+	"devDependencies": {
+		"typescript": "~4.9.0"
+	},
+	"type": "module",
+	"types": "lib/lzma.d.ts",
+	"exports": {
+		"types": "./lib/lzma.d.ts",
+		"default": "./lib/lzma.js"
+	},
+	"files": [
+		"lib"
+	],
+	"engines": {
+		"node": ">=14.16",
+		"npm": ">=7.0"
+	}
+}
