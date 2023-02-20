@@ -15,7 +15,9 @@
 		"url": "git+https://github.com/xseman/lzma1.git"
 	},
 	"scripts": {
-		"build": "tsc"
+		"build": "tsc",
+		"typecheck": "tsc --noEmit",
+		"version": "git flow release start v$npm_package_version"
 	},
 	"devDependencies": {
 		"typescript": "~4.9.0"
