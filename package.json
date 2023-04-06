@@ -8,6 +8,7 @@
 	"homepage": "https://github.com/xseman/lzma1#readme",
 	"keywords": [
 		"lzma",
+		"lzma1",
 		"compression",
 		"decompression"
 	],
@@ -21,7 +22,8 @@
 		"version": "git flow release start v$npm_package_version"
 	},
 	"devDependencies": {
-		"typescript": "~4.9.0"
+		"typescript": "~5.0.0",
+		"dprint": "~0.35.0"
 	},
 	"type": "module",
 	"types": "lib/lzma.d.ts",
