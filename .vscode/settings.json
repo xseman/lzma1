@@ -3,7 +3,7 @@
 	"editor.codeActionsOnSave": {
 		"source.organizeImports": true
 	},
-	"[typescript][javascript][json][markdown]": {
+	"[typescript][json][markdown]": {
 		"editor.formatOnSave": true,
 		"editor.defaultFormatter": "dprint.dprint"
 	}
