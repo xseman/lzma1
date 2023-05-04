@@ -6,7 +6,8 @@
 		"semiColons": "asi",
 		"trailingCommas": "never",
 		"arrowFunction.useParentheses": "force",
-		"binaryExpression.operatorPosition": "nextLine"
+		"binaryExpression.operatorPosition": "nextLine",
+		"ifStatement.nextControlFlowPosition": "sameLine"
 	},
 	"json": {
 	},
