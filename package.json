@@ -18,12 +18,16 @@
 	},
 	"scripts": {
 		"build": "tsc",
+		"test": "node --test --loader=tsx ./*.test.ts",
+		"test:watch": "node --watch --test --loader=tsx ./*.test.ts",
 		"typecheck": "tsc --noEmit",
 		"version": "git flow release start v$npm_package_version"
 	},
 	"devDependencies": {
-		"typescript": "~5.0.0",
-		"dprint": "~0.35.0"
+		"@types/node": ">=16.17",
+		"dprint": "~0.35.0",
+		"tsx": "~3.12.0",
+		"typescript": "~5.0.0"
 	},
 	"type": "module",
 	"types": "lib/lzma.d.ts",
