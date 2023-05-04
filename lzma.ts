@@ -1,58 +1,63 @@
-/** xs */
-/**
- * NOTE: This is the master file that is used to generate lzma-c.js and lzma-d.js.
- *      Comments are used to determine which parts are to be removed.
- *
- * cs-ce (compression start-end)
- * ds-de (decompression start-end)
- * xs-xe (only in this file start-end)
- * co    (compression only)
- * do    (decompression only)
- */
-/** xe */
-
-const __4294967296 = 4294967296,
-	N1_longLit = [4294967295, -__4294967296],
-	/** cs */
-	MIN_VALUE = [0, -9223372036854775808],
-	/** ce */
-	P0_longLit = [0, 0],
-	P1_longLit = [1, 0]
+const MAX_UINT32 = 4294967296
+const MAX_INT32 = 2147483647
+const MIN_INT32 = -2147483648
+const MAX_COMPRESSION_SIZE = 9223372036854775807
+const N1_longLit: [number, number] = [4294967295, -MAX_UINT32]
+const MIN_VALUE: [number, number] = [0, -9223372036854775808]
+const P0_longLit: [number, number] = [0, 0]
+const P1_longLit: [number, number] = [1, 0]
 
 /**
  * This is MUCH faster than "new Array(len)" in newer versions of v8
  * (starting with Node.js 0.11.15, which uses v8 3.28.73).
  */
-function initDim(len: number) {
+function initArr(len: number) {
 	var array = []
 	array[len - 1] = undefined
 	return array
 }
 
-function add(a, b) {
+function add(
+	a: [number, number],
+	b: [number, number]
+): [number, number] {
 	return create(a[0] + b[0], a[1] + b[1])
 }
 
-/** cs */
-function and(a, b) {
-	return makeFromBits(
-		~~Math.max(Math.min(a[1] / __4294967296, 2147483647), -2147483648)
-			& ~~Math.max(
-				Math.min(b[1] / __4294967296, 2147483647),
-				-2147483648
-			),
-		lowBits_0(a) & lowBits_0(b)
+function and(
+	a: [number, number],
+	b: [number, number]
+): [number, number] {
+	const highBits = ~~Math.max(
+		Math.min(a[1] / MAX_UINT32, MAX_INT32),
+		MIN_INT32
 	)
-}
-/** ce */
+		& ~~Math.max(
+			Math.min(b[1] / MAX_UINT32, MAX_INT32),
+			MIN_INT32
+		)
 
-function compare(a, b): 0 | 1 | -1 {
-	var nega, negb
+	const lowBits = lowBits_0(a)
+		& lowBits_0(b)
+
+	let high = highBits * MAX_UINT32
+	let low = lowBits
+	if (lowBits < 0) {
+		low += MAX_UINT32
+	}
+
+	return [low, high]
+}
+
+function compare(
+	a: [number, number],
+	b: [number, number]
+): 0 | 1 | -1 {
 	if (a[0] == b[0] && a[1] == b[1]) {
 		return 0
 	}
-	nega = a[1] < 0
-	negb = b[1] < 0
+	const nega = a[1] < 0
+	const negb = b[1] < 0
 	if (nega && !negb) {
 		return -1
 	}
@@ -65,21 +70,21 @@ function compare(a, b): 0 | 1 | -1 {
 	return 1
 }
 
-function create(valueLow, valueHigh) {
-	var diffHigh, diffLow
+function create(valueLow: number, valueHigh: number): [number, number] {
+	let diffHigh, diffLow
 	valueHigh %= 1.8446744073709552E19
 	valueLow %= 1.8446744073709552E19
-	diffHigh = valueHigh % __4294967296
-	diffLow = Math.floor(valueLow / __4294967296) * __4294967296
+	diffHigh = valueHigh % MAX_UINT32
+	diffLow = Math.floor(valueLow / MAX_UINT32) * MAX_UINT32
 	valueHigh = valueHigh - diffHigh + diffLow
 	valueLow = valueLow - diffLow + diffHigh
 	while (valueLow < 0) {
-		valueLow += __4294967296
-		valueHigh -= __4294967296
+		valueLow += MAX_UINT32
+		valueHigh -= MAX_UINT32
 	}
 	while (valueLow > 4294967295) {
-		valueLow -= __4294967296
-		valueHigh += __4294967296
+		valueLow -= MAX_UINT32
+		valueHigh += MAX_UINT32
 	}
 	valueHigh = valueHigh % 1.8446744073709552E19
 	while (valueHigh > 9223372032559808512) {
@@ -88,53 +93,49 @@ function create(valueLow, valueHigh) {
 	while (valueHigh < -9223372036854775808) {
 		valueHigh += 1.8446744073709552E19
 	}
+
 	return [valueLow, valueHigh]
 }
 
-/** cs */
 function eq(a, b): boolean {
 	return a[0] == b[0] && a[1] == b[1]
 }
-/** ce */
-function fromInt(value) {
+
+function fromInt(value: number): [number, number] {
 	if (value >= 0) {
 		return [value, 0]
 	} else {
-		return [value + __4294967296, -__4294967296]
+		return [value + MAX_UINT32, -MAX_UINT32]
 	}
 }
 
-function lowBits_0(a): number {
+function lowBits_0(a: number[]): number {
 	if (a[0] >= 2147483648) {
 		return ~~Math.max(
-			Math.min(a[0] - __4294967296, 2147483647),
-			-2147483648
+			Math.min(a[0] - MAX_UINT32, MAX_INT32),
+			MIN_INT32
 		)
-	} else {
-		return ~~Math.max(Math.min(a[0], 2147483647), -2147483648)
 	}
-}
-/** cs */
-function makeFromBits(highBits, lowBits) {
-	var high, low
-	high = highBits * __4294967296
-	low = lowBits
-	if (lowBits < 0) {
-		low += __4294967296
-	}
-	return [low, high]
+
+	return ~~Math.max(
+		Math.min(a[0], MAX_INT32),
+		MIN_INT32
+	)
 }
 
-function pwrAsDouble(n) {
+function pwrAsDouble(n: number): number {
 	if (n <= 30) {
 		return 1 << n
-	} else {
-		return pwrAsDouble(30) * pwrAsDouble(n - 30)
 	}
+
+	return pwrAsDouble(30) * pwrAsDouble(n - 30)
 }
 
-function shl(a, n) {
-	var diff, newHigh, newLow, twoToN
+function shl(
+	a: [number, number],
+	n: number
+): [number, number] {
+	let diff, newHigh, newLow, twoToN
 	n &= 63
 	if (eq(a, MIN_VALUE)) {
 		if (!n) {
@@ -148,133 +149,145 @@ function shl(a, n) {
 	twoToN = pwrAsDouble(n)
 	newHigh = a[1] * twoToN % 1.8446744073709552E19
 	newLow = a[0] * twoToN
-	diff = newLow - newLow % __4294967296
+	diff = newLow - newLow % MAX_UINT32
 	newHigh += diff
 	newLow -= diff
-	if (newHigh >= 9223372036854775807) {
+
+	if (newHigh >= MAX_COMPRESSION_SIZE) {
 		newHigh -= 1.8446744073709552E19
 	}
+
 	return [newLow, newHigh]
 }
 
-function shr(a, n) {
-	var shiftFact
+function shr(a: number[], n: number) {
 	n &= 63
-	shiftFact = pwrAsDouble(n)
-	return create(Math.floor(a[0] / shiftFact), a[1] / shiftFact)
+	let shiftFact = pwrAsDouble(n)
+	return create(
+		Math.floor(a[0] / shiftFact),
+		a[1] / shiftFact
+	)
 }
 
-function shru(a, n) {
-	var sr
+function shru(a: number[], n: number): [number, number] {
+	let sr = shr(a, n)
 	n &= 63
-	sr = shr(a, n)
 	if (a[1] < 0) {
 		sr = add(sr, shl([2, 0], 63 - n))
 	}
 	return sr
 }
 
-/** ce */
-
-function sub(a, b) {
+function sub(a: number[], b: number[]): [number, number] {
 	return create(a[0] - b[0], a[1] - b[1])
 }
 
-function $ByteArrayInputStream(this$static, buf) {
-	this$static.buf = buf
-	this$static.pos = 0
-	this$static.count = buf.length
-	return this$static
+function $ByteArrayInputStream(obj, buf: number[] | Uint8Array | ArrayBuffer) {
+	obj.buf = buf
+	obj.pos = 0
+	obj.count = buf.length
+
+	return obj
 }
 
-/** ds */
-function $read(this$static): number {
-	if (this$static.pos >= this$static.count) {
+function $read(obj): number {
+	if (obj.pos >= obj.count) {
 		return -1
 	}
-	return this$static.buf[this$static.pos++] & 255
+
+	return obj.buf[obj.pos++] & 255
 }
-/** de */
-/** cs */
-function $read_0(this$static, buf, off: number, len: number): number {
-	if (this$static.pos >= this$static.count) {
+
+function $read_0(
+	obj,
+	buf: number[],
+	off: number,
+	len: number
+): number {
+	if (obj.pos >= obj.count) {
 		return -1
 	}
-	len = Math.min(len, this$static.count - this$static.pos)
-	arraycopy(this$static.buf, this$static.pos, buf, off, len)
-	this$static.pos += len
+
+	len = Math.min(len, obj.count - obj.pos)
+	arraycopy(obj.buf, obj.pos, buf, off, len)
+	obj.pos += len
+
 	return len
 }
-/** ce */
 
-function $ByteArrayOutputStream(this$static) {
-	this$static.buf = initDim(32)
-	this$static.count = 0
-	return this$static
-}
+function $toByteArray(obj): number[] {
+	const data = obj.buf
+	data.length = obj.count
 
-function $toByteArray(this$static): number[] {
-	var data = this$static.buf
-	data.length = this$static.count
 	return data
 }
 
-/** cs */
-function $write(this$static, b): void {
-	this$static.buf[this$static.count++] = b << 24 >> 24
-}
-/** ce */
-
-function $write_0(this$static, buf, off, len): void {
-	arraycopy(buf, off, this$static.buf, this$static.count, len)
-	this$static.count += len
+function $write(obj, b: number): void {
+	obj.buf[obj.count++] = b << 24 >> 24
 }
 
-/** cs */
-function $getChars(this$static, srcBegin, srcEnd, dst, dstBegin): void {
+function $write_0(obj, buf: number[], off: number, len: number): void {
+	arraycopy(buf, off, obj.buf, obj.count, len)
+	obj.count += len
+}
+
+function $getChars(obj, srcBegin, srcEnd, dst, dstBegin): void {
 	var srcIdx
 	for (srcIdx = srcBegin; srcIdx < srcEnd; ++srcIdx) {
-		dst[dstBegin++] = this$static.charCodeAt(srcIdx)
-	}
-}
-/** ce */
-
-function arraycopy(src, srcOfs, dest, destOfs: number, len: number): void {
-	for (var i = 0; i < len; ++i) {
-		dest[destOfs + i] = src[srcOfs + i]
+		dst[dstBegin++] = obj.charCodeAt(srcIdx)
 	}
 }
 
-/** cs */
-function $configure(this$static, encoder): void {
-	$SetDictionarySize_0(encoder, 1 << this$static.s)
-	encoder._numFastBytes = this$static.f
-	$SetMatchFinder(encoder, this$static.m)
+function arraycopy(
+	src: number[],
+	srcOfs: number,
+	dest: number[],
+	destOfs: number,
+	len: number
+): void {
+	for (let i = 0; i < len; ++i) {
+		try {
+			dest[destOfs + i] = src[srcOfs + i]
+		} catch (error) {
+			break
+		}
+	}
+}
 
-	/// lc is always 3
-	/// lp is always 0
-	/// pb is always 2
-	encoder._numLiteralPosStateBits = 0
+function $configure(mode: Mode, encoder): void {
+	$SetDictionarySize_0(encoder, 1 << mode.s)
+	encoder._numFastBytes = mode.f
+	$SetMatchFinder(encoder, mode.m)
+
+	/**
+	 * lc is always 3
+	 * lp is always 0
+	 * pb is always 2
+	 */
 	encoder._numLiteralContextBits = 3
+	encoder._numLiteralPosStateBits = 0
 	encoder._posStateBits = 2
-	/// this$static._posStateMask = (1 << pb) - 1;
 	encoder._posStateMask = 3
 }
 
-function $init(this$static, input, output, length_0, mode): void {
-	var encoder, i
-	if (compare(length_0, N1_longLit) < 0) {
-		throw new Error("invalid length " + length_0)
+function $init(
+	obj,
+	input,
+	output,
+	len: [number, number],
+	mode: Mode
+): void {
+	if (compare(len, N1_longLit) < 0) {
+		throw new Error("invalid length " + len)
 	}
-	this$static.length_0 = length_0
-	encoder = $Encoder({})
+	obj.length_0 = len
+	let encoder = $Encoder()
 	$configure(mode, encoder)
-	// encoder._writeEndMark = typeof LZMA.disableEndMark == "undefined";
-	$WriteCoderProperties(encoder, output)
-	for (i = 0; i < 64; i += 8) {
-		$write(output, lowBits_0(shr(length_0, i)) & 255)
+	writeHeaderProperties(encoder, output)
+	for (let i = 0; i < 64; i += 8) {
+		$write(output, lowBits_0(shr(len, i)) & 255)
 	}
-	this$static.chunker =
+	obj.chunker =
 		(encoder._needReleaseMFStream = 0,
 			(encoder._inStream = input,
 				encoder._finished = 0,
@@ -286,7 +299,8 @@ function $init(this$static, input, output, length_0, mode): void {
 				encoder._lenEncoder._tableSize = encoder._numFastBytes + 1 - 2,
 				$UpdateTables(encoder._lenEncoder, 1 << encoder._posStateBits),
 				encoder._repMatchLenEncoder._tableSize = encoder._numFastBytes
-					+ 1 - 2,
+					+ 1
+					- 2,
 				$UpdateTables(
 					encoder._repMatchLenEncoder,
 					1 << encoder._posStateBits
@@ -296,29 +310,34 @@ function $init(this$static, input, output, length_0, mode): void {
 			$Chunker_0({}, encoder))
 }
 
-function $LZMAByteArrayCompressor(this$static, data, mode) {
-	this$static.output = $ByteArrayOutputStream({})
+function $LZMAByteArrayCompressor(
+	obj,
+	data: number[] | Uint8Array,
+	mode: Mode
+) {
+	obj.output = {
+		buf: initArr(32),
+		count: 0
+	}
+
 	$init(
-		this$static,
+		obj,
 		$ByteArrayInputStream({}, data),
-		this$static.output,
+		obj.output,
 		fromInt(data.length),
 		mode
 	)
-	return this$static
+
+	return obj
 }
-/** ce */
 
-/** ds */
-function $init_0(this$static, input, output): void {
-	var decoder,
-		hex_length = "",
-		i,
+function $init_0(obj, input, output): void {
+	let hex_length = "",
 		properties = [],
-		r,
-		tmp_length
+		r: number,
+		tmp_length: number
 
-	for (i = 0; i < 5; ++i) {
+	for (let i = 0; i < 5; ++i) {
 		r = $read(input)
 		if (r == -1) {
 			throw new Error("truncated input")
@@ -326,11 +345,11 @@ function $init_0(this$static, input, output): void {
 		properties[i] = r << 24 >> 24
 	}
 
-	decoder = $Decoder({})
+	let decoder = $Decoder({})
 	if (!$SetDecoderProperties(decoder, properties)) {
 		throw new Error("corrupted input")
 	}
-	for (i = 0; i < 64; i += 8) {
+	for (let i = 0; i < 64; i += 8) {
 		r = $read(input)
 		if (r == -1) {
 			throw new Error("truncated input")
@@ -345,163 +364,161 @@ function $init_0(this$static, input, output): void {
 	 * length is all f"s).
 	 */
 	if (/^0+$|^f+$/i.test(hex_length)) {
-		/// The length is unknown, so set to -1.
-		this$static.length_0 = N1_longLit
+		// The length is unknown, so set to -1.
+		obj.length_0 = N1_longLit
 	} else {
 		/**
 		 * NOTE: If there is a problem with the decoder because of the length,
 		 * you can always set the length to -1 (N1_longLit) which means unknown.
 		 */
 		tmp_length = parseInt(hex_length, 16)
-		/// If the length is too long to handle, just set it to unknown.
+		// If the length is too long to handle, just set it to unknown.
 		if (tmp_length > 4294967295) {
-			this$static.length_0 = N1_longLit
+			obj.length_0 = N1_longLit
 		} else {
-			this$static.length_0 = fromInt(tmp_length)
+			obj.length_0 = fromInt(tmp_length)
 		}
 	}
 
-	this$static.chunker = $CodeInChunks(
+	obj.chunker = $CodeInChunks(
 		decoder,
 		input,
 		output,
-		this$static.length_0
+		obj.length_0
 	)
 }
 
-function $LZMAByteArrayDecompressor(this$static, data) {
-	this$static.output = $ByteArrayOutputStream({})
-	$init_0(this$static, $ByteArrayInputStream({}, data), this$static.output)
-	return this$static
+function $LZMAByteArrayDecompressor(
+	obj: any,
+	data: Uint8Array | ArrayBuffer
+): any {
+	obj.output = {
+		buf: initArr(32),
+		count: 0
+	}
+
+	$init_0(obj, $ByteArrayInputStream({}, data), obj.output)
+	return obj
 }
-/** de */
-/** cs */
+
 function $Create_4(
-	this$static,
+	obj,
 	keepSizeBefore,
 	keepSizeAfter,
 	keepSizeReserv
 ): void {
-	var blockSize
-	this$static._keepSizeBefore = keepSizeBefore
-	this$static._keepSizeAfter = keepSizeAfter
+	let blockSize
+	obj._keepSizeBefore = keepSizeBefore
+	obj._keepSizeAfter = keepSizeAfter
 	blockSize = keepSizeBefore + keepSizeAfter + keepSizeReserv
 	if (
-		this$static._bufferBase == null || this$static._blockSize != blockSize
+		obj._bufferBase == null || obj._blockSize != blockSize
 	) {
-		this$static._bufferBase = null
-		this$static._blockSize = blockSize
-		this$static._bufferBase = initDim(this$static._blockSize)
+		obj._bufferBase = null
+		obj._blockSize = blockSize
+		obj._bufferBase = initArr(obj._blockSize)
 	}
-	this$static._pointerToLastSafePosition = this$static._blockSize
-		- keepSizeAfter
+	obj._pointerToLastSafePosition = obj._blockSize - keepSizeAfter
 }
 
-function $GetIndexByte(this$static, index: number) {
-	return this$static
-		._bufferBase[this$static._bufferOffset + this$static._pos + index]
+function $GetIndexByte(obj, index: number) {
+	return obj
+		._bufferBase[obj._bufferOffset + obj._pos + index]
 }
 
-function $GetMatchLen(this$static, index, distance, limit): number {
-	var i, pby
-	if (this$static._streamEndWasReached) {
-		if (this$static._pos + index + limit > this$static._streamPos) {
-			limit = this$static._streamPos - (this$static._pos + index)
+function $GetMatchLen(obj, index, distance, limit): number {
+	if (obj._streamEndWasReached) {
+		if (obj._pos + index + limit > obj._streamPos) {
+			limit = obj._streamPos - (obj._pos + index)
 		}
 	}
 	;++distance
-	pby = this$static._bufferOffset + this$static._pos + index
+	let i, pby = obj._bufferOffset + obj._pos + index
 	for (
 		i = 0;
 		i < limit
-		&& this$static._bufferBase[pby + i]
-			== this$static._bufferBase[pby + i - distance];
+		&& obj._bufferBase[pby + i] == obj._bufferBase[pby + i - distance];
 		++i
-	) {
-	}
+	);
+
 	return i
 }
 
-function $GetNumAvailableBytes(this$static): number {
-	return this$static._streamPos - this$static._pos
+function $GetNumAvailableBytes(obj): number {
+	return obj._streamPos - obj._pos
 }
 
-function $MoveBlock(this$static): void {
-	var i, numBytes, offset
-	offset = this$static._bufferOffset + this$static._pos
-		- this$static._keepSizeBefore
+function $MoveBlock(obj): void {
+	let offset = obj._bufferOffset + obj._pos - obj._keepSizeBefore
 	if (offset > 0) {
 		;--offset
 	}
-	numBytes = this$static._bufferOffset + this$static._streamPos - offset
-	for (i = 0; i < numBytes; ++i) {
-		this$static._bufferBase[i] = this$static._bufferBase[offset + i]
+	let numBytes = obj._bufferOffset + obj._streamPos - offset
+	for (let i = 0; i < numBytes; ++i) {
+		obj._bufferBase[i] = obj._bufferBase[offset + i]
 	}
-	this$static._bufferOffset -= offset
+	obj._bufferOffset -= offset
 }
 
-function $MovePos_1(this$static): void {
+function $MovePos_1(obj): void {
 	var pointerToPostion
-	this$static._pos += 1
-	if (this$static._pos > this$static._posLimit) {
-		pointerToPostion = this$static._bufferOffset + this$static._pos
-		if (pointerToPostion > this$static._pointerToLastSafePosition) {
-			$MoveBlock(this$static)
+	obj._pos += 1
+	if (obj._pos > obj._posLimit) {
+		pointerToPostion = obj._bufferOffset + obj._pos
+		if (pointerToPostion > obj._pointerToLastSafePosition) {
+			$MoveBlock(obj)
 		}
-		$ReadBlock(this$static)
+		$ReadBlock(obj)
 	}
 }
 
-function $ReadBlock(this$static): void {
-	var numReadBytes, pointerToPostion, size
-	if (this$static._streamEndWasReached) {
+function $ReadBlock(obj): void {
+	let numReadBytes, pointerToPostion, size
+	if (obj._streamEndWasReached) {
 		return
 	}
 	while (1) {
-		size = -this$static._bufferOffset + this$static._blockSize
-			- this$static._streamPos
+		size = -obj._bufferOffset + obj._blockSize - obj._streamPos
 		if (!size) {
 			return
 		}
 		numReadBytes = $read_0(
-			this$static._stream,
-			this$static._bufferBase,
-			this$static._bufferOffset + this$static._streamPos,
+			obj._stream,
+			obj._bufferBase,
+			obj._bufferOffset + obj._streamPos,
 			size
 		)
 		if (numReadBytes == -1) {
-			this$static._posLimit = this$static._streamPos
-			pointerToPostion = this$static._bufferOffset + this$static._posLimit
-			if (pointerToPostion > this$static._pointerToLastSafePosition) {
-				this$static._posLimit = this$static._pointerToLastSafePosition
-					- this$static._bufferOffset
+			obj._posLimit = obj._streamPos
+			pointerToPostion = obj._bufferOffset + obj._posLimit
+			if (pointerToPostion > obj._pointerToLastSafePosition) {
+				obj._posLimit = obj._pointerToLastSafePosition
+					- obj._bufferOffset
 			}
-			this$static._streamEndWasReached = 1
+			obj._streamEndWasReached = 1
 			return
 		}
-		this$static._streamPos += numReadBytes
+		obj._streamPos += numReadBytes
 		if (
-			this$static._streamPos
-				>= this$static._pos + this$static._keepSizeAfter
+			obj._streamPos >= obj._pos + obj._keepSizeAfter
 		) {
-			this$static._posLimit = this$static._streamPos
-				- this$static._keepSizeAfter
+			obj._posLimit = obj._streamPos - obj._keepSizeAfter
 		}
 	}
 }
 
-function $ReduceOffsets(this$static, subValue): void {
-	this$static._bufferOffset += subValue
-	this$static._posLimit -= subValue
-	this$static._pos -= subValue
-	this$static._streamPos -= subValue
+function $ReduceOffsets(obj, subValue): void {
+	obj._bufferOffset += subValue
+	obj._posLimit -= subValue
+	obj._pos -= subValue
+	obj._streamPos -= subValue
 }
 
-const CrcTable = function(): number[] {
-	var i, j, r, CrcTable = []
-	for (i = 0; i < 256; ++i) {
+const crcTable = function(): number[] {
+	const crcTable = []
+	for (let i = 0, r; i < 256; ++i, r = i) {
 		r = i
-		for (j = 0; j < 8; ++j) {
+		for (let j = 0; j < 8; ++j) {
 			if ((r & 1) != 0) {
 				r >>>= 1
 				r ^= -306674912
@@ -509,39 +526,41 @@ const CrcTable = function(): number[] {
 				r >>>= 1
 			}
 		}
-		CrcTable[i] = r
+		crcTable[i] = r
 	}
-	return CrcTable
+
+	return crcTable
 }()
 
 function $Create_3(
-	this$static,
-	historySize,
-	keepAddBufferBefore,
-	matchMaxLen,
-	keepAddBufferAfter
+	obj,
+	historySize: number,
+	keepAddBufferBefore: number,
+	matchMaxLen: number,
+	keepAddBufferAfter: number
 ): void {
-	var cyclicBufferSize, hs, windowReservSize
 	if (historySize < 1073741567) {
-		this$static._cutValue = 16 + (matchMaxLen >> 1)
-		windowReservSize = ~~((historySize + keepAddBufferBefore + matchMaxLen
+		obj._cutValue = 16 + (matchMaxLen >> 1)
+		let windowReservSize = ~~((historySize
+			+ keepAddBufferBefore
+			+ matchMaxLen
 			+ keepAddBufferAfter) / 2) + 256
 		$Create_4(
-			this$static,
+			obj,
 			historySize + keepAddBufferBefore,
 			matchMaxLen + keepAddBufferAfter,
 			windowReservSize
 		)
-		this$static._matchMaxLen = matchMaxLen
-		cyclicBufferSize = historySize + 1
-		if (this$static._cyclicBufferSize != cyclicBufferSize) {
-			this$static._son = initDim(
-				(this$static._cyclicBufferSize = cyclicBufferSize) * 2
+		obj._matchMaxLen = matchMaxLen
+		let cyclicBufferSize = historySize + 1
+		if (obj._cyclicBufferSize != cyclicBufferSize) {
+			obj._son = initArr(
+				(obj._cyclicBufferSize = cyclicBufferSize) * 2
 			)
 		}
 
-		hs = 65536
-		if (this$static.HASH_ARRAY) {
+		let hs = 65536
+		if (obj.HASH_ARRAY) {
 			hs = historySize - 1
 			hs |= hs >> 1
 			hs |= hs >> 2
@@ -552,18 +571,18 @@ function $Create_3(
 			if (hs > 16777216) {
 				hs >>= 1
 			}
-			this$static._hashMask = hs
+			obj._hashMask = hs
 			hs += 1
-			hs += this$static.kFixHashSize
+			hs += obj.kFixHashSize
 		}
 
-		if (hs != this$static._hashSizeSum) {
-			this$static._hash = initDim(this$static._hashSizeSum = hs)
+		if (hs != obj._hashSizeSum) {
+			obj._hash = initArr(obj._hashSizeSum = hs)
 		}
 	}
 }
 
-function $GetMatches(this$static, distances): number {
+function $GetMatches(obj, distances): number {
 	var count,
 		cur,
 		curMatch,
@@ -585,62 +604,61 @@ function $GetMatches(this$static, distances): number {
 		ptr0,
 		ptr1,
 		temp
-	if (this$static._pos + this$static._matchMaxLen <= this$static._streamPos) {
-		lenLimit = this$static._matchMaxLen
+	if (obj._pos + obj._matchMaxLen <= obj._streamPos) {
+		lenLimit = obj._matchMaxLen
 	} else {
-		lenLimit = this$static._streamPos - this$static._pos
-		if (lenLimit < this$static.kMinMatchCheck) {
-			$MovePos_0(this$static)
+		lenLimit = obj._streamPos - obj._pos
+		if (lenLimit < obj.kMinMatchCheck) {
+			$MovePos_0(obj)
 			return 0
 		}
 	}
 	offset = 0
-	matchMinPos = this$static._pos > this$static._cyclicBufferSize
-		? this$static._pos - this$static._cyclicBufferSize
+	matchMinPos = obj._pos > obj._cyclicBufferSize
+		? obj._pos - obj._cyclicBufferSize
 		: 0
-	cur = this$static._bufferOffset + this$static._pos
+	cur = obj._bufferOffset + obj._pos
 	maxLen = 1
 	hash2Value = 0
 	hash3Value = 0
-	if (this$static.HASH_ARRAY) {
-		temp = CrcTable[this$static._bufferBase[cur] & 255]
-			^ this$static._bufferBase[cur + 1] & 255
+	if (obj.HASH_ARRAY) {
+		temp = crcTable[obj._bufferBase[cur] & 255]
+			^ obj._bufferBase[cur + 1] & 255
 		hash2Value = temp & 1023
-		temp ^= (this$static._bufferBase[cur + 2] & 255) << 8
+		temp ^= (obj._bufferBase[cur + 2] & 255) << 8
 		hash3Value = temp & 65535
-		hashValue =
-			(temp ^ CrcTable[this$static._bufferBase[cur + 3] & 255] << 5)
-			& this$static._hashMask
+		hashValue = (temp ^ crcTable[obj._bufferBase[cur + 3] & 255] << 5)
+			& obj._hashMask
 	} else {
-		hashValue = this$static._bufferBase[cur] & 255
-			^ (this$static._bufferBase[cur + 1] & 255) << 8
+		hashValue = obj._bufferBase[cur] & 255
+			^ (obj._bufferBase[cur + 1] & 255) << 8
 	}
 
-	curMatch = this$static._hash[this$static.kFixHashSize + hashValue] || 0
-	if (this$static.HASH_ARRAY) {
-		curMatch2 = this$static._hash[hash2Value] || 0
-		curMatch3 = this$static._hash[1024 + hash3Value] || 0
-		this$static._hash[hash2Value] = this$static._pos
-		this$static._hash[1024 + hash3Value] = this$static._pos
+	curMatch = obj._hash[obj.kFixHashSize + hashValue] || 0
+	if (obj.HASH_ARRAY) {
+		curMatch2 = obj._hash[hash2Value] || 0
+		curMatch3 = obj._hash[1024 + hash3Value] || 0
+		obj._hash[hash2Value] = obj._pos
+		obj._hash[1024 + hash3Value] = obj._pos
 		if (curMatch2 > matchMinPos) {
 			if (
-				this$static._bufferBase[this$static._bufferOffset + curMatch2]
-					== this$static._bufferBase[cur]
+				obj._bufferBase[obj._bufferOffset + curMatch2]
+					== obj._bufferBase[cur]
 			) {
 				distances[offset++] = maxLen = 2
-				distances[offset++] = this$static._pos - curMatch2 - 1
+				distances[offset++] = obj._pos - curMatch2 - 1
 			}
 		}
 		if (curMatch3 > matchMinPos) {
 			if (
-				this$static._bufferBase[this$static._bufferOffset + curMatch3]
-					== this$static._bufferBase[cur]
+				obj._bufferBase[obj._bufferOffset + curMatch3]
+					== obj._bufferBase[cur]
 			) {
 				if (curMatch3 == curMatch2) {
 					offset -= 2
 				}
 				distances[offset++] = maxLen = 3
-				distances[offset++] = this$static._pos - curMatch3 - 1
+				distances[offset++] = obj._pos - curMatch3 - 1
 				curMatch2 = curMatch3
 			}
 		}
@@ -649,48 +667,43 @@ function $GetMatches(this$static, distances): number {
 			maxLen = 1
 		}
 	}
-	this$static._hash[this$static.kFixHashSize + hashValue] = this$static._pos
-	ptr0 = (this$static._cyclicBufferPos << 1) + 1
-	ptr1 = this$static._cyclicBufferPos << 1
-	len0 = len1 = this$static.kNumHashDirectBytes
-	if (this$static.kNumHashDirectBytes != 0) {
+	obj._hash[obj.kFixHashSize + hashValue] = obj._pos
+	ptr0 = (obj._cyclicBufferPos << 1) + 1
+	ptr1 = obj._cyclicBufferPos << 1
+	len0 = len1 = obj.kNumHashDirectBytes
+	if (obj.kNumHashDirectBytes != 0) {
 		if (curMatch > matchMinPos) {
 			if (
-				this$static
+				obj
 					._bufferBase[
-						this$static._bufferOffset + curMatch
-						+ this$static.kNumHashDirectBytes
-					]
-					!= this$static
-						._bufferBase[cur + this$static.kNumHashDirectBytes]
+						obj._bufferOffset + curMatch + obj.kNumHashDirectBytes
+					] != obj
+					._bufferBase[cur + obj.kNumHashDirectBytes]
 			) {
-				distances[offset++] = maxLen = this$static.kNumHashDirectBytes
-				distances[offset++] = this$static._pos - curMatch - 1
+				distances[offset++] = maxLen = obj.kNumHashDirectBytes
+				distances[offset++] = obj._pos - curMatch - 1
 			}
 		}
 	}
-	count = this$static._cutValue
+	count = obj._cutValue
 	while (1) {
 		if (curMatch <= matchMinPos || count == 0) {
 			count -= 1
-			this$static._son[ptr0] = this$static._son[ptr1] = 0
+			obj._son[ptr0] = obj._son[ptr1] = 0
 			break
 		}
-		delta = this$static._pos - curMatch
-		cyclicPos = (delta <= this$static._cyclicBufferPos
-			? this$static._cyclicBufferPos - delta
-			: this$static._cyclicBufferPos - delta
-				+ this$static._cyclicBufferSize) << 1
-		pby1 = this$static._bufferOffset + curMatch
+		delta = obj._pos - curMatch
+		cyclicPos = (delta <= obj._cyclicBufferPos
+			? obj._cyclicBufferPos - delta
+			: obj._cyclicBufferPos - delta + obj._cyclicBufferSize) << 1
+		pby1 = obj._bufferOffset + curMatch
 		len = len0 < len1 ? len0 : len1
 		if (
-			this$static._bufferBase[pby1 + len]
-				== this$static._bufferBase[cur + len]
+			obj._bufferBase[pby1 + len] == obj._bufferBase[cur + len]
 		) {
 			while ((len += 1) != lenLimit) {
 				if (
-					this$static._bufferBase[pby1 + len]
-						!= this$static._bufferBase[cur + len]
+					obj._bufferBase[pby1 + len] != obj._bufferBase[cur + len]
 				) {
 					break
 				}
@@ -699,56 +712,56 @@ function $GetMatches(this$static, distances): number {
 				distances[offset++] = maxLen = len
 				distances[offset++] = delta - 1
 				if (len == lenLimit) {
-					this$static._son[ptr1] = this$static._son[cyclicPos]
-					this$static._son[ptr0] = this$static._son[cyclicPos + 1]
+					obj._son[ptr1] = obj._son[cyclicPos]
+					obj._son[ptr0] = obj._son[cyclicPos + 1]
 					break
 				}
 			}
 		}
 		if (
-			(this$static._bufferBase[pby1 + len] & 255)
-				< (this$static._bufferBase[cur + len] & 255)
+			(obj._bufferBase[pby1 + len] & 255)
+				< (obj._bufferBase[cur + len] & 255)
 		) {
-			this$static._son[ptr1] = curMatch
+			obj._son[ptr1] = curMatch
 			ptr1 = cyclicPos + 1
-			curMatch = this$static._son[ptr1]
+			curMatch = obj._son[ptr1]
 			len1 = len
 		} else {
-			this$static._son[ptr0] = curMatch
+			obj._son[ptr0] = curMatch
 			ptr0 = cyclicPos
-			curMatch = this$static._son[ptr0]
+			curMatch = obj._son[ptr0]
 			len0 = len
 		}
 	}
-	$MovePos_0(this$static)
+	$MovePos_0(obj)
 	return offset
 }
 
-function $Init_5(this$static): void {
-	this$static._bufferOffset = 0
-	this$static._pos = 0
-	this$static._streamPos = 0
-	this$static._streamEndWasReached = 0
-	$ReadBlock(this$static)
-	this$static._cyclicBufferPos = 0
-	$ReduceOffsets(this$static, -1)
+function $Init_5(obj): void {
+	obj._bufferOffset = 0
+	obj._pos = 0
+	obj._streamPos = 0
+	obj._streamEndWasReached = 0
+	$ReadBlock(obj)
+	obj._cyclicBufferPos = 0
+	$ReduceOffsets(obj, -1)
 }
 
-function $MovePos_0(this$static): void {
+function $MovePos_0(obj): void {
 	var subValue
-	if ((this$static._cyclicBufferPos += 1) >= this$static._cyclicBufferSize) {
-		this$static._cyclicBufferPos = 0
+	if ((obj._cyclicBufferPos += 1) >= obj._cyclicBufferSize) {
+		obj._cyclicBufferPos = 0
 	}
-	$MovePos_1(this$static)
-	if (this$static._pos == 1073741823) {
-		subValue = this$static._pos - this$static._cyclicBufferSize
+	$MovePos_1(obj)
+	if (obj._pos == 1073741823) {
+		subValue = obj._pos - obj._cyclicBufferSize
 		$NormalizeLinks(
-			this$static._son,
-			this$static._cyclicBufferSize * 2,
+			obj._son,
+			obj._cyclicBufferSize * 2,
 			subValue
 		)
-		$NormalizeLinks(this$static._hash, this$static._hashSizeSum, subValue)
-		$ReduceOffsets(this$static, subValue)
+		$NormalizeLinks(obj._hash, obj._hashSizeSum, subValue)
+		$ReduceOffsets(obj, subValue)
 	}
 }
 
@@ -768,20 +781,20 @@ function $NormalizeLinks(items, numItems, subValue): void {
 	}
 }
 
-function $SetType(this$static, numHashBytes): void {
-	this$static.HASH_ARRAY = numHashBytes > 2
-	if (this$static.HASH_ARRAY) {
-		this$static.kNumHashDirectBytes = 0
-		this$static.kMinMatchCheck = 4
-		this$static.kFixHashSize = 66560
+function $SetType(obj, numHashBytes): void {
+	obj.HASH_ARRAY = numHashBytes > 2
+	if (obj.HASH_ARRAY) {
+		obj.kNumHashDirectBytes = 0
+		obj.kMinMatchCheck = 4
+		obj.kFixHashSize = 66560
 	} else {
-		this$static.kNumHashDirectBytes = 2
-		this$static.kMinMatchCheck = 3
-		this$static.kFixHashSize = 0
+		obj.kNumHashDirectBytes = 2
+		obj.kMinMatchCheck = 3
+		obj.kFixHashSize = 0
 	}
 }
 
-function $Skip(this$static, num): void {
+function $Skip(obj, num): void {
 	var count,
 		cur,
 		curMatch,
@@ -801,166 +814,159 @@ function $Skip(this$static, num): void {
 		temp
 	do {
 		if (
-			this$static._pos + this$static._matchMaxLen
-				<= this$static._streamPos
+			obj._pos + obj._matchMaxLen <= obj._streamPos
 		) {
-			lenLimit = this$static._matchMaxLen
+			lenLimit = obj._matchMaxLen
 		} else {
-			lenLimit = this$static._streamPos - this$static._pos
-			if (lenLimit < this$static.kMinMatchCheck) {
-				$MovePos_0(this$static)
+			lenLimit = obj._streamPos - obj._pos
+			if (lenLimit < obj.kMinMatchCheck) {
+				$MovePos_0(obj)
 				continue
 			}
 		}
-		matchMinPos = this$static._pos > this$static._cyclicBufferSize
-			? this$static._pos - this$static._cyclicBufferSize
+		matchMinPos = obj._pos > obj._cyclicBufferSize
+			? obj._pos - obj._cyclicBufferSize
 			: 0
-		cur = this$static._bufferOffset + this$static._pos
-		if (this$static.HASH_ARRAY) {
-			temp = CrcTable[this$static._bufferBase[cur] & 255]
-				^ this$static._bufferBase[cur + 1] & 255
+		cur = obj._bufferOffset + obj._pos
+		if (obj.HASH_ARRAY) {
+			temp = crcTable[obj._bufferBase[cur] & 255]
+				^ obj._bufferBase[cur + 1] & 255
 			hash2Value = temp & 1023
-			this$static._hash[hash2Value] = this$static._pos
-			temp ^= (this$static._bufferBase[cur + 2] & 255) << 8
+			obj._hash[hash2Value] = obj._pos
+			temp ^= (obj._bufferBase[cur + 2] & 255) << 8
 			hash3Value = temp & 65535
-			this$static._hash[1024 + hash3Value] = this$static._pos
-			hashValue =
-				(temp ^ CrcTable[this$static._bufferBase[cur + 3] & 255] << 5)
-				& this$static._hashMask
+			obj._hash[1024 + hash3Value] = obj._pos
+			hashValue = (temp ^ crcTable[obj._bufferBase[cur + 3] & 255] << 5)
+				& obj._hashMask
 		} else {
-			hashValue = this$static._bufferBase[cur] & 255
-				^ (this$static._bufferBase[cur + 1] & 255) << 8
+			hashValue = obj._bufferBase[cur] & 255
+				^ (obj._bufferBase[cur + 1] & 255) << 8
 		}
-		curMatch = this$static._hash[this$static.kFixHashSize + hashValue]
-		this$static._hash[this$static.kFixHashSize + hashValue] =
-			this$static._pos
-		ptr0 = (this$static._cyclicBufferPos << 1) + 1
-		ptr1 = this$static._cyclicBufferPos << 1
-		len0 = len1 = this$static.kNumHashDirectBytes
-		count = this$static._cutValue
+		curMatch = obj._hash[obj.kFixHashSize + hashValue]
+		obj._hash[obj.kFixHashSize + hashValue] = obj._pos
+		ptr0 = (obj._cyclicBufferPos << 1) + 1
+		ptr1 = obj._cyclicBufferPos << 1
+		len0 = len1 = obj.kNumHashDirectBytes
+		count = obj._cutValue
 		while (1) {
 			if (curMatch <= matchMinPos || count == 0) {
 				count -= 1
-				this$static._son[ptr0] = this$static._son[ptr1] = 0
+				obj._son[ptr0] = obj._son[ptr1] = 0
 				break
 			}
-			delta = this$static._pos - curMatch
-			cyclicPos = (delta <= this$static._cyclicBufferPos
-				? this$static._cyclicBufferPos - delta
-				: this$static._cyclicBufferPos - delta
-					+ this$static._cyclicBufferSize) << 1
-			pby1 = this$static._bufferOffset + curMatch
+			delta = obj._pos - curMatch
+			cyclicPos = (delta <= obj._cyclicBufferPos
+				? obj._cyclicBufferPos - delta
+				: obj._cyclicBufferPos - delta + obj._cyclicBufferSize) << 1
+			pby1 = obj._bufferOffset + curMatch
 			len = len0 < len1 ? len0 : len1
 			if (
-				this$static._bufferBase[pby1 + len]
-					== this$static._bufferBase[cur + len]
+				obj._bufferBase[pby1 + len] == obj._bufferBase[cur + len]
 			) {
 				while ((len += 1) != lenLimit) {
 					if (
-						this$static._bufferBase[pby1 + len]
-							!= this$static._bufferBase[cur + len]
+						obj._bufferBase[pby1 + len]
+							!= obj._bufferBase[cur + len]
 					) {
 						break
 					}
 				}
 				if (len == lenLimit) {
-					this$static._son[ptr1] = this$static._son[cyclicPos]
-					this$static._son[ptr0] = this$static._son[cyclicPos + 1]
+					obj._son[ptr1] = obj._son[cyclicPos]
+					obj._son[ptr0] = obj._son[cyclicPos + 1]
 					break
 				}
 			}
 			if (
-				(this$static._bufferBase[pby1 + len] & 255)
-					< (this$static._bufferBase[cur + len] & 255)
+				(obj._bufferBase[pby1 + len] & 255)
+					< (obj._bufferBase[cur + len] & 255)
 			) {
-				this$static._son[ptr1] = curMatch
+				obj._son[ptr1] = curMatch
 				ptr1 = cyclicPos + 1
-				curMatch = this$static._son[ptr1]
+				curMatch = obj._son[ptr1]
 				len1 = len
 			} else {
-				this$static._son[ptr0] = curMatch
+				obj._son[ptr0] = curMatch
 				ptr0 = cyclicPos
-				curMatch = this$static._son[ptr0]
+				curMatch = obj._son[ptr0]
 				len0 = len
 			}
 		}
-		$MovePos_0(this$static)
+		$MovePos_0(obj)
 	} while ((num -= 1) != 0)
 }
 
-/** ce */
-/** ds */
-function $CopyBlock(this$static, distance, len): void {
-	var pos = this$static._pos - distance - 1
+function $CopyBlock(obj, distance, len): void {
+	var pos = obj._pos - distance - 1
 	if (pos < 0) {
-		pos += this$static._windowSize
+		pos += obj._windowSize
 	}
 	for (; len != 0; len -= 1) {
-		if (pos >= this$static._windowSize) {
+		if (pos >= obj._windowSize) {
 			pos = 0
 		}
-		this$static._buffer[this$static._pos] = this$static._buffer[pos]
-		this$static._pos += 1
+		obj._buffer[obj._pos] = obj._buffer[pos]
+		obj._pos += 1
 		pos += 1
-		if (this$static._pos >= this$static._windowSize) {
-			$Flush_0(this$static)
+		if (obj._pos >= obj._windowSize) {
+			$Flush_0(obj)
 		}
 	}
 }
 
-function $Create_5(this$static, windowSize): void {
-	if (this$static._buffer == null || this$static._windowSize != windowSize) {
-		this$static._buffer = initDim(windowSize)
+function $Create_5(obj, windowSize): void {
+	if (obj._buffer == null || obj._windowSize != windowSize) {
+		obj._buffer = initArr(windowSize)
 	}
-	this$static._windowSize = windowSize
-	this$static._pos = 0
-	this$static._streamPos = 0
+	obj._windowSize = windowSize
+	obj._pos = 0
+	obj._streamPos = 0
 }
 
-function $Flush_0(this$static): void {
-	var size = this$static._pos - this$static._streamPos
+function $Flush_0(obj): void {
+	var size = obj._pos - obj._streamPos
 	if (!size) {
 		return
 	}
 	$write_0(
-		this$static._stream,
-		this$static._buffer,
-		this$static._streamPos,
+		obj._stream,
+		obj._buffer,
+		obj._streamPos,
 		size
 	)
-	if (this$static._pos >= this$static._windowSize) {
-		this$static._pos = 0
+	if (obj._pos >= obj._windowSize) {
+		obj._pos = 0
 	}
-	this$static._streamPos = this$static._pos
+	obj._streamPos = obj._pos
 }
 
-function $GetByte(this$static, distance) {
-	var pos = this$static._pos - distance - 1
+function $GetByte(obj, distance) {
+	var pos = obj._pos - distance - 1
 	if (pos < 0) {
-		pos += this$static._windowSize
+		pos += obj._windowSize
 	}
-	return this$static._buffer[pos]
+	return obj._buffer[pos]
 }
 
-function $PutByte(this$static, b): void {
-	this$static._buffer[this$static._pos] = b
-	this$static._pos += 1
-	if (this$static._pos >= this$static._windowSize) {
-		$Flush_0(this$static)
+function $PutByte(obj, b): void {
+	obj._buffer[obj._pos] = b
+	obj._pos += 1
+	if (obj._pos >= obj._windowSize) {
+		$Flush_0(obj)
 	}
 }
 
-function $ReleaseStream(this$static): void {
-	$Flush_0(this$static)
-	this$static._stream = null
+function $ReleaseStream(obj): void {
+	$Flush_0(obj)
+	obj._stream = null
 }
-/** de */
 
-function GetLenToPosState(len: number) {
+function GetLenToPosState(len: number): number {
 	len -= 2
 	if (len < 4) {
 		return len
 	}
+
 	return 3
 }
 
@@ -974,296 +980,289 @@ function StateUpdateChar(index: number): number {
 	return index - 6
 }
 
-/** cs */
-function $Chunker_0(this$static, encoder) {
-	this$static.encoder = encoder
-	this$static.decoder = null
-	this$static.alive = 1
-	return this$static
+function $Chunker_0(obj, encoder) {
+	obj.encoder = encoder
+	obj.decoder = null
+	obj.alive = 1
+	return obj
 }
-/** ce */
-/** ds */
-function $Chunker(this$static, decoder) {
-	this$static.decoder = decoder
-	this$static.encoder = null
-	this$static.alive = 1
-	return this$static
+
+function $Chunker(obj, decoder) {
+	obj.decoder = decoder
+	obj.encoder = null
+	obj.alive = 1
+	return obj
 }
-/** de */
 
-/** ds */
-function $processChunkDecode(this$static) {
-	if (!this$static.alive) {
-		throw new Error("bad state")
-	}
-
-	if (this$static.encoder) {
+function $processChunkDecode(obj) {
+	if (!obj.alive) throw new Error("Bad state")
+	if (obj.encoder) {
 		throw new Error("No encoding")
 	} else {
-		$processDecoderChunk(this$static)
+		$processDecoderChunk(obj)
 	}
-	return this$static.alive
+
+	return obj.alive
 }
 
-function $processDecoderChunk(this$static): void {
-	var result = $CodeOneChunk(this$static.decoder)
-	if (result == -1) {
-		throw new Error("corrupted input")
+function $processDecoderChunk(obj): void {
+	const result = $CodeOneChunk(obj.decoder)
+	if (result === -1) {
+		throw new Error("Corrupted input")
 	}
-	this$static.inBytesProcessed = N1_longLit
-	this$static.outBytesProcessed = this$static.decoder.nowPos64
+
+	obj.inBytesProcessed = N1_longLit
+	obj.outBytesProcessed = obj.decoder.nowPos64
+
 	if (
 		result
-		|| compare(this$static.decoder.outSize, P0_longLit) >= 0
-			&& compare(
-					this$static.decoder.nowPos64,
-					this$static.decoder.outSize
-				) >= 0
+		|| compare(obj.decoder.outSize, P0_longLit) >= 0
+			&& compare(obj.decoder.nowPos64, obj.decoder.outSize) >= 0
 	) {
-		$Flush_0(this$static.decoder.m_OutWindow)
-		$ReleaseStream(this$static.decoder.m_OutWindow)
-		this$static.decoder.m_RangeDecoder.Stream = null
-		this$static.alive = 0
+		$Flush_0(obj.decoder.m_OutWindow)
+		$ReleaseStream(obj.decoder.m_OutWindow)
+		obj.decoder.m_RangeDecoder.Stream = null
+		obj.alive = 0
 	}
 }
-/** de */
-/** cs */
-function $processChunkEncode(this$static) {
-	if (!this$static.alive) {
+
+function $processChunkEncode(obj): number {
+	if (!obj.alive) {
 		throw new Error("bad state")
 	}
 
-	if (this$static.encoder) {
-		$processEncoderChunk(this$static)
+	if (obj.encoder) {
+		$processEncoderChunk(obj)
 	} else {
 		throw new Error("No decoding")
 	}
-	return this$static.alive
+
+	return obj.alive
 }
 
-function $processEncoderChunk(this$static): void {
+function $processEncoderChunk(obj): void {
 	$CodeOneBlock(
-		this$static.encoder,
-		this$static.encoder.processedInSize,
-		this$static.encoder.processedOutSize,
-		this$static.encoder.finished
+		obj.encoder,
+		obj.encoder.processedInSize,
+		obj.encoder.processedOutSize,
+		obj.encoder.finished
 	)
-	this$static.inBytesProcessed = this$static.encoder.processedInSize[0]
-	if (this$static.encoder.finished[0]) {
-		$ReleaseStreams(this$static.encoder)
-		this$static.alive = 0
+	obj.inBytesProcessed = obj.encoder.processedInSize[0]
+	if (obj.encoder.finished[0]) {
+		$ReleaseStreams(obj.encoder)
+		obj.alive = 0
 	}
 }
-/** ce */
 
-/** ds */
-function $CodeInChunks(this$static, inStream, outStream, outSize) {
-	this$static.m_RangeDecoder.Stream = inStream
-	$ReleaseStream(this$static.m_OutWindow)
-	this$static.m_OutWindow._stream = outStream
-	$Init_1(this$static)
-	this$static.state = 0
-	this$static.rep0 = 0
-	this$static.rep1 = 0
-	this$static.rep2 = 0
-	this$static.rep3 = 0
-	this$static.outSize = outSize
-	this$static.nowPos64 = P0_longLit
-	this$static.prevByte = 0
-	return $Chunker({}, this$static)
+function $CodeInChunks(obj, inStream, outStream, outSize) {
+	obj.m_RangeDecoder.Stream = inStream
+	$ReleaseStream(obj.m_OutWindow)
+	obj.m_OutWindow._stream = outStream
+	$Init_1(obj)
+	obj.state = 0
+	obj.rep0 = 0
+	obj.rep1 = 0
+	obj.rep2 = 0
+	obj.rep3 = 0
+	obj.outSize = outSize
+	obj.nowPos64 = P0_longLit
+	obj.prevByte = 0
+	return $Chunker({}, obj)
 }
 
-function $CodeOneChunk(this$static): 0 | 1 | -1 {
+function $CodeOneChunk(obj): 0 | 1 | -1 {
 	var decoder2, distance, len, numDirectBits, posSlot, posState
-	posState = lowBits_0(this$static.nowPos64) & this$static.m_PosStateMask
+	posState = lowBits_0(obj.nowPos64) & obj.m_PosStateMask
 	if (
-		!$DecodeBit(
-			this$static.m_RangeDecoder,
-			this$static.m_IsMatchDecoders,
-			(this$static.state << 4) + posState
+		!decodeBit(
+			obj.m_RangeDecoder,
+			obj.m_IsMatchDecoders,
+			(obj.state << 4) + posState
 		)
 	) {
 		decoder2 = $GetDecoder(
-			this$static.m_LiteralDecoder,
-			lowBits_0(this$static.nowPos64),
-			this$static.prevByte
+			obj.m_LiteralDecoder,
+			lowBits_0(obj.nowPos64),
+			obj.prevByte
 		)
-		if (this$static.state < 7) {
-			this$static.prevByte = $DecodeNormal(
+		if (obj.state < 7) {
+			obj.prevByte = $DecodeNormal(
 				decoder2,
-				this$static.m_RangeDecoder
+				obj.m_RangeDecoder
 			)
 		} else {
-			this$static.prevByte = $DecodeWithMatchByte(
+			obj.prevByte = $DecodeWithMatchByte(
 				decoder2,
-				this$static.m_RangeDecoder,
-				$GetByte(this$static.m_OutWindow, this$static.rep0)
+				obj.m_RangeDecoder,
+				$GetByte(obj.m_OutWindow, obj.rep0)
 			)
 		}
-		$PutByte(this$static.m_OutWindow, this$static.prevByte)
-		this$static.state = StateUpdateChar(this$static.state)
-		this$static.nowPos64 = add(this$static.nowPos64, P1_longLit)
+		$PutByte(obj.m_OutWindow, obj.prevByte)
+		obj.state = StateUpdateChar(obj.state)
+		obj.nowPos64 = add(obj.nowPos64, P1_longLit)
 	} else {
 		if (
-			$DecodeBit(
-				this$static.m_RangeDecoder,
-				this$static.m_IsRepDecoders,
-				this$static.state
+			decodeBit(
+				obj.m_RangeDecoder,
+				obj.m_IsRepDecoders,
+				obj.state
 			)
 		) {
 			len = 0
 			if (
-				!$DecodeBit(
-					this$static.m_RangeDecoder,
-					this$static.m_IsRepG0Decoders,
-					this$static.state
+				!decodeBit(
+					obj.m_RangeDecoder,
+					obj.m_IsRepG0Decoders,
+					obj.state
 				)
 			) {
 				if (
-					!$DecodeBit(
-						this$static.m_RangeDecoder,
-						this$static.m_IsRep0LongDecoders,
-						(this$static.state << 4) + posState
+					!decodeBit(
+						obj.m_RangeDecoder,
+						obj.m_IsRep0LongDecoders,
+						(obj.state << 4) + posState
 					)
 				) {
-					this$static.state = this$static.state < 7 ? 9 : 11
+					obj.state = obj.state < 7 ? 9 : 11
 					len = 1
 				}
 			} else {
 				if (
-					!$DecodeBit(
-						this$static.m_RangeDecoder,
-						this$static.m_IsRepG1Decoders,
-						this$static.state
+					!decodeBit(
+						obj.m_RangeDecoder,
+						obj.m_IsRepG1Decoders,
+						obj.state
 					)
 				) {
-					distance = this$static.rep1
+					distance = obj.rep1
 				} else {
 					if (
-						!$DecodeBit(
-							this$static.m_RangeDecoder,
-							this$static.m_IsRepG2Decoders,
-							this$static.state
+						!decodeBit(
+							obj.m_RangeDecoder,
+							obj.m_IsRepG2Decoders,
+							obj.state
 						)
 					) {
-						distance = this$static.rep2
+						distance = obj.rep2
 					} else {
-						distance = this$static.rep3
-						this$static.rep3 = this$static.rep2
+						distance = obj.rep3
+						obj.rep3 = obj.rep2
 					}
-					this$static.rep2 = this$static.rep1
+					obj.rep2 = obj.rep1
 				}
-				this$static.rep1 = this$static.rep0
-				this$static.rep0 = distance
+				obj.rep1 = obj.rep0
+				obj.rep0 = distance
 			}
 			if (!len) {
 				len = $Decode(
-					this$static.m_RepLenDecoder,
-					this$static.m_RangeDecoder,
+					obj.m_RepLenDecoder,
+					obj.m_RangeDecoder,
 					posState
 				) + 2
-				this$static.state = this$static.state < 7 ? 8 : 11
+				obj.state = obj.state < 7 ? 8 : 11
 			}
 		} else {
-			this$static.rep3 = this$static.rep2
-			this$static.rep2 = this$static.rep1
-			this$static.rep1 = this$static.rep0
-			len = 2
-				+ $Decode(
-					this$static.m_LenDecoder,
-					this$static.m_RangeDecoder,
-					posState
-				)
-			this$static.state = this$static.state < 7 ? 7 : 10
+			obj.rep3 = obj.rep2
+			obj.rep2 = obj.rep1
+			obj.rep1 = obj.rep0
+			len = 2 + $Decode(
+				obj.m_LenDecoder,
+				obj.m_RangeDecoder,
+				posState
+			)
+			obj.state = obj.state < 7 ? 7 : 10
 			posSlot = $Decode_0(
-				this$static.m_PosSlotDecoder[GetLenToPosState(len)],
-				this$static.m_RangeDecoder
+				obj.m_PosSlotDecoder[GetLenToPosState(len)],
+				obj.m_RangeDecoder
 			)
 			if (posSlot >= 4) {
 				numDirectBits = (posSlot >> 1) - 1
-				this$static.rep0 = (2 | posSlot & 1) << numDirectBits
+				obj.rep0 = (2 | posSlot & 1) << numDirectBits
 				if (posSlot < 14) {
-					this$static.rep0 += ReverseDecode(
-						this$static.m_PosDecoders,
-						this$static.rep0 - posSlot - 1,
-						this$static.m_RangeDecoder,
+					obj.rep0 += reverseDecode(
+						obj.m_PosDecoders,
+						obj.rep0 - posSlot - 1,
+						obj.m_RangeDecoder,
 						numDirectBits
 					)
 				} else {
-					this$static.rep0 += $DecodeDirectBits(
-						this$static.m_RangeDecoder,
+					obj.rep0 += $DecodeDirectBits(
+						obj.m_RangeDecoder,
 						numDirectBits - 4
 					) << 4
-					this$static.rep0 += $ReverseDecode(
-						this$static.m_PosAlignDecoder,
-						this$static.m_RangeDecoder
+					obj.rep0 += $ReverseDecode(
+						obj.m_PosAlignDecoder,
+						obj.m_RangeDecoder
 					)
-					if (this$static.rep0 < 0) {
-						if (this$static.rep0 == -1) {
+					if (obj.rep0 < 0) {
+						if (obj.rep0 == -1) {
 							return 1
 						}
 						return -1
 					}
 				}
 			} else {
-				this$static.rep0 = posSlot
+				obj.rep0 = posSlot
 			}
 		}
+
 		if (
-			compare(fromInt(this$static.rep0), this$static.nowPos64) >= 0
-			|| this$static.rep0 >= this$static.m_DictionarySizeCheck
+			compare(fromInt(obj.rep0), obj.nowPos64) >= 0
+			|| obj.rep0 >= obj.m_DictionarySizeCheck
 		) {
 			return -1
 		}
-		$CopyBlock(this$static.m_OutWindow, this$static.rep0, len)
-		this$static.nowPos64 = add(this$static.nowPos64, fromInt(len))
-		this$static.prevByte = $GetByte(this$static.m_OutWindow, 0)
+
+		$CopyBlock(obj.m_OutWindow, obj.rep0, len)
+		obj.nowPos64 = add(obj.nowPos64, fromInt(len))
+		obj.prevByte = $GetByte(obj.m_OutWindow, 0)
 	}
+
 	return 0
 }
 
-function $Decoder(this$static) {
-	this$static.m_OutWindow = {}
-	this$static.m_RangeDecoder = {}
-	this$static.m_IsMatchDecoders = initDim(192)
-	this$static.m_IsRepDecoders = initDim(12)
-	this$static.m_IsRepG0Decoders = initDim(12)
-	this$static.m_IsRepG1Decoders = initDim(12)
-	this$static.m_IsRepG2Decoders = initDim(12)
-	this$static.m_IsRep0LongDecoders = initDim(192)
-	this$static.m_PosSlotDecoder = initDim(4)
-	this$static.m_PosDecoders = initDim(114)
-	this$static.m_PosAlignDecoder = $BitTreeDecoder({}, 4)
-	this$static.m_LenDecoder = $Decoder$LenDecoder({})
-	this$static.m_RepLenDecoder = $Decoder$LenDecoder({})
-	this$static.m_LiteralDecoder = {}
-	for (var i = 0; i < 4; ++i) {
-		this$static.m_PosSlotDecoder[i] = $BitTreeDecoder({}, 6)
+function $Decoder(obj) {
+	obj.m_OutWindow = {}
+	obj.m_RangeDecoder = {}
+	obj.m_IsMatchDecoders = initArr(192)
+	obj.m_IsRepDecoders = initArr(12)
+	obj.m_IsRepG0Decoders = initArr(12)
+	obj.m_IsRepG1Decoders = initArr(12)
+	obj.m_IsRepG2Decoders = initArr(12)
+	obj.m_IsRep0LongDecoders = initArr(192)
+	obj.m_PosSlotDecoder = initArr(4)
+	obj.m_PosDecoders = initArr(114)
+	obj.m_PosAlignDecoder = $BitTreeDecoder({}, 4)
+	obj.m_LenDecoder = $Decoder$LenDecoder({})
+	obj.m_RepLenDecoder = $Decoder$LenDecoder({})
+	obj.m_LiteralDecoder = {}
+	for (let i = 0; i < 4; ++i) {
+		obj.m_PosSlotDecoder[i] = $BitTreeDecoder({}, 6)
 	}
-	return this$static
+	return obj
 }
 
-function $Init_1(this$static): void {
-	this$static.m_OutWindow._streamPos = 0
-	this$static.m_OutWindow._pos = 0
-	InitBitModels(this$static.m_IsMatchDecoders)
-	InitBitModels(this$static.m_IsRep0LongDecoders)
-	InitBitModels(this$static.m_IsRepDecoders)
-	InitBitModels(this$static.m_IsRepG0Decoders)
-	InitBitModels(this$static.m_IsRepG1Decoders)
-	InitBitModels(this$static.m_IsRepG2Decoders)
-	InitBitModels(this$static.m_PosDecoders)
-	$Init_0(this$static.m_LiteralDecoder)
-	for (var i = 0; i < 4; ++i) {
-		InitBitModels(this$static.m_PosSlotDecoder[i].Models)
+function $Init_1(obj): void {
+	obj.m_OutWindow._streamPos = 0
+	obj.m_OutWindow._pos = 0
+	InitBitModels(obj.m_IsMatchDecoders)
+	InitBitModels(obj.m_IsRep0LongDecoders)
+	InitBitModels(obj.m_IsRepDecoders)
+	InitBitModels(obj.m_IsRepG0Decoders)
+	InitBitModels(obj.m_IsRepG1Decoders)
+	InitBitModels(obj.m_IsRepG2Decoders)
+	InitBitModels(obj.m_PosDecoders)
+	$Init_0(obj.m_LiteralDecoder)
+	for (let i = 0; i < 4; ++i) {
+		InitBitModels(obj.m_PosSlotDecoder[i].Models)
 	}
-	$Init(this$static.m_LenDecoder)
-	$Init(this$static.m_RepLenDecoder)
-	InitBitModels(this$static.m_PosAlignDecoder.Models)
-	$Init_8(this$static.m_RangeDecoder)
+	$Init(obj.m_LenDecoder)
+	$Init(obj.m_RepLenDecoder)
+	InitBitModels(obj.m_PosAlignDecoder.Models)
+	$Init_8(obj.m_RangeDecoder)
 }
 
-function $SetDecoderProperties(this$static, properties): 0 | 1 {
+function $SetDecoderProperties(obj, properties): 0 | 1 {
 	var dictionarySize, i, lc, lp, pb, remainder, val
 	if (properties.length < 5) {
 		return 0
@@ -1277,149 +1276,141 @@ function $SetDecoderProperties(this$static, properties): 0 | 1 {
 	for (i = 0; i < 4; ++i) {
 		dictionarySize += (properties[1 + i] & 255) << i * 8
 	}
-	/// NOTE: If the input is bad, it might call for an insanely large dictionary size, which would crash the script.
-	if (dictionarySize > 99999999 || !$SetLcLpPb(this$static, lc, lp, pb)) {
+	// NOTE: If the input is bad, it might call for an insanely large dictionary size, which would crash the script.
+	if (dictionarySize > 99999999 || !$SetLcLpPb(obj, lc, lp, pb)) {
 		return 0
 	}
-	return $SetDictionarySize(this$static, dictionarySize)
+	return $SetDictionarySize(obj, dictionarySize)
 }
 
-function $SetDictionarySize(this$static, dictionarySize): 0 | 1 {
+function $SetDictionarySize(obj, dictionarySize): 0 | 1 {
 	if (dictionarySize < 0) {
 		return 0
 	}
-	if (this$static.m_DictionarySize != dictionarySize) {
-		this$static.m_DictionarySize = dictionarySize
-		this$static.m_DictionarySizeCheck = Math.max(
-			this$static.m_DictionarySize,
+	if (obj.m_DictionarySize != dictionarySize) {
+		obj.m_DictionarySize = dictionarySize
+		obj.m_DictionarySizeCheck = Math.max(
+			obj.m_DictionarySize,
 			1
 		)
 		$Create_5(
-			this$static.m_OutWindow,
-			Math.max(this$static.m_DictionarySizeCheck, 4096)
+			obj.m_OutWindow,
+			Math.max(obj.m_DictionarySizeCheck, 4096)
 		)
 	}
 	return 1
 }
 
-function $SetLcLpPb(this$static, lc, lp, pb): 0 | 1 {
+function $SetLcLpPb(obj, lc: number, lp: number, pb: number): 0 | 1 {
 	if (lc > 8 || lp > 4 || pb > 4) {
 		return 0
 	}
-	$Create_0(this$static.m_LiteralDecoder, lp, lc)
+	$Create_0(obj.m_LiteralDecoder, lp, lc)
 	var numPosStates = 1 << pb
-	$Create(this$static.m_LenDecoder, numPosStates)
-	$Create(this$static.m_RepLenDecoder, numPosStates)
-	this$static.m_PosStateMask = numPosStates - 1
+	$Create(obj.m_LenDecoder, numPosStates)
+	$Create(obj.m_RepLenDecoder, numPosStates)
+	obj.m_PosStateMask = numPosStates - 1
 	return 1
 }
 
-function $Create(this$static, numPosStates): void {
-	for (
-		;
-		this$static.m_NumPosStates < numPosStates;
-		this$static.m_NumPosStates += 1
-	) {
-		this$static.m_LowCoder[this$static.m_NumPosStates] = $BitTreeDecoder(
-			{},
-			3
-		)
-		this$static.m_MidCoder[this$static.m_NumPosStates] = $BitTreeDecoder(
-			{},
-			3
-		)
+function $Create(obj, numPosStates: number): void {
+	for (; obj.m_NumPosStates < numPosStates; obj.m_NumPosStates += 1) {
+		obj.m_LowCoder[obj.m_NumPosStates] = $BitTreeDecoder({}, 3)
+		obj.m_MidCoder[obj.m_NumPosStates] = $BitTreeDecoder({}, 3)
 	}
 }
 
-function $Decode(this$static, rangeDecoder, posState): number {
-	if (!$DecodeBit(rangeDecoder, this$static.m_Choice, 0)) {
-		return $Decode_0(this$static.m_LowCoder[posState], rangeDecoder)
+function $Decode(obj, rangeDecoder, posState: number): number {
+	if (!decodeBit(rangeDecoder, obj.m_Choice, 0)) {
+		return $Decode_0(obj.m_LowCoder[posState], rangeDecoder)
 	}
-	var symbol = 8
-	if (!$DecodeBit(rangeDecoder, this$static.m_Choice, 1)) {
-		symbol += $Decode_0(this$static.m_MidCoder[posState], rangeDecoder)
+	let symbol = 8
+	if (!decodeBit(rangeDecoder, obj.m_Choice, 1)) {
+		symbol += $Decode_0(obj.m_MidCoder[posState], rangeDecoder)
 	} else {
-		symbol += 8 + $Decode_0(this$static.m_HighCoder, rangeDecoder)
+		symbol += 8 + $Decode_0(obj.m_HighCoder, rangeDecoder)
 	}
+
 	return symbol
 }
 
-function $Decoder$LenDecoder(this$static) {
-	this$static.m_Choice = initDim(2)
-	this$static.m_LowCoder = initDim(16)
-	this$static.m_MidCoder = initDim(16)
-	this$static.m_HighCoder = $BitTreeDecoder({}, 8)
-	this$static.m_NumPosStates = 0
-	return this$static
+function $Decoder$LenDecoder(obj) {
+	obj.m_Choice = initArr(2)
+	obj.m_LowCoder = initArr(16)
+	obj.m_MidCoder = initArr(16)
+	obj.m_HighCoder = $BitTreeDecoder({}, 8)
+	obj.m_NumPosStates = 0
+
+	return obj
 }
 
-function $Init(this$static): void {
-	InitBitModels(this$static.m_Choice)
-	for (var posState = 0; posState < this$static.m_NumPosStates; ++posState) {
-		InitBitModels(this$static.m_LowCoder[posState].Models)
-		InitBitModels(this$static.m_MidCoder[posState].Models)
+function $Init(obj): void {
+	InitBitModels(obj.m_Choice)
+	for (let posState = 0; posState < obj.m_NumPosStates; ++posState) {
+		InitBitModels(obj.m_LowCoder[posState].Models)
+		InitBitModels(obj.m_MidCoder[posState].Models)
 	}
-	InitBitModels(this$static.m_HighCoder.Models)
+	InitBitModels(obj.m_HighCoder.Models)
 }
 
-function $Create_0(this$static, numPosBits, numPrevBits): void {
+function $Create_0(obj, numPosBits, numPrevBits): void {
 	var i, numStates
 	if (
-		this$static.m_Coders != null && this$static.m_NumPrevBits == numPrevBits
-		&& this$static.m_NumPosBits == numPosBits
+		obj.m_Coders !== null
+		&& obj.m_NumPrevBits == numPrevBits
+		&& obj.m_NumPosBits == numPosBits
 	) {
 		return
 	}
-	this$static.m_NumPosBits = numPosBits
-	this$static.m_PosMask = (1 << numPosBits) - 1
-	this$static.m_NumPrevBits = numPrevBits
-	numStates = 1 << this$static.m_NumPrevBits + this$static.m_NumPosBits
-	this$static.m_Coders = initDim(numStates)
+	obj.m_NumPosBits = numPosBits
+	obj.m_PosMask = (1 << numPosBits) - 1
+	obj.m_NumPrevBits = numPrevBits
+	numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits
+	obj.m_Coders = initArr(numStates)
 	for (i = 0; i < numStates; ++i) {
-		this$static.m_Coders[i] = $Decoder$LiteralDecoder$Decoder2({})
+		obj.m_Coders[i] = $Decoder$LiteralDecoder$Decoder2({})
 	}
 }
 
-function $GetDecoder(this$static, pos, prevByte) {
-	return this$static
+function $GetDecoder(obj, pos: number, prevByte: number) {
+	return obj
 		.m_Coders[
-			((pos & this$static.m_PosMask) << this$static.m_NumPrevBits)
-			+ ((prevByte & 255) >>> 8 - this$static.m_NumPrevBits)
+			((pos & obj.m_PosMask) << obj.m_NumPrevBits)
+			+ ((prevByte & 255) >>> 8 - obj.m_NumPrevBits)
 		]
 }
 
-function $Init_0(this$static): void {
+function $Init_0(obj): void {
 	var i, numStates
-	numStates = 1 << this$static.m_NumPrevBits + this$static.m_NumPosBits
+	numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits
 	for (i = 0; i < numStates; ++i) {
-		InitBitModels(this$static.m_Coders[i].m_Decoders)
+		InitBitModels(obj.m_Coders[i].m_Decoders)
 	}
 }
 
-function $DecodeNormal(this$static, rangeDecoder): number {
+function $DecodeNormal(obj, rangeDecoder): number {
 	var symbol = 1
 	do {
-		symbol = symbol << 1
-			| $DecodeBit(rangeDecoder, this$static.m_Decoders, symbol)
+		symbol = symbol << 1 | decodeBit(rangeDecoder, obj.m_Decoders, symbol)
 	} while (symbol < 256)
 	return symbol << 24 >> 24
 }
 
-function $DecodeWithMatchByte(this$static, rangeDecoder, matchByte): number {
+function $DecodeWithMatchByte(obj, rangeDecoder, matchByte): number {
 	var bit, matchBit, symbol = 1
 	do {
 		matchBit = matchByte >> 7 & 1
 		matchByte <<= 1
-		bit = $DecodeBit(
+		bit = decodeBit(
 			rangeDecoder,
-			this$static.m_Decoders,
+			obj.m_Decoders,
 			(1 + matchBit << 8) + symbol
 		)
 		symbol = symbol << 1 | bit
 		if (matchBit != bit) {
 			while (symbol < 256) {
 				symbol = symbol << 1
-					| $DecodeBit(rangeDecoder, this$static.m_Decoders, symbol)
+					| decodeBit(rangeDecoder, obj.m_Decoders, symbol)
 			}
 			break
 		}
@@ -1427,18 +1418,16 @@ function $DecodeWithMatchByte(this$static, rangeDecoder, matchByte): number {
 	return symbol << 24 >> 24
 }
 
-function $Decoder$LiteralDecoder$Decoder2(this$static) {
-	this$static.m_Decoders = initDim(768)
-	return this$static
+function $Decoder$LiteralDecoder$Decoder2(obj) {
+	obj.m_Decoders = initArr(768)
+	return obj
 }
 
-/** de */
-/** cs */
 const g_FastPos = function(): number[] {
-	var j, k, slotFast, c = 2, g_FastPos = [0, 1]
+	let j, k, slotFast, c = 2, g_FastPos = [0, 1]
 	for (slotFast = 2; slotFast < 22; ++slotFast) {
 		// k = 1 << (slotFast >> 1) - 1;
-		var s = slotFast
+		let s = slotFast
 		s >>= 1
 		s -= 1
 		k = 1
@@ -1450,46 +1439,44 @@ const g_FastPos = function(): number[] {
 	return g_FastPos
 }()
 
-function $Backward(this$static, cur) {
-	var backCur, backMem, posMem, posPrev
-	this$static._optimumEndIndex = cur
-	posMem = this$static._optimum[cur].PosPrev
-	backMem = this$static._optimum[cur].BackPrev
+function $Backward(obj, cur) {
+	let backCur, backMem, posMem, posPrev
+	obj._optimumEndIndex = cur
+	posMem = obj._optimum[cur].PosPrev
+	backMem = obj._optimum[cur].BackPrev
 	do {
-		if (this$static._optimum[cur].Prev1IsChar) {
-			$MakeAsChar(this$static._optimum[posMem])
-			this$static._optimum[posMem].PosPrev = posMem - 1
-			if (this$static._optimum[cur].Prev2) {
-				this$static._optimum[posMem - 1].Prev1IsChar = 0
-				this$static._optimum[posMem - 1].PosPrev =
-					this$static._optimum[cur].PosPrev2
-				this$static._optimum[posMem - 1].BackPrev =
-					this$static._optimum[cur].BackPrev2
+		if (obj._optimum[cur].Prev1IsChar) {
+			$MakeAsChar(obj._optimum[posMem])
+			obj._optimum[posMem].PosPrev = posMem - 1
+			if (obj._optimum[cur].Prev2) {
+				obj._optimum[posMem - 1].Prev1IsChar = 0
+				obj._optimum[posMem - 1].PosPrev = obj._optimum[cur].PosPrev2
+				obj._optimum[posMem - 1].BackPrev = obj._optimum[cur].BackPrev2
 			}
 		}
 		posPrev = posMem
 		backCur = backMem
-		backMem = this$static._optimum[posPrev].BackPrev
-		posMem = this$static._optimum[posPrev].PosPrev
-		this$static._optimum[posPrev].BackPrev = backCur
-		this$static._optimum[posPrev].PosPrev = cur
+		backMem = obj._optimum[posPrev].BackPrev
+		posMem = obj._optimum[posPrev].PosPrev
+		obj._optimum[posPrev].BackPrev = backCur
+		obj._optimum[posPrev].PosPrev = cur
 		cur = posPrev
 	} while (cur > 0)
-	this$static.backRes = this$static._optimum[0].BackPrev
-	this$static._optimumCurrentIndex = this$static._optimum[0].PosPrev
-	return this$static._optimumCurrentIndex
+	obj.backRes = obj._optimum[0].BackPrev
+	obj._optimumCurrentIndex = obj._optimum[0].PosPrev
+	return obj._optimumCurrentIndex
 }
 
-function $BaseInit(this$static): void {
-	this$static._state = 0
-	this$static._previousByte = 0
-	for (var i = 0; i < 4; ++i) {
-		this$static._repDistances[i] = 0
+function $BaseInit(obj): void {
+	obj._state = 0
+	obj._previousByte = 0
+	for (let i = 0; i < 4; ++i) {
+		obj._repDistances[i] = 0
 	}
 }
 
-function $CodeOneBlock(this$static, inSize, outSize, finished): void {
-	var baseVal,
+function $CodeOneBlock(obj, inSize, outSize, finished): void {
+	let baseVal,
 		complexState,
 		curByte,
 		distance,
@@ -1507,185 +1494,183 @@ function $CodeOneBlock(this$static, inSize, outSize, finished): void {
 	inSize[0] = P0_longLit
 	outSize[0] = P0_longLit
 	finished[0] = 1
-	if (this$static._inStream) {
-		this$static._matchFinder._stream = this$static._inStream
-		$Init_5(this$static._matchFinder)
-		this$static._needReleaseMFStream = 1
-		this$static._inStream = null
+	if (obj._inStream) {
+		obj._matchFinder._stream = obj._inStream
+		$Init_5(obj._matchFinder)
+		obj._needReleaseMFStream = 1
+		obj._inStream = null
 	}
-	if (this$static._finished) {
+	if (obj._finished) {
 		return
 	}
-	this$static._finished = 1
-	progressPosValuePrev = this$static.nowPos64
-	if (eq(this$static.nowPos64, P0_longLit)) {
-		if (!$GetNumAvailableBytes(this$static._matchFinder)) {
-			$Flush(this$static, lowBits_0(this$static.nowPos64))
+	obj._finished = 1
+	progressPosValuePrev = obj.nowPos64
+	if (eq(obj.nowPos64, P0_longLit)) {
+		if (!$GetNumAvailableBytes(obj._matchFinder)) {
+			$Flush(obj, lowBits_0(obj.nowPos64))
 			return
 		}
-		$ReadMatchDistances(this$static)
-		posState = lowBits_0(this$static.nowPos64) & this$static._posStateMask
+		$ReadMatchDistances(obj)
+		posState = lowBits_0(obj.nowPos64) & obj._posStateMask
 		$Encode_3(
-			this$static._rangeEncoder,
-			this$static._isMatch,
-			(this$static._state << 4) + posState,
+			obj._rangeEncoder,
+			obj._isMatch,
+			(obj._state << 4) + posState,
 			0
 		)
-		this$static._state = StateUpdateChar(this$static._state)
+		obj._state = StateUpdateChar(obj._state)
 		curByte = $GetIndexByte(
-			this$static._matchFinder,
-			-this$static._additionalOffset
+			obj._matchFinder,
+			-obj._additionalOffset
 		)
 		$Encode_1(
 			$GetSubCoder(
-				this$static._literalEncoder,
-				lowBits_0(this$static.nowPos64),
-				this$static._previousByte
+				obj._literalEncoder,
+				lowBits_0(obj.nowPos64),
+				obj._previousByte
 			),
-			this$static._rangeEncoder,
+			obj._rangeEncoder,
 			curByte
 		)
-		this$static._previousByte = curByte
-		this$static._additionalOffset -= 1
-		this$static.nowPos64 = add(this$static.nowPos64, P1_longLit)
+		obj._previousByte = curByte
+		obj._additionalOffset -= 1
+		obj.nowPos64 = add(obj.nowPos64, P1_longLit)
 	}
-	if (!$GetNumAvailableBytes(this$static._matchFinder)) {
-		$Flush(this$static, lowBits_0(this$static.nowPos64))
+	if (!$GetNumAvailableBytes(obj._matchFinder)) {
+		$Flush(obj, lowBits_0(obj.nowPos64))
 		return
 	}
 	while (1) {
-		len = $GetOptimum(this$static, lowBits_0(this$static.nowPos64))
-		pos = this$static.backRes
-		posState = lowBits_0(this$static.nowPos64) & this$static._posStateMask
-		complexState = (this$static._state << 4) + posState
+		len = $GetOptimum(obj, lowBits_0(obj.nowPos64))
+		pos = obj.backRes
+		posState = lowBits_0(obj.nowPos64) & obj._posStateMask
+		complexState = (obj._state << 4) + posState
 		if (len == 1 && pos == -1) {
 			$Encode_3(
-				this$static._rangeEncoder,
-				this$static._isMatch,
+				obj._rangeEncoder,
+				obj._isMatch,
 				complexState,
 				0
 			)
 			curByte = $GetIndexByte(
-				this$static._matchFinder,
-				-this$static._additionalOffset
+				obj._matchFinder,
+				-obj._additionalOffset
 			)
 			subCoder = $GetSubCoder(
-				this$static._literalEncoder,
-				lowBits_0(this$static.nowPos64),
-				this$static._previousByte
+				obj._literalEncoder,
+				lowBits_0(obj.nowPos64),
+				obj._previousByte
 			)
-			if (this$static._state < 7) {
-				$Encode_1(subCoder, this$static._rangeEncoder, curByte)
+			if (obj._state < 7) {
+				$Encode_1(subCoder, obj._rangeEncoder, curByte)
 			} else {
 				matchByte = $GetIndexByte(
-					this$static._matchFinder,
-					-this$static._repDistances[0] - 1
-						- this$static._additionalOffset
+					obj._matchFinder,
+					-obj._repDistances[0] - 1 - obj._additionalOffset
 				)
 				$EncodeMatched(
 					subCoder,
-					this$static._rangeEncoder,
+					obj._rangeEncoder,
 					matchByte,
 					curByte
 				)
 			}
-			this$static._previousByte = curByte
-			this$static._state = StateUpdateChar(this$static._state)
+			obj._previousByte = curByte
+			obj._state = StateUpdateChar(obj._state)
 		} else {
 			$Encode_3(
-				this$static._rangeEncoder,
-				this$static._isMatch,
+				obj._rangeEncoder,
+				obj._isMatch,
 				complexState,
 				1
 			)
 			if (pos < 4) {
 				$Encode_3(
-					this$static._rangeEncoder,
-					this$static._isRep,
-					this$static._state,
+					obj._rangeEncoder,
+					obj._isRep,
+					obj._state,
 					1
 				)
 				if (!pos) {
 					$Encode_3(
-						this$static._rangeEncoder,
-						this$static._isRepG0,
-						this$static._state,
+						obj._rangeEncoder,
+						obj._isRepG0,
+						obj._state,
 						0
 					)
 					if (len == 1) {
 						$Encode_3(
-							this$static._rangeEncoder,
-							this$static._isRep0Long,
+							obj._rangeEncoder,
+							obj._isRep0Long,
 							complexState,
 							0
 						)
 					} else {
 						$Encode_3(
-							this$static._rangeEncoder,
-							this$static._isRep0Long,
+							obj._rangeEncoder,
+							obj._isRep0Long,
 							complexState,
 							1
 						)
 					}
 				} else {
 					$Encode_3(
-						this$static._rangeEncoder,
-						this$static._isRepG0,
-						this$static._state,
+						obj._rangeEncoder,
+						obj._isRepG0,
+						obj._state,
 						1
 					)
 					if (pos == 1) {
 						$Encode_3(
-							this$static._rangeEncoder,
-							this$static._isRepG1,
-							this$static._state,
+							obj._rangeEncoder,
+							obj._isRepG1,
+							obj._state,
 							0
 						)
 					} else {
 						$Encode_3(
-							this$static._rangeEncoder,
-							this$static._isRepG1,
-							this$static._state,
+							obj._rangeEncoder,
+							obj._isRepG1,
+							obj._state,
 							1
 						)
 						$Encode_3(
-							this$static._rangeEncoder,
-							this$static._isRepG2,
-							this$static._state,
+							obj._rangeEncoder,
+							obj._isRepG2,
+							obj._state,
 							pos - 2
 						)
 					}
 				}
 				if (len == 1) {
-					this$static._state = this$static._state < 7 ? 9 : 11
+					obj._state = obj._state < 7 ? 9 : 11
 				} else {
 					$Encode_0(
-						this$static._repMatchLenEncoder,
-						this$static._rangeEncoder,
+						obj._repMatchLenEncoder,
+						obj._rangeEncoder,
 						len - 2,
 						posState
 					)
-					this$static._state = this$static._state < 7 ? 8 : 11
+					obj._state = obj._state < 7 ? 8 : 11
 				}
-				distance = this$static._repDistances[pos]
+				distance = obj._repDistances[pos]
 				if (pos != 0) {
-					for (var i = pos; i >= 1; --i) {
-						this$static._repDistances[i] =
-							this$static._repDistances[i - 1]
+					for (let i = pos; i >= 1; --i) {
+						obj._repDistances[i] = obj._repDistances[i - 1]
 					}
-					this$static._repDistances[0] = distance
+					obj._repDistances[0] = distance
 				}
 			} else {
 				$Encode_3(
-					this$static._rangeEncoder,
-					this$static._isRep,
-					this$static._state,
+					obj._rangeEncoder,
+					obj._isRep,
+					obj._state,
 					0
 				)
-				this$static._state = this$static._state < 7 ? 7 : 10
+				obj._state = obj._state < 7 ? 7 : 10
 				$Encode_0(
-					this$static._lenEncoder,
-					this$static._rangeEncoder,
+					obj._lenEncoder,
+					obj._rangeEncoder,
 					len - 2,
 					posState
 				)
@@ -1693,8 +1678,8 @@ function $CodeOneBlock(this$static, inSize, outSize, finished): void {
 				posSlot = GetPosSlot(pos)
 				lenToPosState = GetLenToPosState(len)
 				$Encode_2(
-					this$static._posSlotEncoder[lenToPosState],
-					this$static._rangeEncoder,
+					obj._posSlotEncoder[lenToPosState],
+					obj._rangeEncoder,
 					posSlot
 				)
 				if (posSlot >= 4) {
@@ -1703,61 +1688,60 @@ function $CodeOneBlock(this$static, inSize, outSize, finished): void {
 					posReduced = pos - baseVal
 					if (posSlot < 14) {
 						ReverseEncode(
-							this$static._posEncoders,
+							obj._posEncoders,
 							baseVal - posSlot - 1,
-							this$static._rangeEncoder,
+							obj._rangeEncoder,
 							footerBits,
 							posReduced
 						)
 					} else {
 						$EncodeDirectBits(
-							this$static._rangeEncoder,
+							obj._rangeEncoder,
 							posReduced >> 4,
 							footerBits - 4
 						)
 						$ReverseEncode(
-							this$static._posAlignEncoder,
-							this$static._rangeEncoder,
+							obj._posAlignEncoder,
+							obj._rangeEncoder,
 							posReduced & 15
 						)
-						this$static._alignPriceCount += 1
+						obj._alignPriceCount += 1
 					}
 				}
 				distance = pos
-				for (var i = 3; i >= 1; --i) {
-					this$static._repDistances[i] =
-						this$static._repDistances[i - 1]
+				for (let i = 3; i >= 1; --i) {
+					obj._repDistances[i] = obj._repDistances[i - 1]
 				}
-				this$static._repDistances[0] = distance
-				this$static._matchPriceCount += 1
+				obj._repDistances[0] = distance
+				obj._matchPriceCount += 1
 			}
-			this$static._previousByte = $GetIndexByte(
-				this$static._matchFinder,
-				len - 1 - this$static._additionalOffset
+			obj._previousByte = $GetIndexByte(
+				obj._matchFinder,
+				len - 1 - obj._additionalOffset
 			)
 		}
-		this$static._additionalOffset -= len
-		this$static.nowPos64 = add(this$static.nowPos64, fromInt(len))
-		if (!this$static._additionalOffset) {
-			if (this$static._matchPriceCount >= 128) {
-				$FillDistancesPrices(this$static)
+		obj._additionalOffset -= len
+		obj.nowPos64 = add(obj.nowPos64, fromInt(len))
+		if (!obj._additionalOffset) {
+			if (obj._matchPriceCount >= 128) {
+				$FillDistancesPrices(obj)
 			}
-			if (this$static._alignPriceCount >= 16) {
-				$FillAlignPrices(this$static)
+			if (obj._alignPriceCount >= 16) {
+				$FillAlignPrices(obj)
 			}
-			inSize[0] = this$static.nowPos64
-			outSize[0] = $GetProcessedSizeAdd(this$static._rangeEncoder)
-			if (!$GetNumAvailableBytes(this$static._matchFinder)) {
-				$Flush(this$static, lowBits_0(this$static.nowPos64))
+			inSize[0] = obj.nowPos64
+			outSize[0] = $GetProcessedSizeAdd(obj._rangeEncoder)
+			if (!$GetNumAvailableBytes(obj._matchFinder)) {
+				$Flush(obj, lowBits_0(obj.nowPos64))
 				return
 			}
 			if (
-				compare(sub(this$static.nowPos64, progressPosValuePrev), [
-					4096,
-					0
-				]) >= 0
+				compare(
+					sub(obj.nowPos64, progressPosValuePrev),
+					[4096, 0]
+				) >= 0
 			) {
-				this$static._finished = 0
+				obj._finished = 0
 				finished[0] = 0
 				return
 			}
@@ -1765,141 +1749,136 @@ function $CodeOneBlock(this$static, inSize, outSize, finished): void {
 	}
 }
 
-function $Create_2(this$static): void {
+function $Create_2(obj): void {
 	var bt, numHashBytes
-	if (!this$static._matchFinder) {
+	if (!obj._matchFinder) {
 		bt = {}
 		numHashBytes = 4
-		if (!this$static._matchFinderType) {
+		if (!obj._matchFinderType) {
 			numHashBytes = 2
 		}
 		$SetType(bt, numHashBytes)
-		this$static._matchFinder = bt
+		obj._matchFinder = bt
 	}
 	$Create_1(
-		this$static._literalEncoder,
-		this$static._numLiteralPosStateBits,
-		this$static._numLiteralContextBits
+		obj._literalEncoder,
+		obj._numLiteralPosStateBits,
+		obj._numLiteralContextBits
 	)
 	if (
-		this$static._dictionarySize == this$static._dictionarySizePrev
-		&& this$static._numFastBytesPrev == this$static._numFastBytes
+		obj._dictionarySize == obj._dictionarySizePrev
+		&& obj._numFastBytesPrev == obj._numFastBytes
 	) {
 		return
 	}
 	$Create_3(
-		this$static._matchFinder,
-		this$static._dictionarySize,
+		obj._matchFinder,
+		obj._dictionarySize,
 		4096,
-		this$static._numFastBytes,
+		obj._numFastBytes,
 		274
 	)
-	this$static._dictionarySizePrev = this$static._dictionarySize
-	this$static._numFastBytesPrev = this$static._numFastBytes
+	obj._dictionarySizePrev = obj._dictionarySize
+	obj._numFastBytesPrev = obj._numFastBytes
 }
 
-function $Encoder(this$static) {
-	var i
-	this$static._repDistances = initDim(4)
-	this$static._optimum = []
-	this$static._rangeEncoder = {}
-	this$static._isMatch = initDim(192)
-	this$static._isRep = initDim(12)
-	this$static._isRepG0 = initDim(12)
-	this$static._isRepG1 = initDim(12)
-	this$static._isRepG2 = initDim(12)
-	this$static._isRep0Long = initDim(192)
-	this$static._posSlotEncoder = []
-	this$static._posEncoders = initDim(114)
-	this$static._posAlignEncoder = $BitTreeEncoder({}, 4)
-	this$static._lenEncoder = $Encoder$LenPriceTableEncoder({})
-	this$static._repMatchLenEncoder = $Encoder$LenPriceTableEncoder({})
-	this$static._literalEncoder = {}
-	this$static._matchDistances = []
-	this$static._posSlotPrices = []
-	this$static._distancesPrices = []
-	this$static._alignPrices = initDim(16)
-	this$static.reps = initDim(4)
-	this$static.repLens = initDim(4)
-	this$static.processedInSize = [P0_longLit]
-	this$static.processedOutSize = [P0_longLit]
-	this$static.finished = [0]
-	this$static.properties = initDim(5)
-	this$static.tempPrices = initDim(128)
-	this$static._longestMatchLength = 0
-	this$static._matchFinderType = 1
-	this$static._numDistancePairs = 0
-	this$static._numFastBytesPrev = -1
-	this$static.backRes = 0
-	for (i = 0; i < 4096; ++i) {
-		this$static._optimum[i] = {}
+function $Encoder() {
+	const obj = {
+		_repDistances: initArr(4),
+		_optimum: [],
+		_rangeEncoder: {},
+		_isMatch: initArr(192),
+		_isRep: initArr(12),
+		_isRepG0: initArr(12),
+		_isRepG1: initArr(12),
+		_isRepG2: initArr(12),
+		_isRep0Long: initArr(192),
+		_posSlotEncoder: [],
+		_posEncoders: initArr(114),
+		_posAlignEncoder: bitTreeEncoder({}, 4),
+		_lenEncoder: $Encoder$LenPriceTableEncoder({}),
+		_repMatchLenEncoder: $Encoder$LenPriceTableEncoder({}),
+		_literalEncoder: {},
+		_matchDistances: [],
+		_posSlotPrices: [],
+		_distancesPrices: [],
+		_alignPrices: initArr(16),
+		reps: initArr(4),
+		repLens: initArr(4),
+		processedInSize: [P0_longLit],
+		processedOutSize: [P0_longLit],
+		finished: [0],
+		properties: initArr(5),
+		tempPrices: initArr(128),
+		_longestMatchLength: 0,
+		_matchFinderType: 1,
+		_numDistancePairs: 0,
+		_numFastBytesPrev: -1,
+		backRes: 0
 	}
-	for (i = 0; i < 4; ++i) {
-		this$static._posSlotEncoder[i] = $BitTreeEncoder({}, 6)
+	for (let i = 0; i < 4_096; ++i) {
+		obj._optimum[i] = {}
 	}
-	return this$static
+	for (let i = 0; i < 4; ++i) {
+		obj._posSlotEncoder[i] = bitTreeEncoder({}, 6)
+	}
+	return obj
 }
 
-function $FillAlignPrices(this$static): void {
-	for (var i = 0; i < 16; ++i) {
-		this$static._alignPrices[i] = $ReverseGetPrice(
-			this$static._posAlignEncoder,
-			i
-		)
+function $FillAlignPrices(obj): void {
+	for (let i = 0; i < 16; ++i) {
+		obj._alignPrices[i] = $ReverseGetPrice(obj._posAlignEncoder, i)
 	}
-	this$static._alignPriceCount = 0
+	obj._alignPriceCount = 0
 }
 
-function $FillDistancesPrices(this$static): void {
-	var baseVal, encoder, footerBits, i, lenToPosState, posSlot, st, st2
-	for (i = 4; i < 128; ++i) {
+function $FillDistancesPrices(obj): void {
+	var baseVal, encoder, footerBits, posSlot, st, st2
+	for (let i = 4; i < 128; ++i) {
 		posSlot = GetPosSlot(i)
 		footerBits = (posSlot >> 1) - 1
 		baseVal = (2 | posSlot & 1) << footerBits
-		this$static.tempPrices[i] = ReverseGetPrice(
-			this$static._posEncoders,
+		obj.tempPrices[i] = ReverseGetPrice(
+			obj._posEncoders,
 			baseVal - posSlot - 1,
 			footerBits,
 			i - baseVal
 		)
 	}
-	for (lenToPosState = 0; lenToPosState < 4; ++lenToPosState) {
-		encoder = this$static._posSlotEncoder[lenToPosState]
+	for (let lenToPosState = 0; lenToPosState < 4; ++lenToPosState) {
+		encoder = obj._posSlotEncoder[lenToPosState]
 		st = lenToPosState << 6
-		for (posSlot = 0; posSlot < this$static._distTableSize; posSlot += 1) {
-			this$static._posSlotPrices[st + posSlot] = $GetPrice_1(
+		for (posSlot = 0; posSlot < obj._distTableSize; posSlot += 1) {
+			obj._posSlotPrices[st + posSlot] = $GetPrice_1(
 				encoder,
 				posSlot
 			)
 		}
-		for (posSlot = 14; posSlot < this$static._distTableSize; posSlot += 1) {
-			this$static._posSlotPrices[st + posSlot] += (posSlot >> 1) - 1 - 4
-				<< 6
+		for (posSlot = 14; posSlot < obj._distTableSize; posSlot += 1) {
+			obj._posSlotPrices[st + posSlot] += (posSlot >> 1) - 1 - 4 << 6
 		}
 		st2 = lenToPosState * 128
-		for (i = 0; i < 4; ++i) {
-			this$static._distancesPrices[st2 + i] =
-				this$static._posSlotPrices[st + i]
+		for (let i = 0; i < 4; ++i) {
+			obj._distancesPrices[st2 + i] = obj._posSlotPrices[st + i]
 		}
-		for (; i < 128; ++i) {
-			this$static._distancesPrices[st2 + i] =
-				this$static._posSlotPrices[st + GetPosSlot(i)]
-				+ this$static.tempPrices[i]
+		for (let i = 4; i < 128; ++i) {
+			obj._distancesPrices[st2 + i] =
+				obj._posSlotPrices[st + GetPosSlot(i)] + obj.tempPrices[i]
 		}
 	}
-	this$static._matchPriceCount = 0
+	obj._matchPriceCount = 0
 }
 
-function $Flush(this$static, nowPos): void {
-	$ReleaseMFStream(this$static)
-	$WriteEndMarker(this$static, nowPos & this$static._posStateMask)
-	for (var i = 0; i < 5; ++i) {
-		$ShiftLow(this$static._rangeEncoder)
+function $Flush(obj, nowPos: number): void {
+	$ReleaseMFStream(obj)
+	$WriteEndMarker(obj, nowPos & obj._posStateMask)
+	for (let i = 0; i < 5; ++i) {
+		$ShiftLow(obj._rangeEncoder)
 	}
 }
 
-function $GetOptimum(this$static, position) {
-	var cur,
+function $GetOptimum(obj, position: number) {
+	let cur,
 		curAnd1Price,
 		curAndLenCharPrice,
 		curAndLenPrice,
@@ -1907,11 +1886,9 @@ function $GetOptimum(this$static, position) {
 		curPrice,
 		currentByte,
 		distance,
-		i,
 		len,
 		lenEnd,
 		lenMain,
-		lenRes,
 		lenTest,
 		lenTest2,
 		lenTestTemp,
@@ -1949,130 +1926,123 @@ function $GetOptimum(this$static, position) {
 		price_1,
 		price_2,
 		price_3
-	if (this$static._optimumEndIndex != this$static._optimumCurrentIndex) {
-		lenRes = this$static._optimum[this$static._optimumCurrentIndex].PosPrev
-			- this$static._optimumCurrentIndex
-		this$static.backRes =
-			this$static._optimum[this$static._optimumCurrentIndex].BackPrev
-		this$static._optimumCurrentIndex =
-			this$static._optimum[this$static._optimumCurrentIndex].PosPrev
+	if (obj._optimumEndIndex != obj._optimumCurrentIndex) {
+		const lenRes = obj._optimum[obj._optimumCurrentIndex].PosPrev
+			- obj._optimumCurrentIndex
+		obj.backRes = obj._optimum[obj._optimumCurrentIndex].BackPrev
+		obj._optimumCurrentIndex =
+			obj._optimum[obj._optimumCurrentIndex].PosPrev
 		return lenRes
 	}
-	this$static._optimumCurrentIndex = this$static._optimumEndIndex = 0
-	if (this$static._longestMatchWasFound) {
-		lenMain = this$static._longestMatchLength
-		this$static._longestMatchWasFound = 0
+	obj._optimumCurrentIndex = obj._optimumEndIndex = 0
+	if (obj._longestMatchWasFound) {
+		lenMain = obj._longestMatchLength
+		obj._longestMatchWasFound = 0
 	} else {
-		lenMain = $ReadMatchDistances(this$static)
+		lenMain = $ReadMatchDistances(obj)
 	}
-	numDistancePairs = this$static._numDistancePairs
-	numAvailableBytes = $GetNumAvailableBytes(this$static._matchFinder) + 1
+	numDistancePairs = obj._numDistancePairs
+	numAvailableBytes = $GetNumAvailableBytes(obj._matchFinder) + 1
 	if (numAvailableBytes < 2) {
-		this$static.backRes = -1
+		obj.backRes = -1
 		return 1
 	}
 	if (numAvailableBytes > 273) {
 		numAvailableBytes = 273
 	}
 	repMaxIndex = 0
-	for (i = 0; i < 4; ++i) {
-		this$static.reps[i] = this$static._repDistances[i]
-		this$static.repLens[i] = $GetMatchLen(
-			this$static._matchFinder,
+	for (let i = 0; i < 4; ++i) {
+		obj.reps[i] = obj._repDistances[i]
+		obj.repLens[i] = $GetMatchLen(
+			obj._matchFinder,
 			-1,
-			this$static.reps[i],
+			obj.reps[i],
 			273
 		)
-		if (this$static.repLens[i] > this$static.repLens[repMaxIndex]) {
+		if (obj.repLens[i] > obj.repLens[repMaxIndex]) {
 			repMaxIndex = i
 		}
 	}
-	if (this$static.repLens[repMaxIndex] >= this$static._numFastBytes) {
-		this$static.backRes = repMaxIndex
-		lenRes = this$static.repLens[repMaxIndex]
-		$MovePos(this$static, lenRes - 1)
+	if (obj.repLens[repMaxIndex] >= obj._numFastBytes) {
+		obj.backRes = repMaxIndex
+		lenRes = obj.repLens[repMaxIndex]
+		$MovePos(obj, lenRes - 1)
 		return lenRes
 	}
-	if (lenMain >= this$static._numFastBytes) {
-		this$static.backRes = this$static._matchDistances[numDistancePairs - 1]
-			+ 4
-		$MovePos(this$static, lenMain - 1)
+	if (lenMain >= obj._numFastBytes) {
+		obj.backRes = obj._matchDistances[numDistancePairs - 1] + 4
+		$MovePos(obj, lenMain - 1)
 		return lenMain
 	}
-	currentByte = $GetIndexByte(this$static._matchFinder, -1)
+	currentByte = $GetIndexByte(obj._matchFinder, -1)
 	matchByte = $GetIndexByte(
-		this$static._matchFinder,
-		-this$static._repDistances[0] - 1 - 1
+		obj._matchFinder,
+		-obj._repDistances[0] - 1 - 1
 	)
 	if (
-		lenMain < 2 && currentByte != matchByte
-		&& this$static.repLens[repMaxIndex] < 2
+		lenMain < 2 && currentByte != matchByte && obj.repLens[repMaxIndex] < 2
 	) {
-		this$static.backRes = -1
+		obj.backRes = -1
 		return 1
 	}
-	this$static._optimum[0].State = this$static._state
-	posState = position & this$static._posStateMask
-	this$static._optimum[1].Price = ProbPrices[
-		this$static._isMatch[(this$static._state << 4) + posState] >>> 2
-	]
-		+ $GetPrice_0(
-			$GetSubCoder(
-				this$static._literalEncoder,
-				position,
-				this$static._previousByte
-			),
-			this$static._state >= 7,
-			matchByte,
-			currentByte
-		)
-	$MakeAsChar(this$static._optimum[1])
+	obj._optimum[0].State = obj._state
+	posState = position & obj._posStateMask
+	obj._optimum[1].Price = ProbPrices[
+		obj._isMatch[(obj._state << 4) + posState] >>> 2
+	] + $GetPrice_0(
+		$GetSubCoder(
+			obj._literalEncoder,
+			position,
+			obj._previousByte
+		),
+		obj._state >= 7,
+		matchByte,
+		currentByte
+	)
+	$MakeAsChar(obj._optimum[1])
 	matchPrice = ProbPrices[
-		2048 - this$static._isMatch[(this$static._state << 4) + posState]
-		>>> 2
+		2_048 - obj._isMatch[(obj._state << 4) + posState] >>> 2
 	]
 	repMatchPrice = matchPrice
-		+ ProbPrices[2048 - this$static._isRep[this$static._state] >>> 2]
+		+ ProbPrices[2_048 - obj._isRep[obj._state] >>> 2]
 	if (matchByte == currentByte) {
 		shortRepPrice = repMatchPrice
-			+ $GetRepLen1Price(this$static, this$static._state, posState)
-		if (shortRepPrice < this$static._optimum[1].Price) {
-			this$static._optimum[1].Price = shortRepPrice
-			$MakeAsShortRep(this$static._optimum[1])
+			+ $GetRepLen1Price(obj, obj._state, posState)
+		if (shortRepPrice < obj._optimum[1].Price) {
+			obj._optimum[1].Price = shortRepPrice
+			$MakeAsShortRep(obj._optimum[1])
 		}
 	}
-	lenEnd = lenMain >= this$static.repLens[repMaxIndex]
+	lenEnd = lenMain >= obj.repLens[repMaxIndex]
 		? lenMain
-		: this$static.repLens[repMaxIndex]
+		: obj.repLens[repMaxIndex]
 	if (lenEnd < 2) {
-		this$static.backRes = this$static._optimum[1].BackPrev
+		obj.backRes = obj._optimum[1].BackPrev
 		return 1
 	}
-	this$static._optimum[1].PosPrev = 0
-	this$static._optimum[0].Backs0 = this$static.reps[0]
-	this$static._optimum[0].Backs1 = this$static.reps[1]
-	this$static._optimum[0].Backs2 = this$static.reps[2]
-	this$static._optimum[0].Backs3 = this$static.reps[3]
+	obj._optimum[1].PosPrev = 0
+	obj._optimum[0].Backs0 = obj.reps[0]
+	obj._optimum[0].Backs1 = obj.reps[1]
+	obj._optimum[0].Backs2 = obj.reps[2]
+	obj._optimum[0].Backs3 = obj.reps[3]
 	len = lenEnd
 	do {
-		this$static._optimum[len].Price = 268435455
+		obj._optimum[len].Price = 268_435_455
 		len -= 1
 	} while (len >= 2)
-	for (i = 0; i < 4; ++i) {
-		repLen = this$static.repLens[i]
+	for (let i = 0; i < 4; ++i) {
+		repLen = obj.repLens[i]
 		if (repLen < 2) {
 			continue
 		}
-		price_4 = repMatchPrice
-			+ $GetPureRepPrice(this$static, i, this$static._state, posState)
+		price_4 = repMatchPrice + $GetPureRepPrice(obj, i, obj._state, posState)
 		do {
-			curAndLenPrice = price_4
-				+ $GetPrice(
-					this$static._repMatchLenEncoder,
-					repLen - 2,
-					posState
-				)
-			optimum = this$static._optimum[repLen]
+			curAndLenPrice = price_4 + $GetPrice(
+				obj._repMatchLenEncoder,
+				repLen - 2,
+				posState
+			)
+			optimum = obj._optimum[repLen]
 			if (curAndLenPrice < optimum.Price) {
 				optimum.Price = curAndLenPrice
 				optimum.PosPrev = 0
@@ -2081,26 +2051,25 @@ function $GetOptimum(this$static, position) {
 			}
 		} while ((repLen -= 1) >= 2)
 	}
-	normalMatchPrice = matchPrice
-		+ ProbPrices[this$static._isRep[this$static._state] >>> 2]
-	len = this$static.repLens[0] >= 2 ? this$static.repLens[0] + 1 : 2
+	normalMatchPrice = matchPrice + ProbPrices[obj._isRep[obj._state] >>> 2]
+	len = obj.repLens[0] >= 2 ? obj.repLens[0] + 1 : 2
 	if (len <= lenMain) {
 		offs = 0
-		while (len > this$static._matchDistances[offs]) {
+		while (len > obj._matchDistances[offs]) {
 			offs += 2
 		}
 		for (;; len += 1) {
-			distance = this$static._matchDistances[offs + 1]
+			distance = obj._matchDistances[offs + 1]
 			curAndLenPrice = normalMatchPrice
-				+ $GetPosLenPrice(this$static, distance, len, posState)
-			optimum = this$static._optimum[len]
+				+ $GetPosLenPrice(obj, distance, len, posState)
+			optimum = obj._optimum[len]
 			if (curAndLenPrice < optimum.Price) {
 				optimum.Price = curAndLenPrice
 				optimum.PosPrev = 0
 				optimum.BackPrev = distance + 4
 				optimum.Prev1IsChar = 0
 			}
-			if (len == this$static._matchDistances[offs]) {
+			if (len == obj._matchDistances[offs]) {
 				offs += 2
 				if (offs == numDistancePairs) {
 					break
@@ -2112,111 +2081,110 @@ function $GetOptimum(this$static, position) {
 	while (1) {
 		;++cur
 		if (cur == lenEnd) {
-			return $Backward(this$static, cur)
+			return $Backward(obj, cur)
 		}
-		newLen = $ReadMatchDistances(this$static)
-		numDistancePairs = this$static._numDistancePairs
-		if (newLen >= this$static._numFastBytes) {
-			this$static._longestMatchLength = newLen
-			this$static._longestMatchWasFound = 1
-			return $Backward(this$static, cur)
+		newLen = $ReadMatchDistances(obj)
+		numDistancePairs = obj._numDistancePairs
+		if (newLen >= obj._numFastBytes) {
+			obj._longestMatchLength = newLen
+			obj._longestMatchWasFound = 1
+			return $Backward(obj, cur)
 		}
 		position += 1
-		posPrev = this$static._optimum[cur].PosPrev
-		if (this$static._optimum[cur].Prev1IsChar) {
+		posPrev = obj._optimum[cur].PosPrev
+		if (obj._optimum[cur].Prev1IsChar) {
 			posPrev -= 1
-			if (this$static._optimum[cur].Prev2) {
-				state = this$static._optimum[this$static._optimum[cur].PosPrev2]
+			if (obj._optimum[cur].Prev2) {
+				state = obj._optimum[obj._optimum[cur].PosPrev2]
 					.State
-				if (this$static._optimum[cur].BackPrev2 < 4) {
+				if (obj._optimum[cur].BackPrev2 < 4) {
 					state = (state < 7) ? 8 : 11
 				} else {
 					state = (state < 7) ? 7 : 10
 				}
 			} else {
-				state = this$static._optimum[posPrev].State
+				state = obj._optimum[posPrev].State
 			}
 			state = StateUpdateChar(state)
 		} else {
-			state = this$static._optimum[posPrev].State
+			state = obj._optimum[posPrev].State
 		}
 		if (posPrev == cur - 1) {
-			if (!this$static._optimum[cur].BackPrev) {
+			if (!obj._optimum[cur].BackPrev) {
 				state = state < 7 ? 9 : 11
 			} else {
 				state = StateUpdateChar(state)
 			}
 		} else {
 			if (
-				this$static._optimum[cur].Prev1IsChar
-				&& this$static._optimum[cur].Prev2
+				obj._optimum[cur].Prev1IsChar && obj._optimum[cur].Prev2
 			) {
-				posPrev = this$static._optimum[cur].PosPrev2
-				pos = this$static._optimum[cur].BackPrev2
+				posPrev = obj._optimum[cur].PosPrev2
+				pos = obj._optimum[cur].BackPrev2
 				state = state < 7 ? 8 : 11
 			} else {
-				pos = this$static._optimum[cur].BackPrev
+				pos = obj._optimum[cur].BackPrev
 				if (pos < 4) {
 					state = state < 7 ? 8 : 11
 				} else {
 					state = state < 7 ? 7 : 10
 				}
 			}
-			opt = this$static._optimum[posPrev]
+			opt = obj._optimum[posPrev]
 			if (pos < 4) {
 				if (!pos) {
-					this$static.reps[0] = opt.Backs0
-					this$static.reps[1] = opt.Backs1
-					this$static.reps[2] = opt.Backs2
-					this$static.reps[3] = opt.Backs3
+					obj.reps[0] = opt.Backs0
+					obj.reps[1] = opt.Backs1
+					obj.reps[2] = opt.Backs2
+					obj.reps[3] = opt.Backs3
 				} else if (pos == 1) {
-					this$static.reps[0] = opt.Backs1
-					this$static.reps[1] = opt.Backs0
-					this$static.reps[2] = opt.Backs2
-					this$static.reps[3] = opt.Backs3
+					obj.reps[0] = opt.Backs1
+					obj.reps[1] = opt.Backs0
+					obj.reps[2] = opt.Backs2
+					obj.reps[3] = opt.Backs3
 				} else if (pos == 2) {
-					this$static.reps[0] = opt.Backs2
-					this$static.reps[1] = opt.Backs0
-					this$static.reps[2] = opt.Backs1
-					this$static.reps[3] = opt.Backs3
+					obj.reps[0] = opt.Backs2
+					obj.reps[1] = opt.Backs0
+					obj.reps[2] = opt.Backs1
+					obj.reps[3] = opt.Backs3
 				} else {
-					this$static.reps[0] = opt.Backs3
-					this$static.reps[1] = opt.Backs0
-					this$static.reps[2] = opt.Backs1
-					this$static.reps[3] = opt.Backs2
+					obj.reps[0] = opt.Backs3
+					obj.reps[1] = opt.Backs0
+					obj.reps[2] = opt.Backs1
+					obj.reps[3] = opt.Backs2
 				}
 			} else {
-				this$static.reps[0] = pos - 4
-				this$static.reps[1] = opt.Backs0
-				this$static.reps[2] = opt.Backs1
-				this$static.reps[3] = opt.Backs2
+				obj.reps[0] = pos - 4
+				obj.reps[1] = opt.Backs0
+				obj.reps[2] = opt.Backs1
+				obj.reps[3] = opt.Backs2
 			}
 		}
-		this$static._optimum[cur].State = state
-		this$static._optimum[cur].Backs0 = this$static.reps[0]
-		this$static._optimum[cur].Backs1 = this$static.reps[1]
-		this$static._optimum[cur].Backs2 = this$static.reps[2]
-		this$static._optimum[cur].Backs3 = this$static.reps[3]
-		curPrice = this$static._optimum[cur].Price
-		currentByte = $GetIndexByte(this$static._matchFinder, -1)
+		obj._optimum[cur].State = state
+		obj._optimum[cur].Backs0 = obj.reps[0]
+		obj._optimum[cur].Backs1 = obj.reps[1]
+		obj._optimum[cur].Backs2 = obj.reps[2]
+		obj._optimum[cur].Backs3 = obj.reps[3]
+		curPrice = obj._optimum[cur].Price
+		currentByte = $GetIndexByte(obj._matchFinder, -1)
 		matchByte = $GetIndexByte(
-			this$static._matchFinder,
-			-this$static.reps[0] - 1 - 1
+			obj._matchFinder,
+			-obj.reps[0] - 1 - 1
 		)
-		posState = position & this$static._posStateMask
+		posState = position & obj._posStateMask
 		curAnd1Price = curPrice
-			+ ProbPrices[this$static._isMatch[(state << 4) + posState] >>> 2]
+			+ ProbPrices[obj._isMatch[(state << 4) + posState] >>> 2]
 			+ $GetPrice_0(
 				$GetSubCoder(
-					this$static._literalEncoder,
+					obj._literalEncoder,
 					position,
-					$GetIndexByte(this$static._matchFinder, -2)
+					$GetIndexByte(obj._matchFinder, -2)
 				),
 				state >= 7,
 				matchByte,
 				currentByte
 			)
-		nextOptimum = this$static._optimum[cur + 1]
+		nextOptimum = obj._optimum[cur + 1]
 		nextIsChar = 0
 		if (curAnd1Price < nextOptimum.Price) {
 			nextOptimum.Price = curAnd1Price
@@ -2225,21 +2193,18 @@ function $GetOptimum(this$static, position) {
 			nextOptimum.Prev1IsChar = 0
 			nextIsChar = 1
 		}
-		matchPrice = curPrice
-			+ ProbPrices[
-				2048 - this$static._isMatch[(state << 4) + posState] >>> 2
-			]
-		repMatchPrice = matchPrice
-			+ ProbPrices[2048 - this$static._isRep[state] >>> 2]
+		matchPrice = curPrice + ProbPrices[
+			2_048 - obj._isMatch[(state << 4) + posState] >>> 2
+		]
+		repMatchPrice = matchPrice + ProbPrices[2_048 - obj._isRep[state] >>> 2]
 		if (
 			matchByte == currentByte
 			&& !(nextOptimum.PosPrev < cur && !nextOptimum.BackPrev)
 		) {
 			shortRepPrice = repMatchPrice
-				+ (ProbPrices[this$static._isRepG0[state] >>> 2]
-					+ ProbPrices[
-						this$static._isRep0Long[(state << 4) + posState] >>> 2
-					])
+				+ (ProbPrices[obj._isRepG0[state] >>> 2] + ProbPrices[
+					obj._isRep0Long[(state << 4) + posState] >>> 2
+				])
 			if (shortRepPrice <= nextOptimum.Price) {
 				nextOptimum.Price = shortRepPrice
 				nextOptimum.PosPrev = cur
@@ -2248,53 +2213,47 @@ function $GetOptimum(this$static, position) {
 				nextIsChar = 1
 			}
 		}
-		numAvailableBytesFull = $GetNumAvailableBytes(this$static._matchFinder)
-			+ 1
-		numAvailableBytesFull = 4095 - cur < numAvailableBytesFull
-			? 4095 - cur
+		numAvailableBytesFull = $GetNumAvailableBytes(obj._matchFinder) + 1
+		numAvailableBytesFull = 4_095 - cur < numAvailableBytesFull
+			? 4_095 - cur
 			: numAvailableBytesFull
 		numAvailableBytes = numAvailableBytesFull
 		if (numAvailableBytes < 2) {
 			continue
 		}
-		if (numAvailableBytes > this$static._numFastBytes) {
-			numAvailableBytes = this$static._numFastBytes
+		if (numAvailableBytes > obj._numFastBytes) {
+			numAvailableBytes = obj._numFastBytes
 		}
 		if (!nextIsChar && matchByte != currentByte) {
-			t = Math.min(numAvailableBytesFull - 1, this$static._numFastBytes)
+			t = Math.min(numAvailableBytesFull - 1, obj._numFastBytes)
 			lenTest2 = $GetMatchLen(
-				this$static._matchFinder,
+				obj._matchFinder,
 				0,
-				this$static.reps[0],
+				obj.reps[0],
 				t
 			)
 			if (lenTest2 >= 2) {
 				state2 = StateUpdateChar(state)
-				posStateNext = position + 1 & this$static._posStateMask
-				nextRepMatchPrice = curAnd1Price
-					+ ProbPrices[
-						2048
-							- this$static._isMatch[(state2 << 4) + posStateNext]
-						>>> 2
-					] + ProbPrices[2048 - this$static._isRep[state2] >>> 2]
+				posStateNext = position + 1 & obj._posStateMask
+				nextRepMatchPrice = curAnd1Price + ProbPrices[
+					2_048 - obj._isMatch[(state2 << 4) + posStateNext] >>> 2
+				] + ProbPrices[2_048 - obj._isRep[state2] >>> 2]
 				offset = cur + 1 + lenTest2
 				while (lenEnd < offset) {
-					this$static._optimum[lenEnd += 1].Price = 268435455
+					obj._optimum[lenEnd += 1].Price = 268_435_455
 				}
-				curAndLenPrice = nextRepMatchPrice
-					+ (price = $GetPrice(
-						this$static._repMatchLenEncoder,
-						lenTest2 - 2,
+				curAndLenPrice = nextRepMatchPrice + (price = $GetPrice(
+					obj._repMatchLenEncoder,
+					lenTest2 - 2,
+					posStateNext
+				),
+					price + $GetPureRepPrice(
+						obj,
+						0,
+						state2,
 						posStateNext
-					),
-						price
-						+ $GetPureRepPrice(
-							this$static,
-							0,
-							state2,
-							posStateNext
-						))
-				optimum = this$static._optimum[offset]
+					))
+				optimum = obj._optimum[offset]
 				if (curAndLenPrice < optimum.Price) {
 					optimum.Price = curAndLenPrice
 					optimum.PosPrev = cur + 1
@@ -2307,9 +2266,9 @@ function $GetOptimum(this$static, position) {
 		startLen = 2
 		for (repIndex = 0; repIndex < 4; ++repIndex) {
 			lenTest = $GetMatchLen(
-				this$static._matchFinder,
+				obj._matchFinder,
 				-1,
-				this$static.reps[repIndex],
+				obj.reps[repIndex],
 				numAvailableBytes
 			)
 			if (lenTest < 2) {
@@ -2318,22 +2277,20 @@ function $GetOptimum(this$static, position) {
 			lenTestTemp = lenTest
 			do {
 				while (lenEnd < cur + lenTest) {
-					this$static._optimum[lenEnd += 1].Price = 268435455
+					obj._optimum[lenEnd += 1].Price = 268_435_455
 				}
-				curAndLenPrice = repMatchPrice
-					+ (price_0 = $GetPrice(
-						this$static._repMatchLenEncoder,
-						lenTest - 2,
+				curAndLenPrice = repMatchPrice + (price_0 = $GetPrice(
+					obj._repMatchLenEncoder,
+					lenTest - 2,
+					posState
+				),
+					price_0 + $GetPureRepPrice(
+						obj,
+						repIndex,
+						state,
 						posState
-					),
-						price_0
-						+ $GetPureRepPrice(
-							this$static,
-							repIndex,
-							state,
-							posState
-						))
-				optimum = this$static._optimum[cur + lenTest]
+					))
+				optimum = obj._optimum[cur + lenTest]
 				if (curAndLenPrice < optimum.Price) {
 					optimum.Price = curAndLenPrice
 					optimum.PosPrev = cur
@@ -2348,81 +2305,70 @@ function $GetOptimum(this$static, position) {
 			if (lenTest < numAvailableBytesFull) {
 				t = Math.min(
 					numAvailableBytesFull - 1 - lenTest,
-					this$static._numFastBytes
+					obj._numFastBytes
 				)
 				lenTest2 = $GetMatchLen(
-					this$static._matchFinder,
+					obj._matchFinder,
 					lenTest,
-					this$static.reps[repIndex],
+					obj.reps[repIndex],
 					t
 				)
 				if (lenTest2 >= 2) {
 					state2 = state < 7 ? 8 : 11
-					posStateNext = position + lenTest
-						& this$static._posStateMask
-					curAndLenCharPrice = repMatchPrice
-						+ (price_1 = $GetPrice(
-							this$static._repMatchLenEncoder,
-							lenTest - 2,
+					posStateNext = position + lenTest & obj._posStateMask
+					curAndLenCharPrice = repMatchPrice + (price_1 = $GetPrice(
+						obj._repMatchLenEncoder,
+						lenTest - 2,
+						posState
+					),
+						price_1 + $GetPureRepPrice(
+							obj,
+							repIndex,
+							state,
 							posState
-						),
-							price_1
-							+ $GetPureRepPrice(
-								this$static,
-								repIndex,
-								state,
-								posState
-							))
+						))
 						+ ProbPrices[
-							this$static._isMatch[(state2 << 4) + posStateNext]
-							>>> 2
-						]
-						+ $GetPrice_0(
+							obj._isMatch[(state2 << 4) + posStateNext] >>> 2
+						] + $GetPrice_0(
 							$GetSubCoder(
-								this$static._literalEncoder,
+								obj._literalEncoder,
 								position + lenTest,
 								$GetIndexByte(
-									this$static._matchFinder,
+									obj._matchFinder,
 									lenTest - 1 - 1
 								)
 							),
 							1,
 							$GetIndexByte(
-								this$static._matchFinder,
-								lenTest - 1 - (this$static.reps[repIndex] + 1)
+								obj._matchFinder,
+								lenTest - 1 - (obj.reps[repIndex] + 1)
 							),
-							$GetIndexByte(this$static._matchFinder, lenTest - 1)
+							$GetIndexByte(obj._matchFinder, lenTest - 1)
 						)
 					state2 = StateUpdateChar(state2)
-					posStateNext = position + lenTest + 1
-						& this$static._posStateMask
-					nextMatchPrice = curAndLenCharPrice
-						+ ProbPrices[
-							2048
-								- this$static
-									._isMatch[(state2 << 4) + posStateNext]
-							>>> 2
-						]
+					posStateNext = position + lenTest + 1 & obj._posStateMask
+					nextMatchPrice = curAndLenCharPrice + ProbPrices[
+						2_048 - obj
+								._isMatch[(state2 << 4) + posStateNext] >>> 2
+					]
 					nextRepMatchPrice = nextMatchPrice
-						+ ProbPrices[2048 - this$static._isRep[state2] >>> 2]
+						+ ProbPrices[2_048 - obj._isRep[state2] >>> 2]
 					offset = lenTest + 1 + lenTest2
 					while (lenEnd < cur + offset) {
-						this$static._optimum[lenEnd += 1].Price = 268435455
+						obj._optimum[lenEnd += 1].Price = 268_435_455
 					}
-					curAndLenPrice = nextRepMatchPrice
-						+ (price_2 = $GetPrice(
-							this$static._repMatchLenEncoder,
-							lenTest2 - 2,
+					curAndLenPrice = nextRepMatchPrice + (price_2 = $GetPrice(
+						obj._repMatchLenEncoder,
+						lenTest2 - 2,
+						posStateNext
+					),
+						price_2 + $GetPureRepPrice(
+							obj,
+							0,
+							state2,
 							posStateNext
-						),
-							price_2
-							+ $GetPureRepPrice(
-								this$static,
-								0,
-								state2,
-								posStateNext
-							))
-					optimum = this$static._optimum[cur + offset]
+						))
+					optimum = obj._optimum[cur + offset]
 					if (curAndLenPrice < optimum.Price) {
 						optimum.Price = curAndLenPrice
 						optimum.PosPrev = cur + lenTest + 1
@@ -2439,41 +2385,40 @@ function $GetOptimum(this$static, position) {
 			newLen = numAvailableBytes
 			for (
 				numDistancePairs = 0;
-				newLen > this$static._matchDistances[numDistancePairs];
+				newLen > obj._matchDistances[numDistancePairs];
 				numDistancePairs += 2
 			) {}
-			this$static._matchDistances[numDistancePairs] = newLen
+			obj._matchDistances[numDistancePairs] = newLen
 			numDistancePairs += 2
 		}
 		if (newLen >= startLen) {
-			normalMatchPrice = matchPrice
-				+ ProbPrices[this$static._isRep[state] >>> 2]
+			normalMatchPrice = matchPrice + ProbPrices[obj._isRep[state] >>> 2]
 			while (lenEnd < cur + newLen) {
-				this$static._optimum[lenEnd += 1].Price = 268435455
+				obj._optimum[lenEnd += 1].Price = 268_435_455
 			}
 			offs = 0
-			while (startLen > this$static._matchDistances[offs]) {
+			while (startLen > obj._matchDistances[offs]) {
 				offs += 2
 			}
 			for (lenTest = startLen;; lenTest += 1) {
-				curBack = this$static._matchDistances[offs + 1]
+				curBack = obj._matchDistances[offs + 1]
 				curAndLenPrice = normalMatchPrice
-					+ $GetPosLenPrice(this$static, curBack, lenTest, posState)
-				optimum = this$static._optimum[cur + lenTest]
+					+ $GetPosLenPrice(obj, curBack, lenTest, posState)
+				optimum = obj._optimum[cur + lenTest]
 				if (curAndLenPrice < optimum.Price) {
 					optimum.Price = curAndLenPrice
 					optimum.PosPrev = cur
 					optimum.BackPrev = curBack + 4
 					optimum.Prev1IsChar = 0
 				}
-				if (lenTest == this$static._matchDistances[offs]) {
+				if (lenTest == obj._matchDistances[offs]) {
 					if (lenTest < numAvailableBytesFull) {
 						t = Math.min(
 							numAvailableBytesFull - 1 - lenTest,
-							this$static._numFastBytes
+							obj._numFastBytes
 						)
 						lenTest2 = $GetMatchLen(
-							this$static._matchFinder,
+							obj._matchFinder,
 							lenTest,
 							curBack,
 							t
@@ -2481,66 +2426,59 @@ function $GetOptimum(this$static, position) {
 						if (lenTest2 >= 2) {
 							state2 = state < 7 ? 7 : 10
 							posStateNext = position + lenTest
-								& this$static._posStateMask
-							curAndLenCharPrice = curAndLenPrice
-								+ ProbPrices[
-									this$static
-										._isMatch[(state2 << 4) + posStateNext]
-									>>> 2
-								]
-								+ $GetPrice_0(
-									$GetSubCoder(
-										this$static._literalEncoder,
-										position + lenTest,
-										$GetIndexByte(
-											this$static._matchFinder,
-											lenTest - 1 - 1
-										)
-									),
-									1,
+								& obj._posStateMask
+							curAndLenCharPrice = curAndLenPrice + ProbPrices[
+								obj
+									._isMatch[(state2 << 4) + posStateNext]
+								>>> 2
+							] + $GetPrice_0(
+								$GetSubCoder(
+									obj._literalEncoder,
+									position + lenTest,
 									$GetIndexByte(
-										this$static._matchFinder,
-										lenTest - (curBack + 1) - 1
-									),
-									$GetIndexByte(
-										this$static._matchFinder,
-										lenTest - 1
+										obj._matchFinder,
+										lenTest - 1 - 1
 									)
+								),
+								1,
+								$GetIndexByte(
+									obj._matchFinder,
+									lenTest - (curBack + 1) - 1
+								),
+								$GetIndexByte(
+									obj._matchFinder,
+									lenTest - 1
 								)
+							)
 							state2 = StateUpdateChar(state2)
 							posStateNext = position + lenTest + 1
-								& this$static._posStateMask
-							nextMatchPrice = curAndLenCharPrice
-								+ ProbPrices[
-									2048
-										- this$static
-											._isMatch[
-												(state2 << 4) + posStateNext
-											] >>> 2
-								]
-							nextRepMatchPrice = nextMatchPrice
-								+ ProbPrices[
-									2048 - this$static._isRep[state2] >>> 2
-								]
+								& obj._posStateMask
+							nextMatchPrice = curAndLenCharPrice + ProbPrices[
+								2_048 - obj
+										._isMatch[
+											(state2 << 4) + posStateNext
+										] >>> 2
+							]
+							nextRepMatchPrice = nextMatchPrice + ProbPrices[
+								2_048 - obj._isRep[state2] >>> 2
+							]
 							offset = lenTest + 1 + lenTest2
 							while (lenEnd < cur + offset) {
-								this$static._optimum[lenEnd += 1].Price =
-									268435455
+								obj._optimum[lenEnd += 1].Price = 268_435_455
 							}
 							curAndLenPrice = nextRepMatchPrice
 								+ (price_3 = $GetPrice(
-									this$static._repMatchLenEncoder,
+									obj._repMatchLenEncoder,
 									lenTest2 - 2,
 									posStateNext
 								),
-									price_3
-									+ $GetPureRepPrice(
-										this$static,
+									price_3 + $GetPureRepPrice(
+										obj,
 										0,
 										state2,
 										posStateNext
 									))
-							optimum = this$static._optimum[cur + offset]
+							optimum = obj._optimum[cur + offset]
 							if (curAndLenPrice < optimum.Price) {
 								optimum.Price = curAndLenPrice
 								optimum.PosPrev = cur + lenTest + 1
@@ -2562,169 +2500,187 @@ function $GetOptimum(this$static, position) {
 	}
 }
 
-function $GetPosLenPrice(this$static, pos, len, posState) {
-	var price, lenToPosState = GetLenToPosState(len)
+function $GetPosLenPrice(
+	obj,
+	pos: number,
+	len: number,
+	posState: number
+): number {
+	let price: number, lenToPosState = GetLenToPosState(len)
 	if (pos < 128) {
-		price = this$static._distancesPrices[lenToPosState * 128 + pos]
+		price = obj._distancesPrices[lenToPosState * 128 + pos]
 	} else {
-		price =
-			this$static._posSlotPrices[(lenToPosState << 6) + GetPosSlot2(pos)]
-			+ this$static._alignPrices[pos & 15]
+		price = obj._posSlotPrices[(lenToPosState << 6) + GetPosSlot2(pos)]
+			+ obj._alignPrices[pos & 15]
 	}
-	return price + $GetPrice(this$static._lenEncoder, len - 2, posState)
+
+	return price + $GetPrice(obj._lenEncoder, len - 2, posState)
 }
 
-function $GetPureRepPrice(this$static, repIndex, state, posState): number {
+function $GetPureRepPrice(
+	obj,
+	repIndex: number,
+	state: number,
+	posState: number
+): number {
 	var price
 	if (!repIndex) {
-		price = ProbPrices[this$static._isRepG0[state] >>> 2]
+		price = ProbPrices[obj._isRepG0[state] >>> 2]
 		price += ProbPrices[
-			2048 - this$static._isRep0Long[(state << 4) + posState] >>> 2
+			2_048 - obj._isRep0Long[(state << 4) + posState] >>> 2
 		]
 	} else {
-		price = ProbPrices[2048 - this$static._isRepG0[state] >>> 2]
+		price = ProbPrices[2_048 - obj._isRepG0[state] >>> 2]
 		if (repIndex == 1) {
-			price += ProbPrices[this$static._isRepG1[state] >>> 2]
+			price += ProbPrices[obj._isRepG1[state] >>> 2]
 		} else {
-			price += ProbPrices[2048 - this$static._isRepG1[state] >>> 2]
-			price += GetPrice(this$static._isRepG2[state], repIndex - 2)
+			price += ProbPrices[2_048 - obj._isRepG1[state] >>> 2]
+			price += GetPrice(obj._isRepG2[state], repIndex - 2)
 		}
 	}
 	return price
 }
 
-function $GetRepLen1Price(this$static, state, posState): number {
-	return ProbPrices[this$static._isRepG0[state] >>> 2]
-		+ ProbPrices[this$static._isRep0Long[(state << 4) + posState] >>> 2]
+function $GetRepLen1Price(obj, state: number, posState: number): number {
+	return ProbPrices[obj._isRepG0[state] >>> 2]
+		+ ProbPrices[obj._isRep0Long[(state << 4) + posState] >>> 2]
 }
 
-function $Init_4(this$static): void {
-	$BaseInit(this$static)
-	$Init_9(this$static._rangeEncoder)
-	InitBitModels(this$static._isMatch)
-	InitBitModels(this$static._isRep0Long)
-	InitBitModels(this$static._isRep)
-	InitBitModels(this$static._isRepG0)
-	InitBitModels(this$static._isRepG1)
-	InitBitModels(this$static._isRepG2)
-	InitBitModels(this$static._posEncoders)
-	$Init_3(this$static._literalEncoder)
-	for (var i = 0; i < 4; ++i) {
-		InitBitModels(this$static._posSlotEncoder[i].Models)
+function $Init_4(obj): void {
+	$BaseInit(obj)
+	$Init_9(obj._rangeEncoder)
+	InitBitModels(obj._isMatch)
+	InitBitModels(obj._isRep0Long)
+	InitBitModels(obj._isRep)
+	InitBitModels(obj._isRepG0)
+	InitBitModels(obj._isRepG1)
+	InitBitModels(obj._isRepG2)
+	InitBitModels(obj._posEncoders)
+	$Init_3(obj._literalEncoder)
+	for (let i = 0; i < 4; ++i) {
+		InitBitModels(obj._posSlotEncoder[i].Models)
 	}
-	$Init_2(this$static._lenEncoder, 1 << this$static._posStateBits)
-	$Init_2(this$static._repMatchLenEncoder, 1 << this$static._posStateBits)
-	InitBitModels(this$static._posAlignEncoder.Models)
-	this$static._longestMatchWasFound = 0
-	this$static._optimumEndIndex = 0
-	this$static._optimumCurrentIndex = 0
-	this$static._additionalOffset = 0
+	$Init_2(obj._lenEncoder, 1 << obj._posStateBits)
+	$Init_2(obj._repMatchLenEncoder, 1 << obj._posStateBits)
+	InitBitModels(obj._posAlignEncoder.Models)
+	obj._longestMatchWasFound = 0
+	obj._optimumEndIndex = 0
+	obj._optimumCurrentIndex = 0
+	obj._additionalOffset = 0
 }
 
-function $MovePos(this$static, num): void {
+function $MovePos(obj, num: number): void {
 	if (num > 0) {
-		$Skip(this$static._matchFinder, num)
-		this$static._additionalOffset += num
+		$Skip(obj._matchFinder, num)
+		obj._additionalOffset += num
 	}
 }
 
-function $ReadMatchDistances(this$static): number {
+function $ReadMatchDistances(obj): number {
 	var lenRes = 0
-	this$static._numDistancePairs = $GetMatches(
-		this$static._matchFinder,
-		this$static._matchDistances
+	obj._numDistancePairs = $GetMatches(
+		obj._matchFinder,
+		obj._matchDistances
 	)
-	if (this$static._numDistancePairs > 0) {
-		lenRes = this$static._matchDistances[this$static._numDistancePairs - 2]
-		if (lenRes == this$static._numFastBytes) {
+	if (obj._numDistancePairs > 0) {
+		lenRes = obj._matchDistances[obj._numDistancePairs - 2]
+		if (lenRes == obj._numFastBytes) {
 			lenRes += $GetMatchLen(
-				this$static._matchFinder,
+				obj._matchFinder,
 				lenRes - 1,
-				this$static._matchDistances[this$static._numDistancePairs - 1],
+				obj._matchDistances[obj._numDistancePairs - 1],
 				273 - lenRes
 			)
 		}
 	}
-	this$static._additionalOffset += 1
+	obj._additionalOffset += 1
 	return lenRes
 }
 
-function $ReleaseMFStream(this$static): void {
-	if (this$static._matchFinder && this$static._needReleaseMFStream) {
-		this$static._matchFinder._stream = null
-		this$static._needReleaseMFStream = 0
+function $ReleaseMFStream(obj): void {
+	if (obj._matchFinder && obj._needReleaseMFStream) {
+		obj._matchFinder._stream = null
+		obj._needReleaseMFStream = 0
 	}
 }
 
-function $ReleaseStreams(this$static): void {
-	$ReleaseMFStream(this$static)
-	this$static._rangeEncoder.Stream = null
+function $ReleaseStreams(obj): void {
+	$ReleaseMFStream(obj)
+	obj._rangeEncoder.Stream = null
 }
 
-function $SetDictionarySize_0(this$static, dictionarySize): void {
-	this$static._dictionarySize = dictionarySize
-	for (var dicLogSize = 0; dictionarySize > 1 << dicLogSize; ++dicLogSize) {}
-	this$static._distTableSize = dicLogSize * 2
+function $SetDictionarySize_0(obj, dictionarySize: number): void {
+	obj._dictionarySize = dictionarySize
+	for (
+		var dicLogSize = 0;
+		dictionarySize > (1 << dicLogSize);
+		++dicLogSize
+	);
+
+	obj._distTableSize = dicLogSize * 2
 }
 
-function $SetMatchFinder(this$static, matchFinderIndex): void {
-	var matchFinderIndexPrev = this$static._matchFinderType
-	this$static._matchFinderType = matchFinderIndex
-	if (
-		this$static._matchFinder
-		&& matchFinderIndexPrev != this$static._matchFinderType
-	) {
-		this$static._dictionarySizePrev = -1
-		this$static._matchFinder = null
+function $SetMatchFinder(obj, matchFinderIndex: number): void {
+	var matchFinderIndexPrev = obj._matchFinderType
+	obj._matchFinderType = matchFinderIndex
+	if (obj._matchFinder && matchFinderIndexPrev != obj._matchFinderType) {
+		obj._dictionarySizePrev = -1
+		obj._matchFinder = null
 	}
 }
 
-function $WriteCoderProperties(this$static, outStream): void {
-	this$static.properties[0] =
-		(this$static._posStateBits * 5 + this$static._numLiteralPosStateBits)
-							* 9 + this$static._numLiteralContextBits << 24 >> 24
-	for (var i = 0; i < 4; ++i) {
-		this$static.properties[1 + i] =
-			this$static._dictionarySize >> 8 * i << 24 >> 24
+function writeHeaderProperties(obj, outStream): void {
+	/** LC, LP, PB 2-bytes */
+	obj.properties[0] =
+		(obj._posStateBits * 5 + obj._numLiteralPosStateBits) * 9
+		+ ((obj._numLiteralContextBits << 24) >> 24)
+
+	/** Dictionary size 4-bytes */
+	for (let i = 0; i < 4; ++i) {
+		obj.properties[1 + i] = obj._dictionarySize >> (8 * ((i << 24) >> 24))
 	}
-	$write_0(outStream, this$static.properties, 0, 5)
+
+	$write_0(
+		outStream,
+		obj.properties,
+		0,
+		5
+	)
 }
 
-function $WriteEndMarker(this$static, posState): void {
-	// if (!this$static._writeEndMark) {
-	//    return;
-	// }
+function $WriteEndMarker(obj, posState: number): void {
 	$Encode_3(
-		this$static._rangeEncoder,
-		this$static._isMatch,
-		(this$static._state << 4) + posState,
+		obj._rangeEncoder,
+		obj._isMatch,
+		(obj._state << 4) + posState,
 		1
 	)
 	$Encode_3(
-		this$static._rangeEncoder,
-		this$static._isRep,
-		this$static._state,
+		obj._rangeEncoder,
+		obj._isRep,
+		obj._state,
 		0
 	)
-	this$static._state = this$static._state < 7 ? 7 : 10
-	$Encode_0(this$static._lenEncoder, this$static._rangeEncoder, 0, posState)
+	obj._state = obj._state < 7 ? 7 : 10
+	$Encode_0(obj._lenEncoder, obj._rangeEncoder, 0, posState)
 	var lenToPosState = GetLenToPosState(2)
 	$Encode_2(
-		this$static._posSlotEncoder[lenToPosState],
-		this$static._rangeEncoder,
+		obj._posSlotEncoder[lenToPosState],
+		obj._rangeEncoder,
 		63
 	)
-	$EncodeDirectBits(this$static._rangeEncoder, 67108863, 26)
-	$ReverseEncode(this$static._posAlignEncoder, this$static._rangeEncoder, 15)
+	$EncodeDirectBits(obj._rangeEncoder, 67108863, 26)
+	$ReverseEncode(obj._posAlignEncoder, obj._rangeEncoder, 15)
 }
 
 function GetPosSlot(pos): number {
-	if (pos < 2048) {
+	if (pos < 2_048) {
 		return g_FastPos[pos]
 	}
 	if (pos < 2097152) {
 		return g_FastPos[pos >> 10] + 20
 	}
+
 	return g_FastPos[pos >> 20] + 40
 }
 
@@ -2735,180 +2691,194 @@ function GetPosSlot2(pos): number {
 	if (pos < 134217728) {
 		return g_FastPos[pos >> 16] + 32
 	}
+
 	return g_FastPos[pos >> 26] + 52
 }
 
-function $Encode(this$static, rangeEncoder, symbol, posState): void {
+function $Encode(obj, rangeEncoder, symbol: number, posState: number): void {
 	if (symbol < 8) {
-		$Encode_3(rangeEncoder, this$static._choice, 0, 0)
-		$Encode_2(this$static._lowCoder[posState], rangeEncoder, symbol)
+		$Encode_3(rangeEncoder, obj._choice, 0, 0)
+		$Encode_2(obj._lowCoder[posState], rangeEncoder, symbol)
 	} else {
 		symbol -= 8
-		$Encode_3(rangeEncoder, this$static._choice, 0, 1)
+		$Encode_3(rangeEncoder, obj._choice, 0, 1)
 		if (symbol < 8) {
-			$Encode_3(rangeEncoder, this$static._choice, 1, 0)
-			$Encode_2(this$static._midCoder[posState], rangeEncoder, symbol)
+			$Encode_3(rangeEncoder, obj._choice, 1, 0)
+			$Encode_2(obj._midCoder[posState], rangeEncoder, symbol)
 		} else {
-			$Encode_3(rangeEncoder, this$static._choice, 1, 1)
-			$Encode_2(this$static._highCoder, rangeEncoder, symbol - 8)
+			$Encode_3(rangeEncoder, obj._choice, 1, 1)
+			$Encode_2(obj._highCoder, rangeEncoder, symbol - 8)
 		}
 	}
 }
 
-function $Encoder$LenEncoder(this$static) {
-	this$static._choice = initDim(2)
-	this$static._lowCoder = initDim(16)
-	this$static._midCoder = initDim(16)
-	this$static._highCoder = $BitTreeEncoder({}, 8)
-	for (var posState = 0; posState < 16; ++posState) {
-		this$static._lowCoder[posState] = $BitTreeEncoder({}, 3)
-		this$static._midCoder[posState] = $BitTreeEncoder({}, 3)
+function $Encoder$LenEncoder(obj) {
+	obj._choice = initArr(2)
+	obj._lowCoder = initArr(16)
+	obj._midCoder = initArr(16)
+	obj._highCoder = bitTreeEncoder({}, 8)
+	for (let posState = 0; posState < 16; ++posState) {
+		obj._lowCoder[posState] = bitTreeEncoder({}, 3)
+		obj._midCoder[posState] = bitTreeEncoder({}, 3)
 	}
-	return this$static
+
+	return obj
 }
 
-function $Init_2(this$static, numPosStates): void {
-	InitBitModels(this$static._choice)
-	for (var posState = 0; posState < numPosStates; ++posState) {
-		InitBitModels(this$static._lowCoder[posState].Models)
-		InitBitModels(this$static._midCoder[posState].Models)
+function $Init_2(obj, numPosStates: number): void {
+	InitBitModels(obj._choice)
+	for (let posState = 0; posState < numPosStates; ++posState) {
+		InitBitModels(obj._lowCoder[posState].Models)
+		InitBitModels(obj._midCoder[posState].Models)
 	}
-	InitBitModels(this$static._highCoder.Models)
+	InitBitModels(obj._highCoder.Models)
 }
 
-function $SetPrices(this$static, posState, numSymbols, prices, st): void {
+function $SetPrices(
+	obj,
+	posState: number,
+	numSymbols: number,
+	prices: number[],
+	st: number
+): void {
 	var a0, a1, b0, b1, i
-	a0 = ProbPrices[this$static._choice[0] >>> 2]
-	a1 = ProbPrices[2048 - this$static._choice[0] >>> 2]
-	b0 = a1 + ProbPrices[this$static._choice[1] >>> 2]
-	b1 = a1 + ProbPrices[2048 - this$static._choice[1] >>> 2]
+	a0 = ProbPrices[obj._choice[0] >>> 2]
+	a1 = ProbPrices[2_048 - obj._choice[0] >>> 2]
+	b0 = a1 + ProbPrices[obj._choice[1] >>> 2]
+	b1 = a1 + ProbPrices[2_048 - obj._choice[1] >>> 2]
 	i = 0
 	for (i = 0; i < 8; ++i) {
 		if (i >= numSymbols) {
 			return
 		}
-		prices[st + i] = a0 + $GetPrice_1(this$static._lowCoder[posState], i)
+		prices[st + i] = a0 + $GetPrice_1(obj._lowCoder[posState], i)
 	}
 	for (; i < 16; ++i) {
 		if (i >= numSymbols) {
 			return
 		}
-		prices[st + i] = b0
-			+ $GetPrice_1(this$static._midCoder[posState], i - 8)
+		prices[st + i] = b0 + $GetPrice_1(obj._midCoder[posState], i - 8)
 	}
 	for (; i < numSymbols; ++i) {
-		prices[st + i] = b1 + $GetPrice_1(this$static._highCoder, i - 8 - 8)
+		prices[st + i] = b1 + $GetPrice_1(obj._highCoder, i - 8 - 8)
 	}
 }
 
-function $Encode_0(this$static, rangeEncoder, symbol, posState): void {
-	$Encode(this$static, rangeEncoder, symbol, posState)
-	if ((this$static._counters[posState] -= 1) == 0) {
+function $Encode_0(obj, rangeEncoder, symbol: number, posState: number): void {
+	$Encode(obj, rangeEncoder, symbol, posState)
+	if ((obj._counters[posState] -= 1) == 0) {
 		$SetPrices(
-			this$static,
+			obj,
 			posState,
-			this$static._tableSize,
-			this$static._prices,
+			obj._tableSize,
+			obj._prices,
 			posState * 272
 		)
-		this$static._counters[posState] = this$static._tableSize
+		obj._counters[posState] = obj._tableSize
 	}
 }
 
-function $Encoder$LenPriceTableEncoder(this$static) {
-	$Encoder$LenEncoder(this$static)
-	this$static._prices = []
-	this$static._counters = []
-	return this$static
+function $Encoder$LenPriceTableEncoder(obj) {
+	$Encoder$LenEncoder(obj)
+	obj._prices = []
+	obj._counters = []
+
+	return obj
 }
 
-function $GetPrice(this$static, symbol, posState) {
-	return this$static._prices[posState * 272 + symbol]
+function $GetPrice(obj, symbol: number, posState: number): number {
+	return obj._prices[posState * 272 + symbol]
 }
 
-function $UpdateTables(this$static, numPosStates): void {
-	for (var posState = 0; posState < numPosStates; ++posState) {
+function $UpdateTables(obj, numPosStates: number): void {
+	for (let posState = 0; posState < numPosStates; ++posState) {
 		$SetPrices(
-			this$static,
+			obj,
 			posState,
-			this$static._tableSize,
-			this$static._prices,
+			obj._tableSize,
+			obj._prices,
 			posState * 272
 		)
-		this$static._counters[posState] = this$static._tableSize
+		obj._counters[posState] = obj._tableSize
 	}
 }
 
-function $Create_1(this$static, numPosBits, numPrevBits): void {
+function $Create_1(obj, numPosBits: number, numPrevBits: number): void {
 	var i, numStates
 	if (
-		this$static.m_Coders != null && this$static.m_NumPrevBits == numPrevBits
-		&& this$static.m_NumPosBits == numPosBits
+		obj.m_Coders != null
+		&& obj.m_NumPrevBits == numPrevBits
+		&& obj.m_NumPosBits == numPosBits
 	) {
 		return
 	}
-	this$static.m_NumPosBits = numPosBits
-	this$static.m_PosMask = (1 << numPosBits) - 1
-	this$static.m_NumPrevBits = numPrevBits
-	numStates = 1 << this$static.m_NumPrevBits + this$static.m_NumPosBits
-	this$static.m_Coders = initDim(numStates)
+	obj.m_NumPosBits = numPosBits
+	obj.m_PosMask = (1 << numPosBits) - 1
+	obj.m_NumPrevBits = numPrevBits
+	numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits
+	obj.m_Coders = initArr(numStates)
 	for (i = 0; i < numStates; ++i) {
-		this$static.m_Coders[i] = $Encoder$LiteralEncoder$Encoder2({})
+		obj.m_Coders[i] = $Encoder$LiteralEncoder$Encoder2({})
 	}
 }
 
-function $GetSubCoder(this$static, pos, prevByte) {
-	return this$static
+function $GetSubCoder(obj, pos: number, prevByte: number): number {
+	return obj
 		.m_Coders[
-			((pos & this$static.m_PosMask) << this$static.m_NumPrevBits)
-			+ ((prevByte & 255) >>> 8 - this$static.m_NumPrevBits)
+			((pos & obj.m_PosMask) << obj.m_NumPrevBits)
+			+ ((prevByte & 255) >>> 8 - obj.m_NumPrevBits)
 		]
 }
 
-function $Init_3(this$static): void {
-	var i, numStates = 1 << this$static.m_NumPrevBits + this$static.m_NumPosBits
+function $Init_3(obj): void {
+	var i, numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits
 	for (i = 0; i < numStates; ++i) {
-		InitBitModels(this$static.m_Coders[i].m_Encoders)
+		InitBitModels(obj.m_Coders[i].m_Encoders)
 	}
 }
 
-function $Encode_1(this$static, rangeEncoder, symbol): void {
-	var bit, i, context = 1
-	for (i = 7; i >= 0; --i) {
+function $Encode_1(obj, rangeEncoder, symbol: number): void {
+	var bit, context = 1
+	for (let i = 7; i >= 0; --i) {
 		bit = symbol >> i & 1
-		$Encode_3(rangeEncoder, this$static.m_Encoders, context, bit)
+		$Encode_3(rangeEncoder, obj.m_Encoders, context, bit)
 		context = context << 1 | bit
 	}
 }
 
-function $EncodeMatched(this$static, rangeEncoder, matchByte, symbol): void {
-	var bit, i, matchBit, state, same = 1, context = 1
-	for (i = 7; i >= 0; --i) {
+function $EncodeMatched(
+	obj,
+	rangeEncoder,
+	matchByte,
+	symbol
+): void {
+	var bit, matchBit, state, same = true, context = 1
+	for (let i = 7; i >= 0; --i) {
 		bit = symbol >> i & 1
 		state = context
 		if (same) {
 			matchBit = matchByte >> i & 1
 			state += 1 + matchBit << 8
-			same = matchBit == bit
+			same = matchBit === bit
 		}
-		$Encode_3(rangeEncoder, this$static.m_Encoders, state, bit)
+		$Encode_3(rangeEncoder, obj.m_Encoders, state, bit)
 		context = context << 1 | bit
 	}
 }
 
-function $Encoder$LiteralEncoder$Encoder2(this$static) {
-	this$static.m_Encoders = initDim(768)
-	return this$static
+function $Encoder$LiteralEncoder$Encoder2(obj) {
+	obj.m_Encoders = initArr(768)
+	return obj
 }
 
-function $GetPrice_0(this$static, matchMode, matchByte, symbol): number {
+function $GetPrice_0(obj, matchMode, matchByte, symbol): number {
 	var bit, context = 1, i = 7, matchBit, price = 0
 	if (matchMode) {
 		for (; i >= 0; --i) {
 			matchBit = matchByte >> i & 1
 			bit = symbol >> i & 1
 			price += GetPrice(
-				this$static.m_Encoders[(1 + matchBit << 8) + context],
+				obj.m_Encoders[(1 + matchBit << 8) + context],
 				bit
 			)
 			context = context << 1 | bit
@@ -2920,41 +2890,44 @@ function $GetPrice_0(this$static, matchMode, matchByte, symbol): number {
 	}
 	for (; i >= 0; --i) {
 		bit = symbol >> i & 1
-		price += GetPrice(this$static.m_Encoders[context], bit)
+		price += GetPrice(obj.m_Encoders[context], bit)
 		context = context << 1 | bit
 	}
 	return price
 }
 
-function $MakeAsChar(this$static): void {
-	this$static.BackPrev = -1
-	this$static.Prev1IsChar = 0
+function $MakeAsChar(obj): void {
+	obj.BackPrev = -1
+	obj.Prev1IsChar = 0
 }
 
-function $MakeAsShortRep(this$static): void {
-	this$static.BackPrev = 0
-	this$static.Prev1IsChar = 0
-}
-/** ce */
-/** ds */
-function $BitTreeDecoder(this$static, numBitLevels) {
-	this$static.NumBitLevels = numBitLevels
-	this$static.Models = initDim(1 << numBitLevels)
-	return this$static
+function $MakeAsShortRep(obj): void {
+	obj.BackPrev = 0
+	obj.Prev1IsChar = 0
 }
 
-function $Decode_0(this$static, rangeDecoder): number {
+function $BitTreeDecoder(obj, numBitLevels) {
+	obj.NumBitLevels = numBitLevels
+	obj.Models = initArr(1 << numBitLevels)
+	return obj
+}
+
+function $Decode_0(obj, rangeDecoder): number {
 	var bitIndex, m = 1
-	for (bitIndex = this$static.NumBitLevels; bitIndex != 0; bitIndex -= 1) {
-		m = (m << 1) + $DecodeBit(rangeDecoder, this$static.Models, m)
+	for (bitIndex = obj.NumBitLevels; bitIndex != 0; bitIndex -= 1) {
+		m = (m << 1) + decodeBit(rangeDecoder, obj.Models, m)
 	}
-	return m - (1 << this$static.NumBitLevels)
+	return m - (1 << obj.NumBitLevels)
 }
 
-function $ReverseDecode(this$static, rangeDecoder): number {
-	var bit, bitIndex, m = 1, symbol = 0
-	for (bitIndex = 0; bitIndex < this$static.NumBitLevels; ++bitIndex) {
-		bit = $DecodeBit(rangeDecoder, this$static.Models, m)
+function $ReverseDecode(obj, rangeDecoder): number {
+	let symbol = 0
+	for (
+		let m = 1, bitIndex = 0, bit: number;
+		bitIndex < obj.NumBitLevels;
+		++bitIndex
+	) {
+		bit = decodeBit(rangeDecoder, obj.Models, m)
 		m <<= 1
 		m += bit
 		symbol |= bit << bitIndex
@@ -2962,61 +2935,68 @@ function $ReverseDecode(this$static, rangeDecoder): number {
 	return symbol
 }
 
-function ReverseDecode(Models, startIndex, rangeDecoder, NumBitLevels): number {
-	var bit, bitIndex, m = 1, symbol = 0
-	for (bitIndex = 0; bitIndex < NumBitLevels; ++bitIndex) {
-		bit = $DecodeBit(rangeDecoder, Models, startIndex + m)
+function reverseDecode(
+	Models,
+	startIndex: number,
+	rangeDecoder,
+	NumBitLevels: number
+): number {
+	let symbol = 0
+	for (
+		let bitIndex = 0, m = 1, bit: number;
+		bitIndex < NumBitLevels;
+		++bitIndex
+	) {
+		bit = decodeBit(rangeDecoder, Models, startIndex + m)
 		m <<= 1
 		m += bit
 		symbol |= bit << bitIndex
 	}
 	return symbol
 }
-/** de */
-/** cs */
-function $BitTreeEncoder(this$static, numBitLevels) {
-	this$static.NumBitLevels = numBitLevels
-	this$static.Models = initDim(1 << numBitLevels)
-	return this$static
+function bitTreeEncoder(obj, numBitLevels: number) {
+	obj.NumBitLevels = numBitLevels
+	obj.Models = initArr(1 << numBitLevels)
+	return obj
 }
 
-function $Encode_2(this$static, rangeEncoder, symbol): void {
+function $Encode_2(obj, rangeEncoder, symbol): void {
 	var bit, bitIndex, m = 1
-	for (bitIndex = this$static.NumBitLevels; bitIndex != 0;) {
+	for (bitIndex = obj.NumBitLevels; bitIndex != 0;) {
 		bitIndex -= 1
 		bit = symbol >>> bitIndex & 1
-		$Encode_3(rangeEncoder, this$static.Models, m, bit)
+		$Encode_3(rangeEncoder, obj.Models, m, bit)
 		m = m << 1 | bit
 	}
 }
 
-function $GetPrice_1(this$static, symbol): number {
+function $GetPrice_1(obj, symbol): number {
 	var bit, bitIndex, m = 1, price = 0
-	for (bitIndex = this$static.NumBitLevels; bitIndex != 0;) {
+	for (bitIndex = obj.NumBitLevels; bitIndex != 0;) {
 		bitIndex -= 1
 		bit = symbol >>> bitIndex & 1
-		price += GetPrice(this$static.Models[m], bit)
+		price += GetPrice(obj.Models[m], bit)
 		m = (m << 1) + bit
 	}
 	return price
 }
 
-function $ReverseEncode(this$static, rangeEncoder, symbol): void {
-	var bit, i, m = 1
-	for (i = 0; i < this$static.NumBitLevels; ++i) {
+function $ReverseEncode(obj, rangeEncoder, symbol: number): void {
+	var bit, m = 1
+	for (let i = 0; i < obj.NumBitLevels; ++i) {
 		bit = symbol & 1
-		$Encode_3(rangeEncoder, this$static.Models, m, bit)
+		$Encode_3(rangeEncoder, obj.Models, m, bit)
 		m = m << 1 | bit
 		symbol >>= 1
 	}
 }
 
-function $ReverseGetPrice(this$static, symbol): number {
-	var bit, i, m = 1, price = 0
-	for (i = this$static.NumBitLevels; i != 0; i -= 1) {
+function $ReverseGetPrice(obj, symbol: number): number {
+	var bit, m = 1, price = 0
+	for (let i = obj.NumBitLevels; i != 0; i -= 1) {
 		bit = symbol & 1
 		symbol >>>= 1
-		price += GetPrice(this$static.Models[m], bit)
+		price += GetPrice(obj.Models[m], bit)
 		m = m << 1 | bit
 	}
 	return price
@@ -3029,8 +3009,8 @@ function ReverseEncode(
 	NumBitLevels,
 	symbol
 ): void {
-	var bit, i, m = 1
-	for (i = 0; i < NumBitLevels; ++i) {
+	var bit, m = 1
+	for (let i = 0; i < NumBitLevels; ++i) {
 		bit = symbol & 1
 		$Encode_3(rangeEncoder, Models, startIndex + m, bit)
 		m = m << 1 | bit
@@ -3039,8 +3019,8 @@ function ReverseEncode(
 }
 
 function ReverseGetPrice(Models, startIndex, NumBitLevels, symbol): number {
-	var bit, i, m = 1, price = 0
-	for (i = NumBitLevels; i != 0; i -= 1) {
+	var bit, m = 1, price = 0
+	for (let i = NumBitLevels; i != 0; i -= 1) {
 		bit = symbol & 1
 		symbol >>>= 1
 		price +=
@@ -3049,61 +3029,58 @@ function ReverseGetPrice(Models, startIndex, NumBitLevels, symbol): number {
 	}
 	return price
 }
-/** ce */
-/** ds */
-function $DecodeBit(this$static, probs, index): 0 | 1 {
+function decodeBit(obj, probs: number[], index: number): 0 | 1 {
 	var newBound, prob = probs[index]
-	newBound = (this$static.Range >>> 11) * prob
-	if ((this$static.Code ^ -2147483648) < (newBound ^ -2147483648)) {
-		this$static.Range = newBound
-		probs[index] = prob + (2048 - prob >>> 5) << 16 >> 16
-		if (!(this$static.Range & -16777216)) {
-			this$static.Code = this$static.Code << 8 | $read(this$static.Stream)
-			this$static.Range <<= 8
+	newBound = (obj.Range >>> 11) * prob
+	if ((obj.Code ^ MIN_INT32) < (newBound ^ MIN_INT32)) {
+		obj.Range = newBound
+		probs[index] = prob + (2_048 - prob >>> 5) << 16 >> 16
+		if (!(obj.Range & -16777216)) {
+			obj.Code = obj.Code << 8 | $read(obj.Stream)
+			obj.Range <<= 8
 		}
 		return 0
 	} else {
-		this$static.Range -= newBound
-		this$static.Code -= newBound
+		obj.Range -= newBound
+		obj.Code -= newBound
 		probs[index] = prob - (prob >>> 5) << 16 >> 16
-		if (!(this$static.Range & -16777216)) {
-			this$static.Code = this$static.Code << 8 | $read(this$static.Stream)
-			this$static.Range <<= 8
+		if (!(obj.Range & -16777216)) {
+			obj.Code = obj.Code << 8 | $read(obj.Stream)
+			obj.Range <<= 8
 		}
 		return 1
 	}
 }
 
-function $DecodeDirectBits(this$static, numTotalBits): number {
-	var i, t, result = 0
-	for (i = numTotalBits; i != 0; i -= 1) {
-		this$static.Range >>>= 1
-		t = this$static.Code - this$static.Range >>> 31
-		this$static.Code -= this$static.Range & t - 1
+function $DecodeDirectBits(obj, numTotalBits: number): number {
+	let result = 0
+	for (let i = numTotalBits; i != 0; i -= 1) {
+		obj.Range >>>= 1
+		let t = obj.Code - obj.Range >>> 31
+		obj.Code -= obj.Range & t - 1
 		result = result << 1 | 1 - t
-		if (!(this$static.Range & -16777216)) {
-			this$static.Code = this$static.Code << 8 | $read(this$static.Stream)
-			this$static.Range <<= 8
+		if (!(obj.Range & -16777216)) {
+			obj.Code = obj.Code << 8 | $read(obj.Stream)
+			obj.Range <<= 8
 		}
 	}
 	return result
 }
 
-function $Init_8(this$static): void {
-	this$static.Code = 0
-	this$static.Range = -1
-	for (var i = 0; i < 5; ++i) {
-		this$static.Code = this$static.Code << 8 | $read(this$static.Stream)
+function $Init_8(obj): void {
+	obj.Code = 0
+	obj.Range = -1
+	for (let i = 0; i < 5; ++i) {
+		obj.Code = obj.Code << 8 | $read(obj.Stream)
 	}
 }
-/** de */
 
 function InitBitModels(probs): void {
-	for (var i = probs.length - 1; i >= 0; --i) {
+	for (let i = probs.length - 1; i >= 0; --i) {
 		probs[i] = 1024
 	}
 }
-/** cs */
+
 const ProbPrices = function(): number[] {
 	var end, i, j, start, ProbPrices = []
 	for (i = 8; i >= 0; --i) {
@@ -3118,117 +3095,121 @@ const ProbPrices = function(): number[] {
 	return ProbPrices
 }()
 
-function $Encode_3(this$static, probs, index, symbol) {
+function $Encode_3(obj, probs, index: number, symbol: number): void {
 	var newBound, prob = probs[index]
-	newBound = (this$static.Range >>> 11) * prob
+	newBound = (obj.Range >>> 11) * prob
 	if (!symbol) {
-		this$static.Range = newBound
-		probs[index] = prob + (2048 - prob >>> 5) << 16 >> 16
+		obj.Range = newBound
+		probs[index] = prob + (2_048 - prob >>> 5) << 16 >> 16
 	} else {
-		this$static.Low = add(
-			this$static.Low,
+		obj.Low = add(
+			obj.Low,
 			and(fromInt(newBound), [4294967295, 0])
 		)
-		this$static.Range -= newBound
+		obj.Range -= newBound
 		probs[index] = prob - (prob >>> 5) << 16 >> 16
 	}
-	if (!(this$static.Range & -16777216)) {
-		this$static.Range <<= 8
-		$ShiftLow(this$static)
+	if (!(obj.Range & -16777216)) {
+		obj.Range <<= 8
+		$ShiftLow(obj)
 	}
 }
 
-function $EncodeDirectBits(this$static, v, numTotalBits) {
-	for (var i = numTotalBits - 1; i >= 0; i -= 1) {
-		this$static.Range >>>= 1
+function $EncodeDirectBits(obj, v: number, numTotalBits: number): void {
+	for (let i = numTotalBits - 1; i >= 0; i -= 1) {
+		obj.Range >>>= 1
 		if ((v >>> i & 1) == 1) {
-			this$static.Low = add(this$static.Low, fromInt(this$static.Range))
+			obj.Low = add(obj.Low, fromInt(obj.Range))
 		}
-		if (!(this$static.Range & -16777216)) {
-			this$static.Range <<= 8
-			$ShiftLow(this$static)
+		if (!(obj.Range & -16777216)) {
+			obj.Range <<= 8
+			$ShiftLow(obj)
 		}
 	}
 }
 
-function $GetProcessedSizeAdd(this$static) {
-	return add(add(fromInt(this$static._cacheSize), this$static._position), [
-		4,
-		0
-	])
+function $GetProcessedSizeAdd(obj): [number, number] {
+	return add(add(fromInt(obj._cacheSize), obj._position), [4, 0])
 }
 
-function $Init_9(this$static) {
-	this$static._position = P0_longLit
-	this$static.Low = P0_longLit
-	this$static.Range = -1
-	this$static._cacheSize = 1
-	this$static._cache = 0
+function $Init_9(obj): void {
+	obj._position = P0_longLit
+	obj.Low = P0_longLit
+	obj.Range = -1
+	obj._cacheSize = 1
+	obj._cache = 0
 }
 
-function $ShiftLow(this$static) {
-	var temp, LowHi = lowBits_0(shru(this$static.Low, 32))
-	if (LowHi != 0 || compare(this$static.Low, [4278190080, 0]) < 0) {
-		this$static._position = add(
-			this$static._position,
-			fromInt(this$static._cacheSize)
+function $ShiftLow(obj): void {
+	const LowHi = lowBits_0(shru(obj.Low, 32))
+	if (LowHi != 0 || compare(obj.Low, [4278190080, 0]) < 0) {
+		obj._position = add(
+			obj._position,
+			fromInt(obj._cacheSize)
 		)
-		temp = this$static._cache
+		let temp = obj._cache
 		do {
-			$write(this$static.Stream, temp + LowHi)
+			$write(obj.Stream, temp + LowHi)
 			temp = 255
-		} while ((this$static._cacheSize -= 1) != 0)
-		this$static._cache = lowBits_0(this$static.Low) >>> 24
+		} while ((obj._cacheSize -= 1) != 0)
+		obj._cache = lowBits_0(obj.Low) >>> 24
 	}
-	this$static._cacheSize += 1
-	this$static.Low = shl(and(this$static.Low, [16777215, 0]), 8)
+	obj._cacheSize += 1
+	obj.Low = shl(and(obj.Low, [16777215, 0]), 8)
 }
 
-function GetPrice(Prob, symbol) {
-	return ProbPrices[((Prob - symbol ^ -symbol) & 2047) >>> 2]
+function GetPrice(Prob, symbol: number): number {
+	return ProbPrices[
+		((Prob - symbol ^ -symbol) & 2047) >>> 2
+	]
 }
 
-/** ce */
-/** ds */
-function decode(utf) {
-	var i = 0, j = 0, x, y, z, l = utf.length, buf = [], charCodes = []
-	for (; i < l; ++i, ++j) {
+function decode(utf: number[]): string | number[] {
+	let j = 0, x, y, z, l = utf.length, buf = [], charCodes = []
+	for (let i = 0; i < l; ++i, ++j) {
 		x = utf[i] & 255
 		if (!(x & 128)) {
 			if (!x) {
-				/// It appears that this is binary data, so it cannot be converted to a string, so just send it back.
+				// It appears that this is binary data, so it cannot be
+				// converted to a string, so just send it back.
 				return utf
 			}
 			charCodes[j] = x
 		} else if ((x & 224) == 192) {
 			if (i + 1 >= l) {
-				/// It appears that this is binary data, so it cannot be converted to a string, so just send it back.
+				// It appears that this is binary data, so it cannot be
+				// converted to a string, so just send it back.
 				return utf
 			}
 			y = utf[++i] & 255
 			if ((y & 192) != 128) {
-				/// It appears that this is binary data, so it cannot be converted to a string, so just send it back.
+				// It appears that this is binary data, so it cannot be
+				// converted to a string, so just send it back.
 				return utf
 			}
 			charCodes[j] = ((x & 31) << 6) | (y & 63)
 		} else if ((x & 240) == 224) {
 			if (i + 2 >= l) {
-				/// It appears that this is binary data, so it cannot be converted to a string, so just send it back.
+				// It appears that this is binary data, so it cannot be
+				// converted to a string, so just send it back.
 				return utf
 			}
 			y = utf[++i] & 255
 			if ((y & 192) != 128) {
-				/// It appears that this is binary data, so it cannot be converted to a string, so just send it back.
+				// It appears that this is binary data, so it cannot be
+				// converted to a string, so just send it back.
 				return utf
 			}
 			z = utf[++i] & 255
 			if ((z & 192) != 128) {
-				/// It appears that this is binary data, so it cannot be converted to a string, so just send it back.
+				// It appears that this is binary data, so it cannot be
+				// converted to a string, so just send it back.
 				return utf
 			}
 			charCodes[j] = ((x & 15) << 12) | ((y & 63) << 6) | (z & 63)
 		} else {
-			/// It appears that this is binary data, so it cannot be converted to a string, so just send it back.
+			// It appears that this is binary data, so it cannot be converted to
+			// a string, so just send it back.
 			return utf
 		}
 		if (j == 16383) {
@@ -3240,20 +3221,20 @@ function decode(utf) {
 		charCodes.length = j
 		buf.push(String.fromCharCode.apply(String, charCodes))
 	}
+
 	return buf.join("")
 }
-/** de */
-/** cs */
-function encode(s: string | Uint8Array) {
-	var ch, chars = [], data, elen = 0, i, l = s.length
-	/// Be able to handle binary arrays and buffers.
+
+function encode(s: string | Uint8Array): number[] | Uint8Array {
+	let ch, chars = [], elen = 0, l = s.length
+	// Be able to handle binary arrays and buffers.
 	if (typeof s == "object") {
 		return s
 	} else {
 		$getChars(s, 0, l, chars, 0)
 	}
-	/// Add extra spaces in the array to break up the unicode symbols.
-	for (i = 0; i < l; ++i) {
+	// Add extra spaces in the array to break up the unicode symbols.
+	for (let i = 0; i < l; ++i) {
 		ch = chars[i]
 		if (ch >= 1 && ch <= 127) {
 			;++elen
@@ -3263,9 +3244,9 @@ function encode(s: string | Uint8Array) {
 			elen += 3
 		}
 	}
-	data = []
+	const data = []
 	elen = 0
-	for (i = 0; i < l; ++i) {
+	for (let i = 0; i < l; ++i) {
 		ch = chars[i]
 		if (ch >= 1 && ch <= 127) {
 			data[elen++] = ch << 24 >> 24
@@ -3278,63 +3259,66 @@ function encode(s: string | Uint8Array) {
 			data[elen++] = (128 | ch & 63) << 24 >> 24
 		}
 	}
+
 	return data
 }
-/** ce */
 
-type Mode = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+type Mode = {
+	s: number
+	f: number
+	m: number
+}
 
-export function compress(str: string | Uint8Array, mode?: Mode): Int8Array
+/**
+ * s - dictionary size
+ * f - fb
+ * m - matchFinder
+ *
+ * NOTE: Because some values are always the same, they have been removed.
+ * lc is always 3
+ * lp is always 0
+ * pb is always 2
+ */
+const ModeMap = {
+	1: { s: 16, f: 64, m: 0 },
+	2: { s: 20, f: 64, m: 0 },
+	3: { s: 19, f: 64, m: 1 },
+	4: { s: 20, f: 64, m: 1 },
+	5: { s: 21, f: 128, m: 1 },
+	6: { s: 22, f: 128, m: 1 },
+	7: { s: 23, f: 128, m: 1 },
+	8: { s: 24, f: 255, m: 1 },
+	9: { s: 25, f: 255, m: 1 }
+} as const satisfies Record<number, Mode>
 
-/** cs */
+type Modes = keyof typeof ModeMap
+
 export function compress(
-	data: string | Uint8Array,
-	mode: Mode = 5
+	data: string | Uint8Array | ArrayBuffer,
+	mode: Modes = 5
 ): Int8Array {
-	const this$static = {}
-	this$static.c = $LZMAByteArrayCompressor(
-		{},
-		encode(data),
-		get_mode_obj(mode)
-	)
-	while ($processChunkEncode(this$static.c.chunker));
-	return new Int8Array($toByteArray(this$static.c.output))
-}
-
-export function decompress(bytearray: Uint8Array): Int8Array
-
-/** ce */
-/** ds */
-export function decompress(bytearray: Uint8Array): Int8Array {
-	const this$static = {}
-	this$static.d = $LZMAByteArrayDecompressor({}, bytearray)
-	while ($processChunkDecode(this$static.d.chunker));
-	return new Int8Array(decode($toByteArray(this$static.d.output)))
-}
-/** de */
-/** cs */
-const get_mode_obj = function() {
-	/// s is dictionarySize
-	/// f is fb
-	/// m is matchFinder
-	/// NOTE: Because some values are always the same, they have been removed.
-	/// lc is always 3
-	/// lp is always 0
-	/// pb is always 2
-	const modes = [
-		{ s: 16, f: 64, m: 0 },
-		{ s: 20, f: 64, m: 0 },
-		{ s: 19, f: 64, m: 1 },
-		{ s: 20, f: 64, m: 1 },
-		{ s: 21, f: 128, m: 1 },
-		{ s: 22, f: 128, m: 1 },
-		{ s: 23, f: 128, m: 1 },
-		{ s: 24, f: 255, m: 1 },
-		{ s: 25, f: 255, m: 1 }
-	]
-
-	return function(mode: number) {
-		return modes[mode - 1]
+	const obj = {
+		c: $LZMAByteArrayCompressor(
+			{},
+			encode(data),
+			ModeMap[mode]
+		)
 	}
-}()
-/** ce */
+	while ($processChunkEncode(obj.c.chunker));
+	return new Int8Array($toByteArray(obj.c.output))
+}
+
+export function decompress(
+	bytearray: Uint8Array | ArrayBuffer
+): Int8Array | string {
+	const obj = {
+		d: $LZMAByteArrayDecompressor({}, bytearray)
+	}
+	while ($processChunkDecode(obj.d.chunker)) {}
+	const decoded = decode($toByteArray(obj.d.output))
+	if (decoded instanceof Array) {
+		return new Int8Array(decoded)
+	}
+
+	return decoded
+}
