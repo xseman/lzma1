@@ -18,8 +18,8 @@
 	},
 	"scripts": {
 		"build": "tsc",
-		"test": "node --test --loader=tsx ./*.test.ts",
-		"test:watch": "node --watch --test --loader=tsx ./*.test.ts",
+		"test": "node --test --test-reporter=spec --loader=tsx ./*.test.ts",
+		"test:watch": "node --test --watch --test-reporter=spec --loader=tsx ./*.test.ts",
 		"typecheck": "tsc --noEmit",
 		"version": "git flow release start v$npm_package_version"
 	},
