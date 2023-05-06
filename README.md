@@ -21,6 +21,9 @@ npm install xseman/lzma1#master
 
 # latest unreleased changes
 npm install xseman/lzma1#develop
+
+# specific tag version
+npm install xseman/lzma1#v0.0.1
 ```
 
 ## API
@@ -35,7 +38,7 @@ decompress(bytearray: Uint8Array): Int8Array
 Compress and decompress a string with compression level 1.
 
 ```js
-import { compress, decompress } from "xseman/lzma1"
+import { compress, decompress } from "lzma1"
 
 const data = "Hello World!"
 const compressed = compress(data, 1)

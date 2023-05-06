@@ -1,12 +1,14 @@
 {
 	"name": "lzma1",
-	"version": "0.0.1",
+	"version": "0.0.2",
+	"license": "Apache-2.0",
 	"author": "Filip Seman <filip.seman@pm.me>",
 	"description": "A JavaScript implementation of the Lempel-Ziv-Markov (LZMA) chain compression algorithm",
 	"funding": "https://github.com/sponsors/xseman",
 	"homepage": "https://github.com/xseman/lzma1#readme",
 	"keywords": [
 		"lzma",
+		"lzma1",
 		"compression",
 		"decompression"
 	],
@@ -15,18 +17,31 @@
 		"url": "git+https://github.com/xseman/lzma1.git"
 	},
 	"scripts": {
-		"build": "tsc",
+		"test": "node --test --test-reporter=spec --loader=tsx ./*.test.ts",
+		"test:watch": "node --test --watch --test-reporter=spec --loader=tsx ./*.test.ts",
 		"typecheck": "tsc --noEmit",
-		"version": "git flow release start v$npm_package_version"
+		"prebuild": "make prebuild",
+		"build": "make build",
+		"postbuild": "make postbuild",
+		"preversion": "git checkout develop",
+		"version": "git commit -am ${npm_package_version}",
+		"postversion": "npm run build && git flow release start v${npm_package_version}"
 	},
 	"devDependencies": {
-		"typescript": "~4.9.0"
+		"@types/node": ">=16.17",
+		"dprint": "~0.35.0",
+		"tsx": "~3.12.0",
+		"typescript": "~5.0.0"
 	},
 	"type": "module",
-	"types": "lib/lzma.d.ts",
+	"main": "./lib/cjs/lzma.js",
+	"module": "./lib/esm/lzma.js",
 	"exports": {
-		"types": "./lib/lzma.d.ts",
-		"default": "./lib/lzma.js"
+		".": {
+			"import": "./lib/esm/lzma.js",
+			"require": "./lib/cjs/lzma.js",
+			"types": "./lib/esm/lzma.d.ts"
+		}
 	},
 	"files": [
 		"lib"
