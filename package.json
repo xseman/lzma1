@@ -30,10 +30,14 @@
 		"typescript": "~5.0.0"
 	},
 	"type": "module",
-	"types": "lib/lzma.d.ts",
+	"main": "./lib/cjs/lzma.js",
+	"module": "./lib/esm/lzma.js",
 	"exports": {
-		"types": "./lib/lzma.d.ts",
-		"default": "./lib/lzma.js"
+		".": {
+			"import": "./lib/esm/lzma.js",
+			"require": "./lib/cjs/lzma.js",
+			"types": "./lib/esm/lzma.d.ts"
+		}
 	},
 	"files": [
 		"lib"
