@@ -22,4 +22,4 @@ build:
 postbuild:
 	echo '{ "type": "commonjs" }' > ./lib/cjs/package.json
 	echo '{ "type": "module" }' > ./lib/esm/package.json
-	# git commit -am "build: artefacts"
+	git commit -am "build: artefacts"
