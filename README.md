@@ -1,5 +1,7 @@
 # lzma1
 
+[![tests](https://github.com/xseman/lzma1/actions/workflows/tests.yml/badge.svg)](https://github.com/xseman/lzma1/actions/workflows/tests.yml)
+
 This is a simplified [fork][fork-link] of [Nathan Rugg's][fork-author] package.
 
 The goal of this fork is to simplify and extract the minimal implementation for
