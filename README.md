@@ -23,7 +23,7 @@ npm install xseman/lzma1#master
 npm install xseman/lzma1#develop
 
 # specific tag version
-npm install xseman/lzma1#v0.0.1
+npm install xseman/lzma1#0.0.1
 ```
 
 ## API
