@@ -1,7 +1,8 @@
 {
 	"typescript.tsdk": "node_modules/typescript/lib",
-	"editor.codeActionsOnSave": {
-		"source.organizeImports": true
+	"files.associations": {
+		"tsconfig.json": "jsonc",
+		"dprint.json": "jsonc"
 	},
 	"[typescript][json][markdown]": {
 		"editor.formatOnSave": true,

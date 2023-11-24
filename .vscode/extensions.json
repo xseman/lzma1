@@ -2,6 +2,5 @@
 	"recommendations": [
 		"dprint.dprint",
 		"editorconfig.editorconfig"
-	],
-	"unwantedRecommendations": []
+	]
 }
