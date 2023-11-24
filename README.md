@@ -1,8 +1,15 @@
 # lzma1
 
-[![tests](https://github.com/xseman/lzma1/actions/workflows/tests.yml/badge.svg)](https://github.com/xseman/lzma1/actions/workflows/tests.yml)
+![version][version]
+![build][build]
+
+[version]: https://img.shields.io/npm/v/lzma1
+[build]: https://img.shields.io/github/actions/workflow/status/xseman/lzma1/tests.yml
 
 This is a simplified [fork][fork-link] of [Nathan Rugg's][fork-author] package.
+
+[fork-link]: https://github.com/LZMA-JS/LZMA-JS
+[fork-author]: https://github.com/nmrugg
 
 The goal of this fork is to simplify and extract the minimal implementation for
 my second project, I'm also trying to add as many typings as possible.
@@ -40,14 +47,11 @@ decompress(bytearray: Uint8Array): Int8Array
 Compress and decompress a string with compression level 1.
 
 ```js
-import { compress, decompress } from "lzma1"
+import { compress, decompress } from "lzma1";
 
-const data = "Hello World!"
-const compressed = compress(data, 1)
-const decompressed = decompress(result)
+const data = "Hello World!";
+const compressed = compress(data, 1);
+const decompressed = decompress(result);
 
 // data === decompressed
 ```
-
-[fork-link]: https://github.com/LZMA-JS/LZMA-JS
-[fork-author]: https://github.com/nmrugg
