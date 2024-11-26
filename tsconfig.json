@@ -109,6 +109,8 @@
         "skipLibCheck": true,                                /* Skip type checking all .d.ts files. */
     },
 	"include": [
-		"src/**/*"
+		// "src/**/*",
+		"./lzma.test.ts",
+		"./lzma.ts"
 	]
 }

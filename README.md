@@ -55,3 +55,9 @@ const decompressed = decompress(result);
 
 // data === decompressed
 ```
+
+## Related
+
+- <https://github.com/cscott/lzma-purejs>
+- <https://github.com/glinscott/lzmajs>
+- <https://github.com/mauron85/lzma-purejs/tree/master>
