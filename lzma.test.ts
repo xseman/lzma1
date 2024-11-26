@@ -10,9 +10,11 @@ import {
 } from "./lzma.js";
 
 function bytesToHex(byteArray: Int8Array | Uint8Array): string {
-	return Array.from(byteArray, (byte) => {
-		return ("0" + (byte & 0xFF).toString(16)).slice(-2);
-	}).join(" ");
+	return Array
+		.from(byteArray, (byte) => {
+			return ("0" + (byte & 0xFF).toString(16)).slice(-2);
+		})
+		.join(" ");
 }
 
 describe("Levels", () => {
