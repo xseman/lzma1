@@ -1,45 +1,50 @@
 # lzma1
 
-![version][version]
-![build][build]
-
-[version]: https://img.shields.io/npm/v/lzma1
-[build]: https://img.shields.io/github/actions/workflow/status/xseman/lzma1/tests.yml
-
 This is a simplified [fork][fork-link] of [Nathan Rugg's][fork-author] package.
 
 [fork-link]: https://github.com/LZMA-JS/LZMA-JS
 [fork-author]: https://github.com/nmrugg
 
-The goal of this fork is to simplify and extract the minimal implementation for
-my second project, I'm also trying to add as many typings as possible.
+## Installation
 
-## Install
+> [!NOTE]
+> This package is native [ESM][mozzila-esm] and no longer provides a
+> CommonJS export. If your project uses CommonJS, you will have to convert to ESM
+> or use the dynamic [`import()`][mozzila-import] function.
 
-**npm registry**
+[mozzila-esm]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules
+[mozzila-import]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import
+
+### npm
 
 ```sh
 npm install lzma1
 ```
 
-**GitHub**
+### deno
 
-```sh
-# same as latest released npm registry version
-npm install xseman/lzma1#master
+Since `v1.28+` import from npm registry using `npm:` prefix.
 
-# latest unreleased changes
-npm install xseman/lzma1#develop
+```ts
+import {
+	compress,
+	decompress,
+} from "npm:lzma1@latest";
+```
 
-# specific tag version
-npm install xseman/lzma1#0.0.1
+### browser
+
+```html
+<script type="module">
+	import { compress, decompress } from "https://esm.sh/lzma1@latest";
+</script>
 ```
 
 ## API
 
 ```ts
 compress(data: string | Uint8Array, mode?: Mode): Int8Array
-decompress(bytearray: Uint8Array): Int8Array
+decompress(data: Uint8Array | ArrayBuffer): string | Int8Array
 ```
 
 ## Usage
