@@ -43,6 +43,6 @@ jobs:
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
               run: >
-                  npm ci &&
+                  npm install &&
                   npm run build &&
                   npm publish --provenance --access public
