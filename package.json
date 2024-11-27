@@ -23,7 +23,7 @@
 	},
 	"scripts": {
 		"prebuild": "tsc --build --clean",
-		"build": "tsc --build",
+		"build": "tsc",
 		"fmt": "dprint fmt",
 		"fmt:check": "dprint check",
 		"typecheck": "tsc --noEmit",

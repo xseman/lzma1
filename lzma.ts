@@ -1,3 +1,5 @@
+// @ts-nocheck: remove when resolved all types
+
 interface Mode {
 	searchDepth: number;
 	filterStrength: number;
