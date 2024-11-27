@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/xseman/lzma1/compare/v0.0.4...v0.0.5) (2024-11-27)
+
+
+### Bug Fixes
+
+* **ci:** make install without lockfile ([212faeb](https://github.com/xseman/lzma1/commit/212faebfc8bd360a1d6c17e340f0baf16e28e1dc))
+
 ## [0.0.4](https://github.com/xseman/lzma1/compare/v0.0.3...v0.0.4) (2024-11-27)
 
 
