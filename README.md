@@ -47,7 +47,10 @@ decompress(bytearray: Uint8Array): Int8Array
 Compress and decompress a string with compression level 1.
 
 ```js
-import { compress, decompress } from "lzma1";
+import {
+	compress,
+	decompress,
+} from "lzma1";
 
 const data = "Hello World!";
 const compressed = compress(data, 1);
@@ -55,3 +58,9 @@ const decompressed = decompress(result);
 
 // data === decompressed
 ```
+
+## Related
+
+- <https://github.com/cscott/lzma-purejs>
+- <https://github.com/glinscott/lzmajs>
+- <https://github.com/mauron85/lzma-purejs/tree/master>

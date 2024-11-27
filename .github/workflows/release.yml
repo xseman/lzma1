@@ -1,10 +1,18 @@
-name: Release
+name: release-please
 
 on:
     workflow_run:
-        workflows: [Tests]
+        workflows:
+            - "quality checks"
         types:
             - completed
+    # manual
+    workflow_dispatch:
+        inputs:
+            publish-release:
+                description: Publish the release?
+                required: true
+                default: "false"
 
 permissions:
     contents: write
@@ -15,26 +23,25 @@ jobs:
     release-please:
         runs-on: ubuntu-latest
         steps:
-            - uses: google-github-actions/release-please-action@v3
+            - uses: googleapis/release-please-action@v4
               id: release
               with:
-                  release-type: node
-                  package-name: lzma1
-                  pull-request-title-pattern: 'v${version}'
+                  config-file: .github/release-please-config.json
+                  token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
-            - if: ${{ steps.release.outputs.release_created }}
-              uses: actions/checkout@v3
+            - if: ${{ github.event.inputs.publish-release == 'true' || steps.release.outputs.release_created }}
+              uses: actions/checkout@v4
 
-            - if: ${{ steps.release.outputs.release_created }}
-              uses: actions/setup-node@v3
+            - if: ${{ github.event.inputs.publish-release == 'true' || steps.release.outputs.release_created }}
+              uses: actions/setup-node@v4
               with:
-                  node-version-file: '.nvmrc'
-                  registry-url: 'https://registry.npmjs.org'
+                  node-version-file: ".nvmrc"
+                  registry-url: "https://registry.npmjs.org"
 
-            - if: ${{ steps.release.outputs.release_created }}
+            - if: ${{ github.event.inputs.publish-release == 'true' || steps.release.outputs.release_created }}
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
               run: >
                   npm ci &&
                   npm run build &&
                   npm publish --provenance --access public
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

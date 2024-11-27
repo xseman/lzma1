@@ -1,3324 +1,3968 @@
-const MAX_UINT32 = 4294967296
-const MAX_INT32 = 2147483647
-const MIN_INT32 = -2147483648
-const MAX_COMPRESSION_SIZE = 9223372036854775807
-const N1_longLit: [number, number] = [4294967295, -MAX_UINT32]
-const MIN_VALUE: [number, number] = [0, -9223372036854775808]
-const P0_longLit: [number, number] = [0, 0]
-const P1_longLit: [number, number] = [1, 0]
+// @ts-nocheck: remove when resolved all types
 
-/**
- * This is MUCH faster than "new Array(len)" in newer versions of v8
- * (starting with Node.js 0.11.15, which uses v8 3.28.73).
- */
-function initArr(len: number) {
-	var array = []
-	array[len - 1] = undefined
-	return array
+interface Mode {
+	searchDepth: number;
+	filterStrength: number;
+	modeIndex: number;
 }
 
-function add(
-	a: [number, number],
-	b: [number, number]
-): [number, number] {
-	return create(a[0] + b[0], a[1] + b[1])
+interface BitTreeBase {
+	NumBitLevels: number;
+	Models: number[];
 }
 
-function and(
-	a: [number, number],
-	b: [number, number]
-): [number, number] {
-	const highBits = ~~Math.max(
-		Math.min(a[1] / MAX_UINT32, MAX_INT32),
-		MIN_INT32
-	)
-		& ~~Math.max(
-			Math.min(b[1] / MAX_UINT32, MAX_INT32),
-			MIN_INT32
-		)
+type BitTreeDecoder = BitTreeBase;
+type BitTreeEncoder = BitTreeBase;
 
-	const lowBits = lowBits_0(a)
-		& lowBits_0(b)
-
-	let high = highBits * MAX_UINT32
-	let low = lowBits
-	if (lowBits < 0) {
-		low += MAX_UINT32
-	}
-
-	return [low, high]
+interface BaseStream {
+	buf: RelativeIndexable<number> | Uint8Array | ArrayBuffer | number[];
+	pos: number;
+	count: number;
 }
 
-function compare(
-	a: [number, number],
-	b: [number, number]
-): 0 | 1 | -1 {
-	if (a[0] == b[0] && a[1] == b[1]) {
-		return 0
-	}
-	const nega = a[1] < 0
-	const negb = b[1] < 0
-	if (nega && !negb) {
-		return -1
-	}
-	if (!nega && negb) {
-		return 1
-	}
-	if (sub(a, b)[1] < 0) {
-		return -1
-	}
-	return 1
+interface BaseWindow {
+	_streamPos: number;
+	_pos: number;
+	_buffer: number[];
+	_stream: BaseStream;
 }
 
-function create(valueLow: number, valueHigh: number): [number, number] {
-	let diffHigh, diffLow
-	valueHigh %= 1.8446744073709552E19
-	valueLow %= 1.8446744073709552E19
-	diffHigh = valueHigh % MAX_UINT32
-	diffLow = Math.floor(valueLow / MAX_UINT32) * MAX_UINT32
-	valueHigh = valueHigh - diffHigh + diffLow
-	valueLow = valueLow - diffLow + diffHigh
-	while (valueLow < 0) {
-		valueLow += MAX_UINT32
-		valueHigh -= MAX_UINT32
-	}
-	while (valueLow > 4294967295) {
-		valueLow -= MAX_UINT32
-		valueHigh += MAX_UINT32
-	}
-	valueHigh = valueHigh % 1.8446744073709552E19
-	while (valueHigh > 9223372032559808512) {
-		valueHigh -= 1.8446744073709552E19
-	}
-	while (valueHigh < -9223372036854775808) {
-		valueHigh += 1.8446744073709552E19
-	}
-
-	return [valueLow, valueHigh]
+interface BaseRangeCoder {
+	Stream: BaseStream;
 }
 
-function eq(a, b): boolean {
-	return a[0] == b[0] && a[1] == b[1]
+interface RangeDecoder extends BaseRangeCoder {
+	Code: number;
+	Range: number;
 }
 
-function fromInt(value: number): [number, number] {
-	if (value >= 0) {
-		return [value, 0]
-	} else {
-		return [value + MAX_UINT32, -MAX_UINT32]
+interface RangeEncoder extends BaseRangeCoder {
+	Low: [number, number];
+	Range: number;
+	_cacheSize: number;
+	_cache: number;
+	_position: [number, number];
+}
+
+interface OutWindow extends BaseWindow {
+	_windowSize: number;
+}
+
+interface Encoder {
+	_state: number;
+	_previousByte: number;
+	_distTableSize: number;
+	_longestMatchWasFound: number;
+	_optimumEndIndex: number;
+	_optimumCurrentIndex: number;
+	_additionalOffset: number;
+	_dictionarySize: number;
+	_matchFinder: MatchFinder;
+	_dictionarySizePrev: number;
+	_numFastBytes: number;
+	_numLiteralContextBits: number;
+	_numLiteralPosStateBits: number;
+	_posStateBits: number;
+	_posStateMask: number;
+	_needReleaseMFStream: number;
+	_inStream: BaseStream;
+	_finished: number;
+	nowPos64: [number, number];
+	_repDistances: number[];
+	_optimum: Optimum[];
+
+	_rangeEncoder: {
+		_cache: number;
+		Low: [number, number];
+		Range: number;
+		Stream: {
+			buf: BitTreeEncoder[];
+			count: number;
+		};
+	};
+
+	_isMatch: number[];
+	_isRep: number[];
+	_isRepG0: number[];
+	_isRepG1: number[];
+	_isRepG2: number[];
+	_isRep0Long: number[];
+	_posSlotEncoder: BitTreeEncoder[];
+	_posEncoders: number[];
+	_posAlignEncoder: BitTreeEncoder;
+	_lenEncoder: LenEncoder;
+	_repMatchLenEncoder: LenEncoder;
+	_literalEncoder: LiteralEncoder;
+	_matchDistances: number[];
+	_posSlotPrices: number[];
+	_distancesPrices: number[];
+	_alignPrices: number[];
+	reps: number[];
+	repLens: number[];
+	processedInSize: [number, number][];
+	processedOutSize: [number, number][];
+	finished: number[];
+	properties: number[];
+	tempPrices: number[];
+	_longestMatchLength: number;
+	_matchFinderType: number;
+	_numDistancePairs: number;
+	_numFastBytesPrev: number;
+	backRes: number;
+}
+
+interface Decoder {
+	m_PosStateMask: number;
+	m_DictionarySize: number;
+	m_DictionarySizeCheck: number;
+	state: number;
+	rep0: number;
+	rep1: number;
+	rep2: number;
+	rep3: number;
+	outSize: [number, number];
+	nowPos64: [number, number];
+	prevByte: number;
+	alive: number;
+	encoder: null;
+	decoder: Decoder;
+	m_OutWindow: OutWindow;
+	m_RangeDecoder: RangeDecoder;
+	m_IsMatchDecoders: number[];
+	m_IsRepDecoders: number[];
+	m_IsRepG0Decoders: number[];
+	m_IsRepG1Decoders: number[];
+	m_IsRepG2Decoders: number[];
+	m_IsRep0LongDecoders: number[];
+	m_PosSlotDecoder: BitTreeDecoder[];
+	m_PosDecoders: number[];
+	m_PosAlignDecoder: BitTreeDecoder;
+	m_LenDecoder: LenDecoder;
+	m_RepLenDecoder: LenDecoder;
+	m_LiteralDecoder: LiteralDecoder;
+}
+
+interface Optimum {
+	State?: number;
+	Prev1IsChar?: number;
+	Prev2?: number;
+	PosPrev2?: number;
+	BackPrev2?: number;
+	Price?: number;
+	PosPrev?: number;
+	BackPrev?: number;
+	Backs0?: number;
+	Backs1?: number;
+	Backs2?: number;
+	Backs3?: number;
+}
+
+interface LenEncoder {
+	_tableSize: number;
+	_prices: number[];
+	_counters: number[];
+	_choice: BitTreeEncoder[];
+	_lowCoder: BitTreeEncoder[];
+	_midCoder: BitTreeEncoder[];
+	_highCoder: BitTreeEncoder;
+}
+
+interface MatchFinder {
+	_bufferBase: number[];
+	_pos: number;
+	_streamPos: number;
+	_streamEndWasReached: number;
+	_bufferOffset: number;
+	_blockSize: number;
+	_keepSizeBefore: number;
+	_keepSizeAfter: number;
+	_pointerToLastSafePosition: number;
+	_stream: BaseStream;
+	HASH_ARRAY?: boolean;
+	kNumHashDirectBytes?: number;
+	kMinMatchCheck?: number;
+	kFixHashSize?: number;
+	_hashMask?: number;
+	_hashSizeSum?: number;
+	_hash?: number[];
+	_cyclicBufferSize?: number;
+	_son?: number[];
+	_matchMaxLen?: number;
+	_cutValue?: number;
+}
+
+interface CompressionContext {
+	length_0?: [number, number];
+	chunker: {
+		inBytesProcessed: [number, number];
+		alive: number;
+		encoder: Encoder | null;
+		decoder: Decoder | null;
+	};
+	output: {
+		buf: BitTreeEncoder[];
+		count: number;
+	};
+}
+
+type DecompressionContext = CompressionContext;
+
+interface LiteralEncoder {
+	m_NumPrevBits: number;
+	m_NumPosBits: number;
+	m_PosMask: number;
+	m_Coders: LiteralDecoderEncoder2[];
+}
+
+interface LiteralDecoderEncoder2 {
+	m_Encoders: number[];
+}
+
+interface LenDecoder {
+	m_Choice: number[];
+	m_LowCoder: BitTreeDecoder[];
+	m_MidCoder: BitTreeDecoder[];
+	m_HighCoder: BitTreeDecoder;
+	m_NumPosStates: number;
+}
+
+interface LiteralDecoder {
+	m_NumPrevBits: number;
+	m_NumPosBits: number;
+	m_PosMask: number;
+	m_Coders: LiteralDecoderEncoder2[];
+}
+
+// Computed CRC32 lookup table
+// const CRC32_TABLE = new Uint32Array(256);
+
+// for (let i = 0; i < CRC32_TABLE.length; i++) {
+// 	let crc = i;
+// 	for (let j = 0; j < 8; j++) {
+// 		crc = (crc >>> 1) ^ (0xEDB88320 * (crc & 1));
+// 	}
+// 	CRC32_TABLE[i] = crc;
+// }
+
+// dprint-ignore
+const CRC32_TABLE = [
+	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
+	0xe963a535, 0x9e6495a3,	0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
+	0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,
+	0xf3b97148, 0x84be41de,	0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
+	0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec,	0x14015c4f, 0x63066cd9,
+	0xfa0f3d63, 0x8d080df5,	0x3b6e20c8, 0x4c69105e, 0xd56041e4, 0xa2677172,
+	0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b,	0x35b5a8fa, 0x42b2986c,
+	0xdbbbc9d6, 0xacbcf940,	0x32d86ce3, 0x45df5c75, 0xdcd60dcf, 0xabd13d59,
+	0x26d930ac, 0x51de003a, 0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423,
+	0xcfba9599, 0xb8bda50f, 0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924,
+	0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d,	0x76dc4190, 0x01db7106,
+	0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f, 0x9fbfe4a5, 0xe8b8d433,
+	0x7807c9a2, 0x0f00f934, 0x9609a88e, 0xe10e9818, 0x7f6a0dbb, 0x086d3d2d,
+	0x91646c97, 0xe6635c01, 0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e,
+	0x6c0695ed, 0x1b01a57b, 0x8208f4c1, 0xf50fc457, 0x65b0d9c6, 0x12b7e950,
+	0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3, 0xfbd44c65,
+	0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2, 0x4adfa541, 0x3dd895d7,
+	0xa4d1c46d, 0xd3d6f4fb, 0x4369e96a, 0x346ed9fc, 0xad678846, 0xda60b8d0,
+	0x44042d73, 0x33031de5, 0xaa0a4c5f, 0xdd0d7cc9, 0x5005713c, 0x270241aa,
+	0xbe0b1010, 0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f,
+	0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17, 0x2eb40d81,
+	0xb7bd5c3b, 0xc0ba6cad, 0xedb88320, 0x9abfb3b6, 0x03b6e20c, 0x74b1d29a,
+	0xead54739, 0x9dd277af, 0x04db2615, 0x73dc1683, 0xe3630b12, 0x94643b84,
+	0x0d6d6a3e, 0x7a6a5aa8, 0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1,
+	0xf00f9344, 0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb,
+	0x196c3671, 0x6e6b06e7, 0xfed41b76, 0x89d32be0, 0x10da7a5a, 0x67dd4acc,
+	0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5, 0xd6d6a3e8, 0xa1d1937e,
+	0x38d8c2c4, 0x4fdff252, 0xd1bb67f1, 0xa6bc5767, 0x3fb506dd, 0x48b2364b,
+	0xd80d2bda, 0xaf0a1b4c, 0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55,
+	0x316e8eef, 0x4669be79, 0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236,
+	0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f, 0xc5ba3bbe, 0xb2bd0b28,
+	0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31, 0x2cd99e8b, 0x5bdeae1d,
+	0x9b64c2b0, 0xec63f226, 0x756aa39c, 0x026d930a, 0x9c0906a9, 0xeb0e363f,
+	0x72076785, 0x05005713, 0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38,
+	0x92d28e9b, 0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21, 0x86d3d2d4, 0xf1d4e242,
+	0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1, 0x18b74777,
+	0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c, 0x8f659eff, 0xf862ae69,
+	0x616bffd3, 0x166ccf45, 0xa00ae278, 0xd70dd2ee, 0x4e048354, 0x3903b3c2,
+	0xa7672661, 0xd06016f7, 0x4969474d, 0x3e6e77db, 0xaed16a4a, 0xd9d65adc,
+	0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
+	0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693,
+	0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
+	0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
+];
+
+export class LZMA {
+	readonly #MAX_UINT32 = 4_294_967_296;
+	readonly #MAX_INT32 = 2_147_483_647;
+	readonly #MIN_INT32 = -2_147_483_648;
+	readonly #MAX_COMPRESSION_SIZE = 9_223_372_036_854_775_807;
+	readonly #N1_LONG_LIT: [number, number];
+	readonly #MIN_VALUE: [number, number];
+	readonly #P0_LONG_LIT: [number, number] = [0, 0];
+	readonly #P1_LONG_LIT: [number, number] = [1, 0];
+
+	readonly CompressionModes = {
+		1: { searchDepth: 16, filterStrength: 64, modeIndex: 0 },
+		2: { searchDepth: 20, filterStrength: 64, modeIndex: 0 },
+		3: { searchDepth: 19, filterStrength: 64, modeIndex: 1 },
+		4: { searchDepth: 20, filterStrength: 64, modeIndex: 1 },
+		5: { searchDepth: 21, filterStrength: 128, modeIndex: 1 },
+		6: { searchDepth: 22, filterStrength: 128, modeIndex: 1 },
+		7: { searchDepth: 23, filterStrength: 128, modeIndex: 1 },
+		8: { searchDepth: 24, filterStrength: 255, modeIndex: 1 },
+		9: { searchDepth: 25, filterStrength: 255, modeIndex: 1 },
+	} as const;
+
+	#encoder: Encoder;
+	#decoder: Decoder;
+	#probPrices: number[];
+	#gFastPos: number[];
+	#compressor: CompressionContext;
+	#decompressor: DecompressionContext;
+
+	constructor() {
+		this.#N1_LONG_LIT = [4294967295, -this.#MAX_UINT32];
+		this.#MIN_VALUE = [0, -9223372036854775808];
+
+		this.#encoder = this.#initEncoder();
+		this.#decoder = this.#initDecoder();
+		this.#probPrices = this.#createProbPrices();
+		this.#gFastPos = this.#createFastPos();
+		this.#compressor = this.#initCompressor();
+		this.#decompressor = this.#initDecompressor();
 	}
-}
 
-function lowBits_0(a: number[]): number {
-	if (a[0] >= 2147483648) {
+	#initEncoder(): Encoder {
+		return {
+			_repDistances: this.#initArray(4),
+			_optimum: [],
+			_rangeEncoder: {
+				Stream: {
+					buf: [],
+					count: 0,
+				},
+				Range: 0,
+				_cache: 0,
+				Low: [],
+			},
+			_isMatch: this.#initArray(192),
+			_isRep: this.#initArray(12),
+			_isRepG0: this.#initArray(12),
+			_isRepG1: this.#initArray(12),
+			_isRepG2: this.#initArray(12),
+			_isRep0Long: this.#initArray(192),
+			_posSlotEncoder: [],
+			_posEncoders: this.#initArray(114),
+			_posAlignEncoder: this.#createBitTreeEncoder(4),
+			_lenEncoder: this.#createLenPriceTableEncoder(),
+			_repMatchLenEncoder: this.#createLenPriceTableEncoder(),
+			_literalEncoder: {} as LiteralEncoder,
+			_matchDistances: [],
+			_posSlotPrices: [],
+			_distancesPrices: [],
+			_alignPrices: this.#initArray(16),
+			reps: this.#initArray(4),
+			repLens: this.#initArray(4),
+			processedInSize: [this.#P0_LONG_LIT],
+			processedOutSize: [this.#P0_LONG_LIT],
+			finished: [0],
+			properties: this.#initArray(5),
+			tempPrices: this.#initArray(128),
+			_longestMatchLength: 0,
+			_matchFinderType: 1,
+			_numDistancePairs: 0,
+			_numFastBytesPrev: -1,
+			backRes: 0,
+		};
+	}
+
+	#initDecoder(): Decoder {
+		const decoder = {
+			m_OutWindow: {} as OutWindow,
+			m_RangeDecoder: {} as RangeDecoder,
+			m_IsMatchDecoders: this.#initArray(192),
+			m_IsRepDecoders: this.#initArray(12),
+			m_IsRepG0Decoders: this.#initArray(12),
+			m_IsRepG1Decoders: this.#initArray(12),
+			m_IsRepG2Decoders: this.#initArray(12),
+			m_IsRep0LongDecoders: this.#initArray(192),
+			m_PosSlotDecoder: this.#initArray(4),
+			m_PosDecoders: this.#initArray(114),
+			m_PosAlignDecoder: this.#createBitTreeDecoder(4),
+			m_LenDecoder: this.#createLenDecoder({}),
+			m_RepLenDecoder: this.#createLenDecoder({}),
+			m_LiteralDecoder: {} as LiteralDecoder,
+		};
+
+		for (let i = 0; i < 4; ++i) {
+			decoder.m_PosSlotDecoder[i] = this.#createBitTreeDecoder(6);
+		}
+
+		return decoder;
+	}
+
+	#initCompressor(): CompressionContext {
+		return {
+			chunker: {
+				alive: 0,
+				encoder: null,
+				decoder: null,
+				inBytesProcessed: [],
+			},
+			output: {
+				buf: this.#initArray(32),
+				count: 0,
+			},
+		};
+	}
+
+	#initDecompressor(): DecompressionContext {
+		return {
+			chunker: {
+				alive: 0,
+				encoder: null,
+				decoder: null,
+				inBytesProcessed: [],
+			},
+			output: {
+				buf: this.#initArray(32),
+				count: 0,
+			},
+		};
+	}
+
+	#createProbPrices(): number[] {
+		const probPrices = [];
+		for (let i = 8; i >= 0; --i) {
+			let start = 1 << (9 - i - 1);
+			let end = 1 << (9 - i);
+
+			for (let j = start; j < end; ++j) {
+				probPrices[j] = (i << 6) + ((end - j) << 6 >>> (9 - i - 1));
+			}
+		}
+
+		return probPrices;
+	}
+
+	#createFastPos(): number[] {
+		const gFastPos = [0, 1];
+		let c = 2;
+
+		for (let slotFast = 2; slotFast < 22; ++slotFast) {
+			let k = 1 << ((slotFast >> 1) - 1);
+
+			for (let j = 0; j < k; ++j, ++c) {
+				gFastPos[c] = slotFast;
+			}
+		}
+
+		return gFastPos;
+	}
+
+	#initArray(len: number) {
+		const array = [];
+		// This is MUCH faster than "new Array(len)" in newer versions of v8
+		// (starting with Node.js 0.11.15, which uses v8 3.28.73).
+		array[len - 1] = undefined;
+		return array;
+	}
+
+	#add(a: [number, number], b: [number, number]): [number, number] {
+		return this.#create(a[0] + b[0], a[1] + b[1]);
+	}
+
+	#and(a: [number, number], b: [number, number]): [number, number] {
+		const highBits = ~~Math.max(
+			Math.min(a[1] / this.#MAX_UINT32, this.#MAX_INT32),
+			this.#MIN_INT32,
+		) & ~~Math.max(
+			Math.min(b[1] / this.#MAX_UINT32, this.#MAX_INT32),
+			this.#MIN_INT32,
+		);
+
+		const lowBits = this.#lowBits_0(a) & this.#lowBits_0(b);
+
+		let high = highBits * this.#MAX_UINT32;
+		let low = lowBits;
+		if (lowBits < 0) {
+			low += this.#MAX_UINT32;
+		}
+
+		return [low, high];
+	}
+
+	#compare(a: [number, number], b: [number, number]): 0 | 1 | -1 {
+		if (a[0] == b[0] && a[1] == b[1]) {
+			return 0;
+		}
+		const nega = a[1] < 0;
+		const negb = b[1] < 0;
+
+		if (nega && !negb) {
+			return -1;
+		}
+
+		if (!nega && negb) {
+			return 1;
+		}
+
+		if (this.#sub(a, b)[1] < 0) {
+			return -1;
+		}
+
+		return 1;
+	}
+
+	#create(
+		valueLow: number,
+		valueHigh: number,
+	): [number, number] {
+		let diffHigh, diffLow;
+		valueHigh %= 1.8446744073709552E19;
+		valueLow %= 1.8446744073709552E19;
+		diffHigh = valueHigh % this.#MAX_UINT32;
+		diffLow = Math.floor(valueLow / this.#MAX_UINT32) * this.#MAX_UINT32;
+		valueHigh = valueHigh - diffHigh + diffLow;
+		valueLow = valueLow - diffLow + diffHigh;
+
+		while (valueLow < 0) {
+			valueLow += this.#MAX_UINT32;
+			valueHigh -= this.#MAX_UINT32;
+		}
+
+		while (valueLow > 4294967295) {
+			valueLow -= this.#MAX_UINT32;
+			valueHigh += this.#MAX_UINT32;
+		}
+		valueHigh = valueHigh % 1.8446744073709552E19;
+
+		while (valueHigh > 9223372032559808512) {
+			valueHigh -= 1.8446744073709552E19;
+		}
+
+		while (valueHigh < -9223372036854775808) {
+			valueHigh += 1.8446744073709552E19;
+		}
+
+		return [valueLow, valueHigh];
+	}
+
+	#eq(a: [number, number], b: [number, number]): boolean {
+		return a[0] == b[0] && a[1] == b[1];
+	}
+
+	#fromInt(value: number): [number, number] {
+		if (value >= 0) {
+			return [value, 0];
+		} else {
+			return [value + this.#MAX_UINT32, -this.#MAX_UINT32];
+		}
+	}
+
+	#lowBits_0(a: [number, number]): number {
+		if (a[0] >= 2147483648) {
+			return ~~Math.max(
+				Math.min(a[0] - this.#MAX_UINT32, this.#MAX_INT32),
+				this.#MIN_INT32,
+			);
+		}
+
 		return ~~Math.max(
-			Math.min(a[0] - MAX_UINT32, MAX_INT32),
-			MIN_INT32
-		)
+			Math.min(a[0], this.#MAX_INT32),
+			this.#MIN_INT32,
+		);
 	}
 
-	return ~~Math.max(
-		Math.min(a[0], MAX_INT32),
-		MIN_INT32
-	)
-}
-
-function pwrAsDouble(n: number): number {
-	if (n <= 30) {
-		return 1 << n
-	}
-
-	return pwrAsDouble(30) * pwrAsDouble(n - 30)
-}
-
-function shl(
-	a: [number, number],
-	n: number
-): [number, number] {
-	let diff, newHigh, newLow, twoToN
-	n &= 63
-	if (eq(a, MIN_VALUE)) {
-		if (!n) {
-			return a
+	#pwrAsDouble(n: number): number {
+		if (n <= 30) {
+			return 1 << n;
 		}
-		return P0_longLit
-	}
-	if (a[1] < 0) {
-		throw new Error("Neg")
-	}
-	twoToN = pwrAsDouble(n)
-	newHigh = a[1] * twoToN % 1.8446744073709552E19
-	newLow = a[0] * twoToN
-	diff = newLow - newLow % MAX_UINT32
-	newHigh += diff
-	newLow -= diff
 
-	if (newHigh >= MAX_COMPRESSION_SIZE) {
-		newHigh -= 1.8446744073709552E19
+		return this.#pwrAsDouble(30) * this.#pwrAsDouble(n - 30);
 	}
 
-	return [newLow, newHigh]
-}
+	#shl(a: [number, number], n: number): [number, number] {
+		let diff, newHigh, newLow, twoToN;
+		n &= 63;
 
-function shr(a: number[], n: number) {
-	n &= 63
-	let shiftFact = pwrAsDouble(n)
-	return create(
-		Math.floor(a[0] / shiftFact),
-		a[1] / shiftFact
-	)
-}
+		if (this.#eq(a, this.#MIN_VALUE)) {
+			if (!n) {
+				return a;
+			}
+			return this.#P0_LONG_LIT;
+		}
 
-function shru(a: number[], n: number): [number, number] {
-	let sr = shr(a, n)
-	n &= 63
-	if (a[1] < 0) {
-		sr = add(sr, shl([2, 0], 63 - n))
-	}
-	return sr
-}
+		if (a[1] < 0) {
+			throw new Error("Neg");
+		}
+		twoToN = this.#pwrAsDouble(n);
+		newHigh = a[1] * twoToN % 1.8446744073709552E19;
+		newLow = a[0] * twoToN;
+		diff = newLow - newLow % this.#MAX_UINT32;
+		newHigh += diff;
+		newLow -= diff;
 
-function sub(a: number[], b: number[]): [number, number] {
-	return create(a[0] - b[0], a[1] - b[1])
-}
+		if (newHigh >= this.#MAX_COMPRESSION_SIZE) {
+			newHigh -= 1.8446744073709552E19;
+		}
 
-function $ByteArrayInputStream(obj, buf: number[] | Uint8Array | ArrayBuffer) {
-	obj.buf = buf
-	obj.pos = 0
-	obj.count = buf.length
-
-	return obj
-}
-
-function $read(obj): number {
-	if (obj.pos >= obj.count) {
-		return -1
+		return [newLow, newHigh];
 	}
 
-	return obj.buf[obj.pos++] & 255
-}
-
-function $read_0(
-	obj,
-	buf: number[],
-	off: number,
-	len: number
-): number {
-	if (obj.pos >= obj.count) {
-		return -1
+	#shr(a: [number, number], n: number): [number, number] {
+		n &= 63;
+		let shiftFact = this.#pwrAsDouble(n);
+		return this.#create(
+			Math.floor(a[0] / shiftFact),
+			a[1] / shiftFact,
+		);
 	}
 
-	len = Math.min(len, obj.count - obj.pos)
-	arraycopy(obj.buf, obj.pos, buf, off, len)
-	obj.pos += len
-
-	return len
-}
-
-function $toByteArray(obj): number[] {
-	const data = obj.buf
-	data.length = obj.count
-
-	return data
-}
-
-function $write(obj, b: number): void {
-	obj.buf[obj.count++] = b << 24 >> 24
-}
-
-function $write_0(obj, buf: number[], off: number, len: number): void {
-	arraycopy(buf, off, obj.buf, obj.count, len)
-	obj.count += len
-}
-
-function $getChars(obj, srcBegin, srcEnd, dst, dstBegin): void {
-	var srcIdx
-	for (srcIdx = srcBegin; srcIdx < srcEnd; ++srcIdx) {
-		dst[dstBegin++] = obj.charCodeAt(srcIdx)
+	#shru(a: [number, number], n: number): [number, number] {
+		let sr = this.#shr(a, n);
+		n &= 63;
+		if (a[1] < 0) {
+			sr = this.#add(sr, this.#shl([2, 0], 63 - n));
+		}
+		return sr;
 	}
-}
 
-function arraycopy(
-	src: number[],
-	srcOfs: number,
-	dest: number[],
-	destOfs: number,
-	len: number
-): void {
-	for (let i = 0; i < len; ++i) {
-		try {
-			dest[destOfs + i] = src[srcOfs + i]
-		} catch (error) {
-			break
+	#sub(a: [number, number], b: [number, number]): [number, number] {
+		return this.#create(a[0] - b[0], a[1] - b[1]);
+	}
+
+	#read(inputStream: BaseStream): number {
+		if (inputStream.pos >= inputStream.count) {
+			return -1;
+		}
+
+		return inputStream.buf[inputStream.pos++] & 255;
+	}
+
+	#read_0(
+		off: number,
+		len: number,
+	): number {
+		const stream = this.#compressor.chunker.encoder._matchFinder._stream;
+		const buffer = this.#compressor.chunker.encoder._matchFinder._bufferBase;
+
+		if (stream.pos >= stream.count) {
+			return -1;
+		}
+
+		len = Math.min(len, stream.count - stream.pos);
+		this.#arraycopy(stream.buf, stream.pos, buffer, off, len);
+		stream.pos += len;
+
+		return len;
+	}
+
+	#toByteArray(output: CompressionContext["output"]): number[] {
+		const data = output.buf;
+		data.length = output.count;
+
+		return data;
+	}
+
+	#write(obj: { buf: number[]; count: number; }, b: number): void {
+		obj.buf[obj.count++] = b << 24 >> 24;
+	}
+
+	#write_0(
+		obj: { buf: number[]; count: number; },
+		buf: number[],
+		off: number,
+		len: number,
+	): void {
+		this.#arraycopy(
+			buf,
+			off,
+			obj.buf,
+			obj.count,
+			len,
+		);
+
+		obj.count += len;
+	}
+
+	#getChars(
+		inputString: string,
+		srcBegin: number,
+		srcEnd: number,
+		dst: number[],
+		dstBegin: number,
+	): void {
+		for (let srcIdx = srcBegin; srcIdx < srcEnd; ++srcIdx) {
+			dst[dstBegin++] = inputString.charCodeAt(srcIdx);
 		}
 	}
-}
 
-function $configure(mode: Mode, encoder): void {
-	$SetDictionarySize_0(encoder, 1 << mode.s)
-	encoder._numFastBytes = mode.f
-	$SetMatchFinder(encoder, mode.m)
-
-	/**
-	 * lc is always 3
-	 * lp is always 0
-	 * pb is always 2
-	 */
-	encoder._numLiteralContextBits = 3
-	encoder._numLiteralPosStateBits = 0
-	encoder._posStateBits = 2
-	encoder._posStateMask = 3
-}
-
-function $init(
-	obj,
-	input,
-	output,
-	len: [number, number],
-	mode: Mode
-): void {
-	if (compare(len, N1_longLit) < 0) {
-		throw new Error("invalid length " + len)
-	}
-	obj.length_0 = len
-	let encoder = $Encoder()
-	$configure(mode, encoder)
-	writeHeaderProperties(encoder, output)
-	for (let i = 0; i < 64; i += 8) {
-		$write(output, lowBits_0(shr(len, i)) & 255)
-	}
-	obj.chunker =
-		(encoder._needReleaseMFStream = 0,
-			(encoder._inStream = input,
-				encoder._finished = 0,
-				$Create_2(encoder),
-				encoder._rangeEncoder.Stream = output,
-				$Init_4(encoder),
-				$FillDistancesPrices(encoder),
-				$FillAlignPrices(encoder),
-				encoder._lenEncoder._tableSize = encoder._numFastBytes + 1 - 2,
-				$UpdateTables(encoder._lenEncoder, 1 << encoder._posStateBits),
-				encoder._repMatchLenEncoder._tableSize = encoder._numFastBytes
-					+ 1
-					- 2,
-				$UpdateTables(
-					encoder._repMatchLenEncoder,
-					1 << encoder._posStateBits
-				),
-				encoder.nowPos64 = P0_longLit,
-				undefined),
-			$Chunker_0({}, encoder))
-}
-
-function $LZMAByteArrayCompressor(
-	obj,
-	data: number[] | Uint8Array,
-	mode: Mode
-) {
-	obj.output = {
-		buf: initArr(32),
-		count: 0
-	}
-
-	$init(
-		obj,
-		$ByteArrayInputStream({}, data),
-		obj.output,
-		fromInt(data.length),
-		mode
-	)
-
-	return obj
-}
-
-function $init_0(obj, input, output): void {
-	let hex_length = "",
-		properties = [],
-		r: number,
-		tmp_length: number
-
-	for (let i = 0; i < 5; ++i) {
-		r = $read(input)
-		if (r == -1) {
-			throw new Error("truncated input")
+	#arraycopy(src: number[], srcOfs: number, dest: number[], destOfs: number, len: number): void {
+		for (let i = 0; i < len; ++i) {
+			try {
+				dest[destOfs + i] = src[srcOfs + i];
+			} catch (error) {
+				break;
+			}
 		}
-		properties[i] = r << 24 >> 24
 	}
 
-	let decoder = $Decoder({})
-	if (!$SetDecoderProperties(decoder, properties)) {
-		throw new Error("corrupted input")
+	#configure(mode: Mode): void {
+		this.#SetDictionarySize_0(1 << mode.searchDepth);
+		this.#encoder._numFastBytes = mode.filterStrength;
+		this.#SetMatchFinder(mode.modeIndex);
+
+		// lc is always 3
+		// lp is always 0
+		// pb is always 2
+		this.#encoder._numLiteralContextBits = 3;
+		this.#encoder._numLiteralPosStateBits = 0;
+		this.#encoder._posStateBits = 2;
+		this.#encoder._posStateMask = 3;
 	}
-	for (let i = 0; i < 64; i += 8) {
-		r = $read(input)
-		if (r == -1) {
-			throw new Error("truncated input")
+
+	#initCompression(
+		input: BaseStream,
+		len: [number, number],
+		mode: Mode,
+	): void {
+		if (this.#compare(len, this.#N1_LONG_LIT) < 0) {
+			throw new Error("invalid length " + len);
 		}
-		r = r.toString(16)
-		if (r.length == 1) r = "0" + r
-		hex_length = r + "" + hex_length
+
+		this.#compressor.length_0 = len;
+		this.#Encoder();
+
+		this.#configure(mode);
+		this.writeHeaderProperties();
+
+		for (let i = 0; i < 64; i += 8) {
+			this.#write(
+				this.#compressor.output,
+				this.#lowBits_0(this.#shr(len, i)) & 255,
+			);
+		}
+
+		// Initialize encoder stream and properties
+		this.#encoder._needReleaseMFStream = 0;
+		this.#encoder._inStream = input;
+		this.#encoder._finished = 0;
+
+		// Create and configure encoder
+		this.#Create_2();
+		this.#encoder._rangeEncoder.Stream = this.#compressor.output;
+		this.#Init_4();
+
+		// Initialize pricing tables
+		this.#FillDistancesPrices(this.#encoder);
+		this.#FillAlignPrices(this.#encoder);
+
+		// Configure length encoders
+		this.#encoder._lenEncoder._tableSize = this.#encoder._numFastBytes + 1 - 2;
+		this.#UpdateTables(
+			this.#encoder._lenEncoder,
+			1 << this.#encoder._posStateBits,
+		);
+
+		this.#encoder._repMatchLenEncoder._tableSize = this.#encoder._numFastBytes + 1 - 2;
+		this.#UpdateTables(
+			this.#encoder._repMatchLenEncoder,
+			1 << this.#encoder._posStateBits,
+		);
+
+		// Reset position counter
+		this.#encoder.nowPos64 = this.#P0_LONG_LIT;
+
+		// Create new chunker with configured encoder
+		this.#compressor.chunker = {
+			encoder: this.#encoder,
+			decoder: null,
+			alive: 1,
+		} as CompressionContext["chunker"];
 	}
 
-	/**
-	 * Was the length set in the header (if it was compressed from a stream, the
-	 * length is all f"s).
-	 */
-	if (/^0+$|^f+$/i.test(hex_length)) {
-		// The length is unknown, so set to -1.
-		obj.length_0 = N1_longLit
-	} else {
+	#byteArrayCompressor(data: number[] | Uint8Array, mode: Mode): void {
+		this.#compressor.output = {
+			buf: this.#initArray(32),
+			count: 0,
+		};
+
+		const inputBuffer: BaseStream = {
+			buf: data instanceof ArrayBuffer
+				? new Uint8Array(data)
+				: data,
+			pos: 0,
+			count: data instanceof ArrayBuffer
+				? new Uint8Array(data).length
+				: data.length,
+		};
+
+		this.#initCompression(
+			inputBuffer,
+			this.#fromInt(data.length),
+			mode,
+		);
+	}
+
+	#initDecompression(input: BaseStream): void {
+		let hex_length = "",
+			properties = [],
+			r: number | string,
+			tmp_length: number;
+
+		for (let i = 0; i < 5; ++i) {
+			r = this.#read(input);
+			if (r == -1) {
+				throw new Error("truncated input");
+			}
+			properties[i] = r << 24 >> 24;
+		}
+
+		if (!this.#SetDecoderProperties(properties)) {
+			throw new Error("corrupted input");
+		}
+
+		for (let i = 0; i < 64; i += 8) {
+			r = this.#read(input);
+			if (r == -1) {
+				throw new Error("truncated input");
+			}
+			r = r.toString(16);
+			if (r.length == 1) r = "0" + r;
+			hex_length = r + "" + hex_length;
+		}
+
 		/**
-		 * NOTE: If there is a problem with the decoder because of the length,
-		 * you can always set the length to -1 (N1_longLit) which means unknown.
+		 * Was the length set in the header (if it was compressed from a stream, the
+		 * length is all f"s).
 		 */
-		tmp_length = parseInt(hex_length, 16)
-		// If the length is too long to handle, just set it to unknown.
-		if (tmp_length > 4294967295) {
-			obj.length_0 = N1_longLit
+		if (/^0+$|^f+$/i.test(hex_length)) {
+			// The length is unknown, so set to -1.
+			this.#compressor.length_0 = this.#N1_LONG_LIT;
 		} else {
-			obj.length_0 = fromInt(tmp_length)
-		}
-	}
-
-	obj.chunker = $CodeInChunks(
-		decoder,
-		input,
-		output,
-		obj.length_0
-	)
-}
-
-function $LZMAByteArrayDecompressor(
-	obj: any,
-	data: Uint8Array | ArrayBuffer
-): any {
-	obj.output = {
-		buf: initArr(32),
-		count: 0
-	}
-
-	$init_0(obj, $ByteArrayInputStream({}, data), obj.output)
-	return obj
-}
-
-function $Create_4(
-	obj,
-	keepSizeBefore,
-	keepSizeAfter,
-	keepSizeReserv
-): void {
-	let blockSize
-	obj._keepSizeBefore = keepSizeBefore
-	obj._keepSizeAfter = keepSizeAfter
-	blockSize = keepSizeBefore + keepSizeAfter + keepSizeReserv
-	if (
-		obj._bufferBase == null || obj._blockSize != blockSize
-	) {
-		obj._bufferBase = null
-		obj._blockSize = blockSize
-		obj._bufferBase = initArr(obj._blockSize)
-	}
-	obj._pointerToLastSafePosition = obj._blockSize - keepSizeAfter
-}
-
-function $GetIndexByte(obj, index: number) {
-	return obj
-		._bufferBase[obj._bufferOffset + obj._pos + index]
-}
-
-function $GetMatchLen(obj, index, distance, limit): number {
-	if (obj._streamEndWasReached) {
-		if (obj._pos + index + limit > obj._streamPos) {
-			limit = obj._streamPos - (obj._pos + index)
-		}
-	}
-	;++distance
-	let i, pby = obj._bufferOffset + obj._pos + index
-	for (
-		i = 0;
-		i < limit
-		&& obj._bufferBase[pby + i] == obj._bufferBase[pby + i - distance];
-		++i
-	);
-
-	return i
-}
-
-function $GetNumAvailableBytes(obj): number {
-	return obj._streamPos - obj._pos
-}
-
-function $MoveBlock(obj): void {
-	let offset = obj._bufferOffset + obj._pos - obj._keepSizeBefore
-	if (offset > 0) {
-		;--offset
-	}
-	let numBytes = obj._bufferOffset + obj._streamPos - offset
-	for (let i = 0; i < numBytes; ++i) {
-		obj._bufferBase[i] = obj._bufferBase[offset + i]
-	}
-	obj._bufferOffset -= offset
-}
-
-function $MovePos_1(obj): void {
-	var pointerToPostion
-	obj._pos += 1
-	if (obj._pos > obj._posLimit) {
-		pointerToPostion = obj._bufferOffset + obj._pos
-		if (pointerToPostion > obj._pointerToLastSafePosition) {
-			$MoveBlock(obj)
-		}
-		$ReadBlock(obj)
-	}
-}
-
-function $ReadBlock(obj): void {
-	let numReadBytes, pointerToPostion, size
-	if (obj._streamEndWasReached) {
-		return
-	}
-	while (1) {
-		size = -obj._bufferOffset + obj._blockSize - obj._streamPos
-		if (!size) {
-			return
-		}
-		numReadBytes = $read_0(
-			obj._stream,
-			obj._bufferBase,
-			obj._bufferOffset + obj._streamPos,
-			size
-		)
-		if (numReadBytes == -1) {
-			obj._posLimit = obj._streamPos
-			pointerToPostion = obj._bufferOffset + obj._posLimit
-			if (pointerToPostion > obj._pointerToLastSafePosition) {
-				obj._posLimit = obj._pointerToLastSafePosition
-					- obj._bufferOffset
-			}
-			obj._streamEndWasReached = 1
-			return
-		}
-		obj._streamPos += numReadBytes
-		if (
-			obj._streamPos >= obj._pos + obj._keepSizeAfter
-		) {
-			obj._posLimit = obj._streamPos - obj._keepSizeAfter
-		}
-	}
-}
-
-function $ReduceOffsets(obj, subValue): void {
-	obj._bufferOffset += subValue
-	obj._posLimit -= subValue
-	obj._pos -= subValue
-	obj._streamPos -= subValue
-}
-
-const crcTable = function(): number[] {
-	const crcTable = []
-	for (let i = 0, r; i < 256; ++i, r = i) {
-		r = i
-		for (let j = 0; j < 8; ++j) {
-			if ((r & 1) != 0) {
-				r >>>= 1
-				r ^= -306674912
+			/**
+			 * NOTE: If there is a problem with the decoder because of the length,
+			 * you can always set the length to -1 (N1_longLit) which means unknown.
+			 */
+			tmp_length = parseInt(hex_length, 16);
+			// If the length is too long to handle, just set it to unknown.
+			if (tmp_length > 4294967295) {
+				this.#compressor.length_0 = this.#N1_LONG_LIT;
 			} else {
-				r >>>= 1
+				this.#compressor.length_0 = this.#fromInt(tmp_length);
 			}
 		}
-		crcTable[i] = r
+
+		this.#decompressor.chunker = this.#CodeInChunks(
+			input,
+			this.#compressor.length_0,
+		);
 	}
 
-	return crcTable
-}()
+	#byteArrayDecompressor(data: Uint8Array | ArrayBuffer): void {
+		this.#decompressor.output = {
+			buf: this.#initArray(32),
+			count: 0,
+		};
 
-function $Create_3(
-	obj,
-	historySize: number,
-	keepAddBufferBefore: number,
-	matchMaxLen: number,
-	keepAddBufferAfter: number
-): void {
-	if (historySize < 1073741567) {
-		obj._cutValue = 16 + (matchMaxLen >> 1)
-		let windowReservSize = ~~((historySize
-			+ keepAddBufferBefore
-			+ matchMaxLen
-			+ keepAddBufferAfter) / 2) + 256
-		$Create_4(
-			obj,
-			historySize + keepAddBufferBefore,
-			matchMaxLen + keepAddBufferAfter,
-			windowReservSize
-		)
-		obj._matchMaxLen = matchMaxLen
-		let cyclicBufferSize = historySize + 1
-		if (obj._cyclicBufferSize != cyclicBufferSize) {
-			obj._son = initArr(
-				(obj._cyclicBufferSize = cyclicBufferSize) * 2
-			)
-		}
+		const inputBuffer = {
+			buf: data,
+			pos: 0,
+			count: data.length,
+		};
 
-		let hs = 65536
-		if (obj.HASH_ARRAY) {
-			hs = historySize - 1
-			hs |= hs >> 1
-			hs |= hs >> 2
-			hs |= hs >> 4
-			hs |= hs >> 8
-			hs >>= 1
-			hs |= 65535
-			if (hs > 16777216) {
-				hs >>= 1
-			}
-			obj._hashMask = hs
-			hs += 1
-			hs += obj.kFixHashSize
-		}
-
-		if (hs != obj._hashSizeSum) {
-			obj._hash = initArr(obj._hashSizeSum = hs)
-		}
-	}
-}
-
-function $GetMatches(obj, distances): number {
-	var count,
-		cur,
-		curMatch,
-		curMatch2,
-		curMatch3,
-		cyclicPos,
-		delta,
-		hash2Value,
-		hash3Value,
-		hashValue,
-		len,
-		len0,
-		len1,
-		lenLimit,
-		matchMinPos,
-		maxLen,
-		offset,
-		pby1,
-		ptr0,
-		ptr1,
-		temp
-	if (obj._pos + obj._matchMaxLen <= obj._streamPos) {
-		lenLimit = obj._matchMaxLen
-	} else {
-		lenLimit = obj._streamPos - obj._pos
-		if (lenLimit < obj.kMinMatchCheck) {
-			$MovePos_0(obj)
-			return 0
-		}
-	}
-	offset = 0
-	matchMinPos = obj._pos > obj._cyclicBufferSize
-		? obj._pos - obj._cyclicBufferSize
-		: 0
-	cur = obj._bufferOffset + obj._pos
-	maxLen = 1
-	hash2Value = 0
-	hash3Value = 0
-	if (obj.HASH_ARRAY) {
-		temp = crcTable[obj._bufferBase[cur] & 255]
-			^ obj._bufferBase[cur + 1] & 255
-		hash2Value = temp & 1023
-		temp ^= (obj._bufferBase[cur + 2] & 255) << 8
-		hash3Value = temp & 65535
-		hashValue = (temp ^ crcTable[obj._bufferBase[cur + 3] & 255] << 5)
-			& obj._hashMask
-	} else {
-		hashValue = obj._bufferBase[cur] & 255
-			^ (obj._bufferBase[cur + 1] & 255) << 8
+		this.#initDecompression(inputBuffer);
 	}
 
-	curMatch = obj._hash[obj.kFixHashSize + hashValue] || 0
-	if (obj.HASH_ARRAY) {
-		curMatch2 = obj._hash[hash2Value] || 0
-		curMatch3 = obj._hash[1024 + hash3Value] || 0
-		obj._hash[hash2Value] = obj._pos
-		obj._hash[1024 + hash3Value] = obj._pos
-		if (curMatch2 > matchMinPos) {
-			if (
-				obj._bufferBase[obj._bufferOffset + curMatch2]
-					== obj._bufferBase[cur]
-			) {
-				distances[offset++] = maxLen = 2
-				distances[offset++] = obj._pos - curMatch2 - 1
-			}
-		}
-		if (curMatch3 > matchMinPos) {
-			if (
-				obj._bufferBase[obj._bufferOffset + curMatch3]
-					== obj._bufferBase[cur]
-			) {
-				if (curMatch3 == curMatch2) {
-					offset -= 2
-				}
-				distances[offset++] = maxLen = 3
-				distances[offset++] = obj._pos - curMatch3 - 1
-				curMatch2 = curMatch3
-			}
-		}
-		if (offset != 0 && curMatch2 == curMatch) {
-			offset -= 2
-			maxLen = 1
-		}
-	}
-	obj._hash[obj.kFixHashSize + hashValue] = obj._pos
-	ptr0 = (obj._cyclicBufferPos << 1) + 1
-	ptr1 = obj._cyclicBufferPos << 1
-	len0 = len1 = obj.kNumHashDirectBytes
-	if (obj.kNumHashDirectBytes != 0) {
-		if (curMatch > matchMinPos) {
-			if (
-				obj
-					._bufferBase[
-						obj._bufferOffset + curMatch + obj.kNumHashDirectBytes
-					] != obj
-					._bufferBase[cur + obj.kNumHashDirectBytes]
-			) {
-				distances[offset++] = maxLen = obj.kNumHashDirectBytes
-				distances[offset++] = obj._pos - curMatch - 1
-			}
-		}
-	}
-	count = obj._cutValue
-	while (1) {
-		if (curMatch <= matchMinPos || count == 0) {
-			count -= 1
-			obj._son[ptr0] = obj._son[ptr1] = 0
-			break
-		}
-		delta = obj._pos - curMatch
-		cyclicPos = (delta <= obj._cyclicBufferPos
-			? obj._cyclicBufferPos - delta
-			: obj._cyclicBufferPos - delta + obj._cyclicBufferSize) << 1
-		pby1 = obj._bufferOffset + curMatch
-		len = len0 < len1 ? len0 : len1
+	#Create_4(
+		keepSizeBefore: number,
+		keepSizeAfter: number,
+		keepSizeReserv: number,
+	): void {
+		let blockSize;
+		this.#encoder._matchFinder._keepSizeBefore = keepSizeBefore;
+		this.#encoder._matchFinder._keepSizeAfter = keepSizeAfter;
+		blockSize = keepSizeBefore + keepSizeAfter + keepSizeReserv;
+
 		if (
-			obj._bufferBase[pby1 + len] == obj._bufferBase[cur + len]
+			this.#encoder._matchFinder._bufferBase == null || this.#encoder._matchFinder._blockSize != blockSize
 		) {
-			while ((len += 1) != lenLimit) {
+			this.#encoder._matchFinder._bufferBase = null;
+			this.#encoder._matchFinder._blockSize = blockSize;
+			this.#encoder._matchFinder._bufferBase = this.#initArray(this.#encoder._matchFinder._blockSize);
+		}
+
+		this.#encoder._matchFinder._pointerToLastSafePosition = this.#encoder._matchFinder._blockSize - keepSizeAfter;
+	}
+
+	#GetIndexByte(index: number) {
+		return this.#compressor.chunker.encoder._matchFinder._bufferBase[
+			this.#compressor.chunker.encoder._matchFinder._bufferOffset
+			+ this.#compressor.chunker.encoder._matchFinder._pos
+			+ index
+		];
+	}
+
+	#GetMatchLen(
+		index: number,
+		distance: number,
+		limit: number,
+	): number {
+		if (this.#compressor.chunker.encoder._matchFinder._streamEndWasReached) {
+			if (
+				this.#compressor.chunker.encoder._matchFinder._pos + index + limit
+					> this.#compressor.chunker.encoder._matchFinder._streamPos
+			) {
+				limit = this.#compressor.chunker.encoder._matchFinder._streamPos
+					- (this.#compressor.chunker.encoder._matchFinder._pos + index);
+			}
+		}
+
+		++distance;
+		let i,
+			pby = this.#compressor.chunker.encoder._matchFinder._bufferOffset
+				+ this.#compressor.chunker.encoder._matchFinder._pos
+				+ index;
+
+		for (
+			i = 0;
+			i < limit
+			&& this.#compressor.chunker.encoder._matchFinder._bufferBase[pby + i]
+				== this.#compressor.chunker.encoder._matchFinder._bufferBase[pby + i - distance];
+			++i
+		);
+
+		return i;
+	}
+
+	#GetNumAvailableBytes(): number {
+		return (
+			this.#compressor.chunker.encoder._matchFinder._streamPos
+			- this.#compressor.chunker.encoder._matchFinder._pos
+		);
+	}
+
+	#MoveBlock(): void {
+		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+
+		let offset = matchFinder._bufferOffset + matchFinder._pos - matchFinder._keepSizeBefore;
+
+		if (offset > 0) {
+			--offset;
+		}
+		let numBytes = matchFinder._bufferOffset + matchFinder._streamPos - offset;
+
+		for (let i = 0; i < numBytes; ++i) {
+			matchFinder._bufferBase[i] = matchFinder._bufferBase[offset + i];
+		}
+		matchFinder._bufferOffset -= offset;
+	}
+
+	#MovePos_1(): void {
+		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+		let pointerToPostion;
+
+		matchFinder._pos += 1;
+
+		if (matchFinder._pos > matchFinder._posLimit) {
+			pointerToPostion = matchFinder._bufferOffset + matchFinder._pos;
+
+			if (pointerToPostion > matchFinder._pointerToLastSafePosition) {
+				this.#MoveBlock();
+			}
+
+			this.#ReadBlock();
+		}
+	}
+
+	#ReadBlock(): void {
+		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+
+		let bytesRead, pointerToPostion, size;
+		if (matchFinder._streamEndWasReached) {
+			return;
+		}
+
+		while (1) {
+			size = -matchFinder._bufferOffset + matchFinder._blockSize - matchFinder._streamPos;
+			if (!size) {
+				return;
+			}
+
+			bytesRead = this.#read_0(
+				matchFinder._bufferOffset + matchFinder._streamPos,
+				size,
+			);
+
+			if (bytesRead == -1) {
+				matchFinder._posLimit = matchFinder._streamPos;
+				pointerToPostion = matchFinder._bufferOffset + matchFinder._posLimit;
+
+				if (pointerToPostion > matchFinder._pointerToLastSafePosition) {
+					matchFinder._posLimit = matchFinder._pointerToLastSafePosition - matchFinder._bufferOffset;
+				}
+
+				matchFinder._streamEndWasReached = 1;
+				return;
+			}
+
+			matchFinder._streamPos += bytesRead;
+			if (
+				matchFinder._streamPos >= matchFinder._pos + matchFinder._keepSizeAfter
+			) {
+				matchFinder._posLimit = matchFinder._streamPos - matchFinder._keepSizeAfter;
+			}
+		}
+	}
+
+	#ReduceOffsets(subValue: number): void {
+		this.#compressor.chunker.encoder._matchFinder._bufferOffset += subValue;
+		this.#compressor.chunker.encoder._matchFinder._posLimit -= subValue;
+		this.#compressor.chunker.encoder._matchFinder._pos -= subValue;
+		this.#compressor.chunker.encoder._matchFinder._streamPos -= subValue;
+	}
+
+	#Create_3(
+		keepAddBufferBefore: number,
+		keepAddBufferAfter: number,
+	): void {
+		if (this.#encoder._dictionarySize < 1073741567) {
+			this.#encoder._matchFinder._cutValue = 16 + (this.#encoder._numFastBytes >> 1);
+			const windowReservSize = ~~((this.#encoder._dictionarySize
+				+ keepAddBufferBefore
+				+ this.#encoder._numFastBytes
+				+ keepAddBufferAfter) / 2) + 256;
+
+			this.#Create_4(
+				this.#encoder._dictionarySize + keepAddBufferBefore,
+				this.#encoder._numFastBytes + keepAddBufferAfter,
+				windowReservSize,
+			);
+
+			this.#encoder._matchFinder._matchMaxLen = this.#encoder._numFastBytes;
+			let cyclicBufferSize = this.#encoder._dictionarySize + 1;
+
+			if (this.#encoder._matchFinder._cyclicBufferSize != cyclicBufferSize) {
+				this.#encoder._matchFinder._son = this.#initArray(
+					(this.#encoder._matchFinder._cyclicBufferSize = cyclicBufferSize) * 2,
+				);
+			}
+
+			let hs = 65536;
+			if (this.#encoder._matchFinder.HASH_ARRAY) {
+				hs = this.#encoder._dictionarySize - 1;
+				hs |= hs >> 1;
+				hs |= hs >> 2;
+				hs |= hs >> 4;
+				hs |= hs >> 8;
+				hs >>= 1;
+				hs |= 65535;
+
+				if (hs > 16777216) {
+					hs >>= 1;
+				}
+
+				this.#encoder._matchFinder._hashMask = hs;
+				hs += 1;
+				hs += this.#encoder._matchFinder.kFixHashSize;
+			}
+
+			if (hs != this.#encoder._matchFinder._hashSizeSum) {
+				this.#encoder._matchFinder._hash = this.#initArray(this.#encoder._matchFinder._hashSizeSum = hs);
+			}
+		}
+	}
+
+	#GetMatches(): number {
+		let count,
+			cur,
+			curMatch,
+			curMatch2,
+			curMatch3,
+			cyclicPos,
+			delta,
+			hash2Value,
+			hash3Value,
+			hashValue,
+			len,
+			len0,
+			len1,
+			lenLimit,
+			matchMinPos,
+			maxLen,
+			offset,
+			pby1,
+			ptr0,
+			ptr1,
+			temp;
+
+		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+		const distances = this.#compressor.chunker.encoder._matchDistances;
+
+		if (matchFinder._pos + matchFinder._matchMaxLen <= matchFinder._streamPos) {
+			lenLimit = matchFinder._matchMaxLen;
+		} else {
+			lenLimit = matchFinder._streamPos - matchFinder._pos;
+			if (lenLimit < matchFinder.kMinMatchCheck) {
+				this.#MovePos_0();
+				return 0;
+			}
+		}
+
+		offset = 0;
+		matchMinPos = matchFinder._pos > matchFinder._cyclicBufferSize
+			? matchFinder._pos - matchFinder._cyclicBufferSize
+			: 0;
+
+		cur = matchFinder._bufferOffset + matchFinder._pos;
+		maxLen = 1;
+		hash2Value = 0;
+		hash3Value = 0;
+
+		if (matchFinder.HASH_ARRAY) {
+			temp = CRC32_TABLE[matchFinder._bufferBase[cur] & 255] ^ matchFinder._bufferBase[cur + 1] & 255;
+			hash2Value = temp & 1023;
+			temp ^= (matchFinder._bufferBase[cur + 2] & 255) << 8;
+			hash3Value = temp & 65535;
+			hashValue = (temp ^ CRC32_TABLE[matchFinder._bufferBase[cur + 3] & 255] << 5) & matchFinder._hashMask;
+		} else {
+			hashValue = matchFinder._bufferBase[cur] & 255 ^ (matchFinder._bufferBase[cur + 1] & 255) << 8;
+		}
+
+		curMatch = matchFinder._hash[matchFinder.kFixHashSize + hashValue] || 0;
+		if (matchFinder.HASH_ARRAY) {
+			curMatch2 = matchFinder._hash[hash2Value] || 0;
+			curMatch3 = matchFinder._hash[1024 + hash3Value] || 0;
+			matchFinder._hash[hash2Value] = matchFinder._pos;
+			matchFinder._hash[1024 + hash3Value] = matchFinder._pos;
+
+			if (curMatch2 > matchMinPos) {
 				if (
-					obj._bufferBase[pby1 + len] != obj._bufferBase[cur + len]
+					matchFinder._bufferBase[matchFinder._bufferOffset + curMatch2] == matchFinder._bufferBase[cur]
 				) {
-					break
+					distances[offset++] = maxLen = 2;
+					distances[offset++] = matchFinder._pos - curMatch2 - 1;
 				}
 			}
-			if (maxLen < len) {
-				distances[offset++] = maxLen = len
-				distances[offset++] = delta - 1
-				if (len == lenLimit) {
-					obj._son[ptr1] = obj._son[cyclicPos]
-					obj._son[ptr0] = obj._son[cyclicPos + 1]
-					break
+
+			if (curMatch3 > matchMinPos) {
+				if (
+					matchFinder._bufferBase[matchFinder._bufferOffset + curMatch3] == matchFinder._bufferBase[cur]
+				) {
+					if (curMatch3 == curMatch2) {
+						offset -= 2;
+					}
+					distances[offset++] = maxLen = 3;
+					distances[offset++] = matchFinder._pos - curMatch3 - 1;
+					curMatch2 = curMatch3;
+				}
+			}
+
+			if (offset != 0 && curMatch2 == curMatch) {
+				offset -= 2;
+				maxLen = 1;
+			}
+		}
+
+		matchFinder._hash[matchFinder.kFixHashSize + hashValue] = matchFinder._pos;
+		ptr0 = (matchFinder._cyclicBufferPos << 1) + 1;
+		ptr1 = matchFinder._cyclicBufferPos << 1;
+		len0 = len1 = matchFinder.kNumHashDirectBytes;
+
+		if (matchFinder.kNumHashDirectBytes != 0) {
+			if (curMatch > matchMinPos) {
+				if (
+					matchFinder._bufferBase[
+						matchFinder._bufferOffset + curMatch + matchFinder.kNumHashDirectBytes
+					] != matchFinder._bufferBase[cur + matchFinder.kNumHashDirectBytes]
+				) {
+					distances[offset++] = maxLen = matchFinder.kNumHashDirectBytes;
+					distances[offset++] = matchFinder._pos - curMatch - 1;
 				}
 			}
 		}
-		if (
-			(obj._bufferBase[pby1 + len] & 255)
-				< (obj._bufferBase[cur + len] & 255)
-		) {
-			obj._son[ptr1] = curMatch
-			ptr1 = cyclicPos + 1
-			curMatch = obj._son[ptr1]
-			len1 = len
-		} else {
-			obj._son[ptr0] = curMatch
-			ptr0 = cyclicPos
-			curMatch = obj._son[ptr0]
-			len0 = len
-		}
-	}
-	$MovePos_0(obj)
-	return offset
-}
+		count = matchFinder._cutValue;
 
-function $Init_5(obj): void {
-	obj._bufferOffset = 0
-	obj._pos = 0
-	obj._streamPos = 0
-	obj._streamEndWasReached = 0
-	$ReadBlock(obj)
-	obj._cyclicBufferPos = 0
-	$ReduceOffsets(obj, -1)
-}
-
-function $MovePos_0(obj): void {
-	var subValue
-	if ((obj._cyclicBufferPos += 1) >= obj._cyclicBufferSize) {
-		obj._cyclicBufferPos = 0
-	}
-	$MovePos_1(obj)
-	if (obj._pos == 1073741823) {
-		subValue = obj._pos - obj._cyclicBufferSize
-		$NormalizeLinks(
-			obj._son,
-			obj._cyclicBufferSize * 2,
-			subValue
-		)
-		$NormalizeLinks(obj._hash, obj._hashSizeSum, subValue)
-		$ReduceOffsets(obj, subValue)
-	}
-}
-
-/**
- * This is only called after reading one whole gigabyte.
- */
-function $NormalizeLinks(items, numItems, subValue): void {
-	var i, value
-	for (i = 0; i < numItems; ++i) {
-		value = items[i] || 0
-		if (value <= subValue) {
-			value = 0
-		} else {
-			value -= subValue
-		}
-		items[i] = value
-	}
-}
-
-function $SetType(obj, numHashBytes): void {
-	obj.HASH_ARRAY = numHashBytes > 2
-	if (obj.HASH_ARRAY) {
-		obj.kNumHashDirectBytes = 0
-		obj.kMinMatchCheck = 4
-		obj.kFixHashSize = 66560
-	} else {
-		obj.kNumHashDirectBytes = 2
-		obj.kMinMatchCheck = 3
-		obj.kFixHashSize = 0
-	}
-}
-
-function $Skip(obj, num): void {
-	var count,
-		cur,
-		curMatch,
-		cyclicPos,
-		delta,
-		hash2Value,
-		hash3Value,
-		hashValue,
-		len,
-		len0,
-		len1,
-		lenLimit,
-		matchMinPos,
-		pby1,
-		ptr0,
-		ptr1,
-		temp
-	do {
-		if (
-			obj._pos + obj._matchMaxLen <= obj._streamPos
-		) {
-			lenLimit = obj._matchMaxLen
-		} else {
-			lenLimit = obj._streamPos - obj._pos
-			if (lenLimit < obj.kMinMatchCheck) {
-				$MovePos_0(obj)
-				continue
-			}
-		}
-		matchMinPos = obj._pos > obj._cyclicBufferSize
-			? obj._pos - obj._cyclicBufferSize
-			: 0
-		cur = obj._bufferOffset + obj._pos
-		if (obj.HASH_ARRAY) {
-			temp = crcTable[obj._bufferBase[cur] & 255]
-				^ obj._bufferBase[cur + 1] & 255
-			hash2Value = temp & 1023
-			obj._hash[hash2Value] = obj._pos
-			temp ^= (obj._bufferBase[cur + 2] & 255) << 8
-			hash3Value = temp & 65535
-			obj._hash[1024 + hash3Value] = obj._pos
-			hashValue = (temp ^ crcTable[obj._bufferBase[cur + 3] & 255] << 5)
-				& obj._hashMask
-		} else {
-			hashValue = obj._bufferBase[cur] & 255
-				^ (obj._bufferBase[cur + 1] & 255) << 8
-		}
-		curMatch = obj._hash[obj.kFixHashSize + hashValue]
-		obj._hash[obj.kFixHashSize + hashValue] = obj._pos
-		ptr0 = (obj._cyclicBufferPos << 1) + 1
-		ptr1 = obj._cyclicBufferPos << 1
-		len0 = len1 = obj.kNumHashDirectBytes
-		count = obj._cutValue
 		while (1) {
 			if (curMatch <= matchMinPos || count == 0) {
-				count -= 1
-				obj._son[ptr0] = obj._son[ptr1] = 0
-				break
+				count -= 1;
+				matchFinder._son[ptr0] = matchFinder._son[ptr1] = 0;
+				break;
 			}
-			delta = obj._pos - curMatch
-			cyclicPos = (delta <= obj._cyclicBufferPos
-				? obj._cyclicBufferPos - delta
-				: obj._cyclicBufferPos - delta + obj._cyclicBufferSize) << 1
-			pby1 = obj._bufferOffset + curMatch
-			len = len0 < len1 ? len0 : len1
+			delta = matchFinder._pos - curMatch;
+			cyclicPos = (delta <= matchFinder._cyclicBufferPos
+				? matchFinder._cyclicBufferPos - delta
+				: matchFinder._cyclicBufferPos - delta + matchFinder._cyclicBufferSize) << 1;
+			pby1 = matchFinder._bufferOffset + curMatch;
+			len = len0 < len1 ? len0 : len1;
 			if (
-				obj._bufferBase[pby1 + len] == obj._bufferBase[cur + len]
+				matchFinder._bufferBase[pby1 + len] == matchFinder._bufferBase[cur + len]
 			) {
 				while ((len += 1) != lenLimit) {
 					if (
-						obj._bufferBase[pby1 + len]
-							!= obj._bufferBase[cur + len]
+						matchFinder._bufferBase[pby1 + len] != matchFinder._bufferBase[cur + len]
 					) {
-						break
+						break;
 					}
 				}
-				if (len == lenLimit) {
-					obj._son[ptr1] = obj._son[cyclicPos]
-					obj._son[ptr0] = obj._son[cyclicPos + 1]
-					break
+				if (maxLen < len) {
+					distances[offset++] = maxLen = len;
+					distances[offset++] = delta - 1;
+					if (len == lenLimit) {
+						matchFinder._son[ptr1] = matchFinder._son[cyclicPos];
+						matchFinder._son[ptr0] = matchFinder._son[cyclicPos + 1];
+						break;
+					}
 				}
 			}
 			if (
-				(obj._bufferBase[pby1 + len] & 255)
-					< (obj._bufferBase[cur + len] & 255)
+				(matchFinder._bufferBase[pby1 + len] & 255) < (matchFinder._bufferBase[cur + len] & 255)
 			) {
-				obj._son[ptr1] = curMatch
-				ptr1 = cyclicPos + 1
-				curMatch = obj._son[ptr1]
-				len1 = len
+				matchFinder._son[ptr1] = curMatch;
+				ptr1 = cyclicPos + 1;
+				curMatch = matchFinder._son[ptr1];
+				len1 = len;
 			} else {
-				obj._son[ptr0] = curMatch
-				ptr0 = cyclicPos
-				curMatch = obj._son[ptr0]
-				len0 = len
+				matchFinder._son[ptr0] = curMatch;
+				ptr0 = cyclicPos;
+				curMatch = matchFinder._son[ptr0];
+				len0 = len;
 			}
 		}
-		$MovePos_0(obj)
-	} while ((num -= 1) != 0)
-}
 
-function $CopyBlock(obj, distance, len): void {
-	var pos = obj._pos - distance - 1
-	if (pos < 0) {
-		pos += obj._windowSize
+		this.#MovePos_0();
+		return offset;
 	}
-	for (; len != 0; len -= 1) {
-		if (pos >= obj._windowSize) {
-			pos = 0
+
+	#Init_5(): void {
+		this.#compressor.chunker.encoder._matchFinder._bufferOffset = 0;
+		this.#compressor.chunker.encoder._matchFinder._pos = 0;
+		this.#compressor.chunker.encoder._matchFinder._streamPos = 0;
+		this.#compressor.chunker.encoder._matchFinder._streamEndWasReached = 0;
+		this.#ReadBlock();
+
+		this.#compressor.chunker.encoder._matchFinder._cyclicBufferPos = 0;
+		this.#ReduceOffsets(-1);
+	}
+
+	#MovePos_0(): void {
+		let subValue;
+		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+
+		if ((matchFinder._cyclicBufferPos += 1) >= matchFinder._cyclicBufferSize) {
+			matchFinder._cyclicBufferPos = 0;
 		}
-		obj._buffer[obj._pos] = obj._buffer[pos]
-		obj._pos += 1
-		pos += 1
-		if (obj._pos >= obj._windowSize) {
-			$Flush_0(obj)
+
+		this.#MovePos_1();
+
+		if (matchFinder._pos == 1073741823) {
+			subValue = matchFinder._pos - matchFinder._cyclicBufferSize;
+
+			this.#NormalizeLinks(matchFinder._cyclicBufferSize * 2, subValue);
+			this.#NormalizeLinks(matchFinder._hashSizeSum, subValue);
+
+			this.#ReduceOffsets(subValue);
 		}
 	}
-}
 
-function $Create_5(obj, windowSize): void {
-	if (obj._buffer == null || obj._windowSize != windowSize) {
-		obj._buffer = initArr(windowSize)
-	}
-	obj._windowSize = windowSize
-	obj._pos = 0
-	obj._streamPos = 0
-}
+	/**
+	 * This is only called after reading one whole gigabyte.
+	 */
+	#NormalizeLinks(numItems: number, subValue: number): void {
+		const items = this.#compressor.chunker.encoder._matchFinder._son;
+		let value;
 
-function $Flush_0(obj): void {
-	var size = obj._pos - obj._streamPos
-	if (!size) {
-		return
-	}
-	$write_0(
-		obj._stream,
-		obj._buffer,
-		obj._streamPos,
-		size
-	)
-	if (obj._pos >= obj._windowSize) {
-		obj._pos = 0
-	}
-	obj._streamPos = obj._pos
-}
-
-function $GetByte(obj, distance) {
-	var pos = obj._pos - distance - 1
-	if (pos < 0) {
-		pos += obj._windowSize
-	}
-	return obj._buffer[pos]
-}
-
-function $PutByte(obj, b): void {
-	obj._buffer[obj._pos] = b
-	obj._pos += 1
-	if (obj._pos >= obj._windowSize) {
-		$Flush_0(obj)
-	}
-}
-
-function $ReleaseStream(obj): void {
-	$Flush_0(obj)
-	obj._stream = null
-}
-
-function GetLenToPosState(len: number): number {
-	len -= 2
-	if (len < 4) {
-		return len
+		for (let i = 0; i < numItems; ++i) {
+			value = items[i] || 0;
+			if (value <= subValue) {
+				value = 0;
+			} else {
+				value -= subValue;
+			}
+			items[i] = value;
+		}
 	}
 
-	return 3
-}
+	#SetType(
+		binTree: any,
+		numHashBytes: number,
+	): void {
+		binTree.HASH_ARRAY = numHashBytes > 2;
 
-function StateUpdateChar(index: number): number {
-	if (index < 4) {
-		return 0
-	}
-	if (index < 10) {
-		return index - 3
-	}
-	return index - 6
-}
-
-function $Chunker_0(obj, encoder) {
-	obj.encoder = encoder
-	obj.decoder = null
-	obj.alive = 1
-	return obj
-}
-
-function $Chunker(obj, decoder) {
-	obj.decoder = decoder
-	obj.encoder = null
-	obj.alive = 1
-	return obj
-}
-
-function $processChunkDecode(obj) {
-	if (!obj.alive) throw new Error("Bad state")
-	if (obj.encoder) {
-		throw new Error("No encoding")
-	} else {
-		$processDecoderChunk(obj)
-	}
-
-	return obj.alive
-}
-
-function $processDecoderChunk(obj): void {
-	const result = $CodeOneChunk(obj.decoder)
-	if (result === -1) {
-		throw new Error("Corrupted input")
-	}
-
-	obj.inBytesProcessed = N1_longLit
-	obj.outBytesProcessed = obj.decoder.nowPos64
-
-	if (
-		result
-		|| compare(obj.decoder.outSize, P0_longLit) >= 0
-			&& compare(obj.decoder.nowPos64, obj.decoder.outSize) >= 0
-	) {
-		$Flush_0(obj.decoder.m_OutWindow)
-		$ReleaseStream(obj.decoder.m_OutWindow)
-		obj.decoder.m_RangeDecoder.Stream = null
-		obj.alive = 0
-	}
-}
-
-function $processChunkEncode(obj): number {
-	if (!obj.alive) {
-		throw new Error("bad state")
-	}
-
-	if (obj.encoder) {
-		$processEncoderChunk(obj)
-	} else {
-		throw new Error("No decoding")
-	}
-
-	return obj.alive
-}
-
-function $processEncoderChunk(obj): void {
-	$CodeOneBlock(
-		obj.encoder,
-		obj.encoder.processedInSize,
-		obj.encoder.processedOutSize,
-		obj.encoder.finished
-	)
-	obj.inBytesProcessed = obj.encoder.processedInSize[0]
-	if (obj.encoder.finished[0]) {
-		$ReleaseStreams(obj.encoder)
-		obj.alive = 0
-	}
-}
-
-function $CodeInChunks(obj, inStream, outStream, outSize) {
-	obj.m_RangeDecoder.Stream = inStream
-	$ReleaseStream(obj.m_OutWindow)
-	obj.m_OutWindow._stream = outStream
-	$Init_1(obj)
-	obj.state = 0
-	obj.rep0 = 0
-	obj.rep1 = 0
-	obj.rep2 = 0
-	obj.rep3 = 0
-	obj.outSize = outSize
-	obj.nowPos64 = P0_longLit
-	obj.prevByte = 0
-	return $Chunker({}, obj)
-}
-
-function $CodeOneChunk(obj): 0 | 1 | -1 {
-	var decoder2, distance, len, numDirectBits, posSlot, posState
-	posState = lowBits_0(obj.nowPos64) & obj.m_PosStateMask
-	if (
-		!decodeBit(
-			obj.m_RangeDecoder,
-			obj.m_IsMatchDecoders,
-			(obj.state << 4) + posState
-		)
-	) {
-		decoder2 = $GetDecoder(
-			obj.m_LiteralDecoder,
-			lowBits_0(obj.nowPos64),
-			obj.prevByte
-		)
-		if (obj.state < 7) {
-			obj.prevByte = $DecodeNormal(
-				decoder2,
-				obj.m_RangeDecoder
-			)
+		if (binTree.HASH_ARRAY) {
+			binTree.kNumHashDirectBytes = 0;
+			binTree.kMinMatchCheck = 4;
+			binTree.kFixHashSize = 66560;
 		} else {
-			obj.prevByte = $DecodeWithMatchByte(
-				decoder2,
-				obj.m_RangeDecoder,
-				$GetByte(obj.m_OutWindow, obj.rep0)
-			)
+			binTree.kNumHashDirectBytes = 2;
+			binTree.kMinMatchCheck = 3;
+			binTree.kFixHashSize = 0;
 		}
-		$PutByte(obj.m_OutWindow, obj.prevByte)
-		obj.state = StateUpdateChar(obj.state)
-		obj.nowPos64 = add(obj.nowPos64, P1_longLit)
-	} else {
-		if (
-			decodeBit(
-				obj.m_RangeDecoder,
-				obj.m_IsRepDecoders,
-				obj.state
-			)
-		) {
-			len = 0
+	}
+
+	#Skip(num: number): void {
+		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+
+		var count,
+			cur,
+			curMatch,
+			cyclicPos,
+			delta,
+			hash2Value,
+			hash3Value,
+			hashValue,
+			len,
+			len0,
+			len1,
+			lenLimit,
+			matchMinPos,
+			pby1,
+			ptr0,
+			ptr1,
+			temp;
+
+		do {
 			if (
-				!decodeBit(
-					obj.m_RangeDecoder,
-					obj.m_IsRepG0Decoders,
-					obj.state
-				)
+				matchFinder._pos + matchFinder._matchMaxLen <= matchFinder._streamPos
 			) {
-				if (
-					!decodeBit(
-						obj.m_RangeDecoder,
-						obj.m_IsRep0LongDecoders,
-						(obj.state << 4) + posState
-					)
-				) {
-					obj.state = obj.state < 7 ? 9 : 11
-					len = 1
-				}
+				lenLimit = matchFinder._matchMaxLen;
 			} else {
+				lenLimit = matchFinder._streamPos - matchFinder._pos;
+				if (lenLimit < matchFinder.kMinMatchCheck) {
+					this.#MovePos_0();
+					continue;
+				}
+			}
+			matchMinPos = matchFinder._pos > matchFinder._cyclicBufferSize
+				? matchFinder._pos - matchFinder._cyclicBufferSize
+				: 0;
+			cur = matchFinder._bufferOffset + matchFinder._pos;
+			if (matchFinder.HASH_ARRAY) {
+				temp = CRC32_TABLE[matchFinder._bufferBase[cur] & 255] ^ matchFinder._bufferBase[cur + 1] & 255;
+				hash2Value = temp & 1023;
+				matchFinder._hash[hash2Value] = matchFinder._pos;
+				temp ^= (matchFinder._bufferBase[cur + 2] & 255) << 8;
+				hash3Value = temp & 65535;
+				matchFinder._hash[1024 + hash3Value] = matchFinder._pos;
+				hashValue = (temp ^ CRC32_TABLE[matchFinder._bufferBase[cur + 3] & 255] << 5)
+					& matchFinder._hashMask;
+			} else {
+				hashValue = matchFinder._bufferBase[cur] & 255 ^ (matchFinder._bufferBase[cur + 1] & 255) << 8;
+			}
+			curMatch = matchFinder._hash[matchFinder.kFixHashSize + hashValue];
+			matchFinder._hash[matchFinder.kFixHashSize + hashValue] = matchFinder._pos;
+			ptr0 = (matchFinder._cyclicBufferPos << 1) + 1;
+			ptr1 = matchFinder._cyclicBufferPos << 1;
+			len0 = len1 = matchFinder.kNumHashDirectBytes;
+			count = matchFinder._cutValue;
+			while (1) {
+				if (curMatch <= matchMinPos || count == 0) {
+					count -= 1;
+					matchFinder._son[ptr0] = matchFinder._son[ptr1] = 0;
+					break;
+				}
+				delta = matchFinder._pos - curMatch;
+				cyclicPos = (delta <= matchFinder._cyclicBufferPos
+					? matchFinder._cyclicBufferPos - delta
+					: matchFinder._cyclicBufferPos - delta + matchFinder._cyclicBufferSize) << 1;
+				pby1 = matchFinder._bufferOffset + curMatch;
+				len = len0 < len1 ? len0 : len1;
 				if (
-					!decodeBit(
-						obj.m_RangeDecoder,
-						obj.m_IsRepG1Decoders,
-						obj.state
-					)
+					matchFinder._bufferBase[pby1 + len] == matchFinder._bufferBase[cur + len]
 				) {
-					distance = obj.rep1
+					while ((len += 1) != lenLimit) {
+						if (
+							matchFinder._bufferBase[pby1 + len] != matchFinder._bufferBase[cur + len]
+						) {
+							break;
+						}
+					}
+					if (len == lenLimit) {
+						matchFinder._son[ptr1] = matchFinder._son[cyclicPos];
+						matchFinder._son[ptr0] = matchFinder._son[cyclicPos + 1];
+						break;
+					}
+				}
+				if (
+					(matchFinder._bufferBase[pby1 + len] & 255) < (matchFinder._bufferBase[cur + len] & 255)
+				) {
+					matchFinder._son[ptr1] = curMatch;
+					ptr1 = cyclicPos + 1;
+					curMatch = matchFinder._son[ptr1];
+					len1 = len;
+				} else {
+					matchFinder._son[ptr0] = curMatch;
+					ptr0 = cyclicPos;
+					curMatch = matchFinder._son[ptr0];
+					len0 = len;
+				}
+			}
+			this.#MovePos_0();
+		} while ((num -= 1) != 0);
+	}
+
+	#CopyBlock(len: number): void {
+		const outputWindow = this.#decompressor.chunker.decoder.m_OutWindow;
+		const distance = this.#decompressor.chunker.decoder.rep0;
+
+		let pos = outputWindow._pos - distance - 1;
+
+		if (pos < 0) {
+			pos += outputWindow._windowSize;
+		}
+
+		for (; len != 0; len -= 1) {
+			if (pos >= outputWindow._windowSize) {
+				pos = 0;
+			}
+			outputWindow._buffer[outputWindow._pos] = outputWindow._buffer[pos];
+			outputWindow._pos += 1;
+			pos += 1;
+
+			if (outputWindow._pos >= outputWindow._windowSize) {
+				this.#Flush_0(outputWindow);
+			}
+		}
+	}
+
+	#Create_5(m_OutWindow: any, windowSize: number): void {
+		if (m_OutWindow._buffer == null || m_OutWindow._windowSize != windowSize) {
+			m_OutWindow._buffer = this.#initArray(windowSize);
+		}
+
+		m_OutWindow._windowSize = windowSize;
+		m_OutWindow._pos = 0;
+		m_OutWindow._streamPos = 0;
+	}
+
+	#Flush_0(obj: any): void {
+		var size = obj._pos - obj._streamPos;
+		if (!size) {
+			return;
+		}
+
+		this.#write_0(
+			obj._stream,
+			obj._buffer,
+			obj._streamPos,
+			size,
+		);
+
+		if (obj._pos >= obj._windowSize) {
+			obj._pos = 0;
+		}
+		obj._streamPos = obj._pos;
+	}
+
+	#GetByte(distance: number) {
+		const outputWindow = this.#decompressor.chunker.decoder.m_OutWindow;
+
+		var pos = outputWindow._pos - distance - 1;
+		if (pos < 0) {
+			pos += outputWindow._windowSize;
+		}
+		return outputWindow._buffer[pos];
+	}
+
+	#PutByte(obj: any, b: number): void {
+		obj._buffer[obj._pos] = b;
+		obj._pos += 1;
+		if (obj._pos >= obj._windowSize) {
+			this.#Flush_0(obj);
+		}
+	}
+
+	#ReleaseStream(obj: any): void {
+		this.#Flush_0(obj);
+		obj._stream = null;
+	}
+
+	GetLenToPosState(len: number): number {
+		len -= 2;
+		if (len < 4) {
+			return len;
+		}
+
+		return 3;
+	}
+
+	StateUpdateChar(index: number): number {
+		if (index < 4) {
+			return 0;
+		}
+		if (index < 10) {
+			return index - 3;
+		}
+		return index - 6;
+	}
+
+	#Chunker_0() {
+		const chunker = {
+			encoder: this.#encoder,
+			decoder: null,
+			alive: 1,
+		};
+
+		return chunker;
+	}
+
+	#processChunkDecode(): number {
+		if (!this.#decompressor.chunker.alive) {
+			throw new Error("Bad state");
+		}
+
+		if (this.#decompressor.chunker.encoder) {
+			throw new Error("No encoding");
+		}
+
+		const result = this.#CodeOneChunk();
+		if (result === -1) {
+			throw new Error("Corrupted input");
+		}
+
+		const decoder = this.#decompressor.chunker.decoder;
+
+		this.#decompressor.chunker.inBytesProcessed = this.#N1_LONG_LIT;
+		this.#decompressor.chunker.inBytesProcessed = decoder.nowPos64;
+
+		if (
+			result
+			|| this.#compare(decoder.outSize, this.#P0_LONG_LIT) >= 0
+				&& this.#compare(decoder.nowPos64, decoder.outSize) >= 0
+		) {
+			this.#Flush_0(decoder.m_OutWindow);
+			this.#ReleaseStream(decoder.m_OutWindow);
+			decoder.m_RangeDecoder.Stream = null;
+			this.#decompressor.chunker.alive = 0;
+		}
+
+		return this.#decompressor.chunker.alive;
+	}
+
+	#processChunkEncode(): number {
+		if (!this.#compressor.chunker.alive) {
+			throw new Error("bad state");
+		}
+
+		if (!this.#compressor.chunker.encoder) {
+			throw new Error("No decoding");
+		}
+
+		this.#CodeOneBlock();
+		this.#compressor.chunker.inBytesProcessed = this.#compressor.chunker.encoder.processedInSize[0];
+
+		if (this.#compressor.chunker.encoder.finished[0]) {
+			this.#ReleaseStreams();
+			this.#compressor.chunker.alive = 0;
+		}
+
+		return this.#compressor.chunker.alive;
+	}
+
+	#CodeInChunks(
+		inStream: BaseStream,
+		outSize: [number, number],
+	): any {
+		this.#decoder.m_RangeDecoder.Stream = inStream;
+		this.#ReleaseStream(this.#decoder.m_OutWindow);
+		this.#decoder.m_OutWindow._stream = this.#decompressor.output;
+
+		this.#Init_1();
+		this.#decoder.state = 0;
+		this.#decoder.rep0 = 0;
+		this.#decoder.rep1 = 0;
+		this.#decoder.rep2 = 0;
+		this.#decoder.rep3 = 0;
+		this.#decoder.outSize = outSize;
+		this.#decoder.nowPos64 = this.#P0_LONG_LIT;
+		this.#decoder.prevByte = 0;
+
+		this.#decoder.decoder = this.#decoder;
+		this.#decoder.encoder = null;
+		this.#decoder.alive = 1;
+		return this.#decoder;
+	}
+
+	#CodeOneChunk(): 0 | 1 | -1 {
+		const decoder = this.#decompressor.chunker.decoder;
+		let decoder2, distance, len, numDirectBits, positionSlot;
+
+		let posState = this.#lowBits_0(decoder.nowPos64)
+			& decoder.m_PosStateMask;
+
+		if (!this.#decodeBit(decoder.m_IsMatchDecoders, (decoder.state << 4) + posState)) {
+			decoder2 = this.#GetDecoder(
+				this.#lowBits_0(decoder.nowPos64),
+				decoder.prevByte,
+			);
+
+			if (decoder.state < 7) {
+				decoder.prevByte = this.#DecodeNormal(decoder2);
+			} else {
+				decoder.prevByte = this.#DecodeWithMatchByte(
+					decoder2,
+					this.#GetByte(decoder.rep0),
+				);
+			}
+
+			this.#PutByte(decoder.m_OutWindow, decoder.prevByte);
+			decoder.state = this.StateUpdateChar(decoder.state);
+			decoder.nowPos64 = this.#add(
+				decoder.nowPos64,
+				this.#P1_LONG_LIT,
+			);
+		} else {
+			if (this.#decodeBit(decoder.m_IsRepDecoders, decoder.state)) {
+				len = 0;
+				if (!this.#decodeBit(decoder.m_IsRepG0Decoders, decoder.state)) {
+					if (!this.#decodeBit(decoder.m_IsRep0LongDecoders, (decoder.state << 4) + posState)) {
+						decoder.state = decoder.state < 7
+							? 9
+							: 11;
+
+						len = 1;
+					}
 				} else {
 					if (
-						!decodeBit(
-							obj.m_RangeDecoder,
-							obj.m_IsRepG2Decoders,
-							obj.state
+						!this.#decodeBit(
+							decoder.m_IsRepG1Decoders,
+							decoder.state,
 						)
 					) {
-						distance = obj.rep2
+						distance = decoder.rep1;
 					} else {
-						distance = obj.rep3
-						obj.rep3 = obj.rep2
-					}
-					obj.rep2 = obj.rep1
-				}
-				obj.rep1 = obj.rep0
-				obj.rep0 = distance
-			}
-			if (!len) {
-				len = $Decode(
-					obj.m_RepLenDecoder,
-					obj.m_RangeDecoder,
-					posState
-				) + 2
-				obj.state = obj.state < 7 ? 8 : 11
-			}
-		} else {
-			obj.rep3 = obj.rep2
-			obj.rep2 = obj.rep1
-			obj.rep1 = obj.rep0
-			len = 2 + $Decode(
-				obj.m_LenDecoder,
-				obj.m_RangeDecoder,
-				posState
-			)
-			obj.state = obj.state < 7 ? 7 : 10
-			posSlot = $Decode_0(
-				obj.m_PosSlotDecoder[GetLenToPosState(len)],
-				obj.m_RangeDecoder
-			)
-			if (posSlot >= 4) {
-				numDirectBits = (posSlot >> 1) - 1
-				obj.rep0 = (2 | posSlot & 1) << numDirectBits
-				if (posSlot < 14) {
-					obj.rep0 += reverseDecode(
-						obj.m_PosDecoders,
-						obj.rep0 - posSlot - 1,
-						obj.m_RangeDecoder,
-						numDirectBits
-					)
-				} else {
-					obj.rep0 += $DecodeDirectBits(
-						obj.m_RangeDecoder,
-						numDirectBits - 4
-					) << 4
-					obj.rep0 += $ReverseDecode(
-						obj.m_PosAlignDecoder,
-						obj.m_RangeDecoder
-					)
-					if (obj.rep0 < 0) {
-						if (obj.rep0 == -1) {
-							return 1
+						if (!this.#decodeBit(decoder.m_IsRepG2Decoders, decoder.state)) {
+							distance = decoder.rep2;
+						} else {
+							distance = decoder.rep3;
+							decoder.rep3 = decoder.rep2;
 						}
-						return -1
+						decoder.rep2 = decoder.rep1;
 					}
+
+					decoder.rep1 = decoder.rep0;
+					decoder.rep0 = distance;
+				}
+
+				if (!len) {
+					len = this.#Decode(decoder.m_RepLenDecoder, posState) + 2;
+					decoder.state = decoder.state < 7 ? 8 : 11;
 				}
 			} else {
-				obj.rep0 = posSlot
-			}
-		}
+				decoder.rep3 = decoder.rep2;
+				decoder.rep2 = decoder.rep1;
+				decoder.rep1 = decoder.rep0;
 
-		if (
-			compare(fromInt(obj.rep0), obj.nowPos64) >= 0
-			|| obj.rep0 >= obj.m_DictionarySizeCheck
-		) {
-			return -1
-		}
+				len = 2 + this.#Decode(decoder.m_LenDecoder, posState);
 
-		$CopyBlock(obj.m_OutWindow, obj.rep0, len)
-		obj.nowPos64 = add(obj.nowPos64, fromInt(len))
-		obj.prevByte = $GetByte(obj.m_OutWindow, 0)
-	}
+				decoder.state = decoder.state < 7 ? 7 : 10;
 
-	return 0
-}
+				positionSlot = this.#Decode_0(decoder.m_PosSlotDecoder[this.GetLenToPosState(len)]);
 
-function $Decoder(obj) {
-	obj.m_OutWindow = {}
-	obj.m_RangeDecoder = {}
-	obj.m_IsMatchDecoders = initArr(192)
-	obj.m_IsRepDecoders = initArr(12)
-	obj.m_IsRepG0Decoders = initArr(12)
-	obj.m_IsRepG1Decoders = initArr(12)
-	obj.m_IsRepG2Decoders = initArr(12)
-	obj.m_IsRep0LongDecoders = initArr(192)
-	obj.m_PosSlotDecoder = initArr(4)
-	obj.m_PosDecoders = initArr(114)
-	obj.m_PosAlignDecoder = $BitTreeDecoder({}, 4)
-	obj.m_LenDecoder = $Decoder$LenDecoder({})
-	obj.m_RepLenDecoder = $Decoder$LenDecoder({})
-	obj.m_LiteralDecoder = {}
-	for (let i = 0; i < 4; ++i) {
-		obj.m_PosSlotDecoder[i] = $BitTreeDecoder({}, 6)
-	}
-	return obj
-}
+				if (positionSlot >= 4) {
+					numDirectBits = (positionSlot >> 1) - 1;
+					decoder.rep0 = (2 | positionSlot & 1) << numDirectBits;
 
-function $Init_1(obj): void {
-	obj.m_OutWindow._streamPos = 0
-	obj.m_OutWindow._pos = 0
-	InitBitModels(obj.m_IsMatchDecoders)
-	InitBitModels(obj.m_IsRep0LongDecoders)
-	InitBitModels(obj.m_IsRepDecoders)
-	InitBitModels(obj.m_IsRepG0Decoders)
-	InitBitModels(obj.m_IsRepG1Decoders)
-	InitBitModels(obj.m_IsRepG2Decoders)
-	InitBitModels(obj.m_PosDecoders)
-	$Init_0(obj.m_LiteralDecoder)
-	for (let i = 0; i < 4; ++i) {
-		InitBitModels(obj.m_PosSlotDecoder[i].Models)
-	}
-	$Init(obj.m_LenDecoder)
-	$Init(obj.m_RepLenDecoder)
-	InitBitModels(obj.m_PosAlignDecoder.Models)
-	$Init_8(obj.m_RangeDecoder)
-}
-
-function $SetDecoderProperties(obj, properties): 0 | 1 {
-	var dictionarySize, i, lc, lp, pb, remainder, val
-	if (properties.length < 5) {
-		return 0
-	}
-	val = properties[0] & 255
-	lc = val % 9
-	remainder = ~~(val / 9)
-	lp = remainder % 5
-	pb = ~~(remainder / 5)
-	dictionarySize = 0
-	for (i = 0; i < 4; ++i) {
-		dictionarySize += (properties[1 + i] & 255) << i * 8
-	}
-	// NOTE: If the input is bad, it might call for an insanely large dictionary size, which would crash the script.
-	if (dictionarySize > 99999999 || !$SetLcLpPb(obj, lc, lp, pb)) {
-		return 0
-	}
-	return $SetDictionarySize(obj, dictionarySize)
-}
-
-function $SetDictionarySize(obj, dictionarySize): 0 | 1 {
-	if (dictionarySize < 0) {
-		return 0
-	}
-	if (obj.m_DictionarySize != dictionarySize) {
-		obj.m_DictionarySize = dictionarySize
-		obj.m_DictionarySizeCheck = Math.max(
-			obj.m_DictionarySize,
-			1
-		)
-		$Create_5(
-			obj.m_OutWindow,
-			Math.max(obj.m_DictionarySizeCheck, 4096)
-		)
-	}
-	return 1
-}
-
-function $SetLcLpPb(obj, lc: number, lp: number, pb: number): 0 | 1 {
-	if (lc > 8 || lp > 4 || pb > 4) {
-		return 0
-	}
-	$Create_0(obj.m_LiteralDecoder, lp, lc)
-	var numPosStates = 1 << pb
-	$Create(obj.m_LenDecoder, numPosStates)
-	$Create(obj.m_RepLenDecoder, numPosStates)
-	obj.m_PosStateMask = numPosStates - 1
-	return 1
-}
-
-function $Create(obj, numPosStates: number): void {
-	for (; obj.m_NumPosStates < numPosStates; obj.m_NumPosStates += 1) {
-		obj.m_LowCoder[obj.m_NumPosStates] = $BitTreeDecoder({}, 3)
-		obj.m_MidCoder[obj.m_NumPosStates] = $BitTreeDecoder({}, 3)
-	}
-}
-
-function $Decode(obj, rangeDecoder, posState: number): number {
-	if (!decodeBit(rangeDecoder, obj.m_Choice, 0)) {
-		return $Decode_0(obj.m_LowCoder[posState], rangeDecoder)
-	}
-	let symbol = 8
-	if (!decodeBit(rangeDecoder, obj.m_Choice, 1)) {
-		symbol += $Decode_0(obj.m_MidCoder[posState], rangeDecoder)
-	} else {
-		symbol += 8 + $Decode_0(obj.m_HighCoder, rangeDecoder)
-	}
-
-	return symbol
-}
-
-function $Decoder$LenDecoder(obj) {
-	obj.m_Choice = initArr(2)
-	obj.m_LowCoder = initArr(16)
-	obj.m_MidCoder = initArr(16)
-	obj.m_HighCoder = $BitTreeDecoder({}, 8)
-	obj.m_NumPosStates = 0
-
-	return obj
-}
-
-function $Init(obj): void {
-	InitBitModels(obj.m_Choice)
-	for (let posState = 0; posState < obj.m_NumPosStates; ++posState) {
-		InitBitModels(obj.m_LowCoder[posState].Models)
-		InitBitModels(obj.m_MidCoder[posState].Models)
-	}
-	InitBitModels(obj.m_HighCoder.Models)
-}
-
-function $Create_0(obj, numPosBits, numPrevBits): void {
-	var i, numStates
-	if (
-		obj.m_Coders !== null
-		&& obj.m_NumPrevBits == numPrevBits
-		&& obj.m_NumPosBits == numPosBits
-	) {
-		return
-	}
-	obj.m_NumPosBits = numPosBits
-	obj.m_PosMask = (1 << numPosBits) - 1
-	obj.m_NumPrevBits = numPrevBits
-	numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits
-	obj.m_Coders = initArr(numStates)
-	for (i = 0; i < numStates; ++i) {
-		obj.m_Coders[i] = $Decoder$LiteralDecoder$Decoder2({})
-	}
-}
-
-function $GetDecoder(obj, pos: number, prevByte: number) {
-	return obj
-		.m_Coders[
-			((pos & obj.m_PosMask) << obj.m_NumPrevBits)
-			+ ((prevByte & 255) >>> 8 - obj.m_NumPrevBits)
-		]
-}
-
-function $Init_0(obj): void {
-	var i, numStates
-	numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits
-	for (i = 0; i < numStates; ++i) {
-		InitBitModels(obj.m_Coders[i].m_Decoders)
-	}
-}
-
-function $DecodeNormal(obj, rangeDecoder): number {
-	var symbol = 1
-	do {
-		symbol = symbol << 1 | decodeBit(rangeDecoder, obj.m_Decoders, symbol)
-	} while (symbol < 256)
-	return symbol << 24 >> 24
-}
-
-function $DecodeWithMatchByte(obj, rangeDecoder, matchByte): number {
-	var bit, matchBit, symbol = 1
-	do {
-		matchBit = matchByte >> 7 & 1
-		matchByte <<= 1
-		bit = decodeBit(
-			rangeDecoder,
-			obj.m_Decoders,
-			(1 + matchBit << 8) + symbol
-		)
-		symbol = symbol << 1 | bit
-		if (matchBit != bit) {
-			while (symbol < 256) {
-				symbol = symbol << 1
-					| decodeBit(rangeDecoder, obj.m_Decoders, symbol)
-			}
-			break
-		}
-	} while (symbol < 256)
-	return symbol << 24 >> 24
-}
-
-function $Decoder$LiteralDecoder$Decoder2(obj) {
-	obj.m_Decoders = initArr(768)
-	return obj
-}
-
-const g_FastPos = function(): number[] {
-	let j, k, slotFast, c = 2, g_FastPos = [0, 1]
-	for (slotFast = 2; slotFast < 22; ++slotFast) {
-		// k = 1 << (slotFast >> 1) - 1;
-		let s = slotFast
-		s >>= 1
-		s -= 1
-		k = 1
-		k <<= s
-		for (j = 0; j < k; ++j, ++c) {
-			g_FastPos[c] = slotFast << 24 >> 24
-		}
-	}
-	return g_FastPos
-}()
-
-function $Backward(obj, cur) {
-	let backCur, backMem, posMem, posPrev
-	obj._optimumEndIndex = cur
-	posMem = obj._optimum[cur].PosPrev
-	backMem = obj._optimum[cur].BackPrev
-	do {
-		if (obj._optimum[cur].Prev1IsChar) {
-			$MakeAsChar(obj._optimum[posMem])
-			obj._optimum[posMem].PosPrev = posMem - 1
-			if (obj._optimum[cur].Prev2) {
-				obj._optimum[posMem - 1].Prev1IsChar = 0
-				obj._optimum[posMem - 1].PosPrev = obj._optimum[cur].PosPrev2
-				obj._optimum[posMem - 1].BackPrev = obj._optimum[cur].BackPrev2
-			}
-		}
-		posPrev = posMem
-		backCur = backMem
-		backMem = obj._optimum[posPrev].BackPrev
-		posMem = obj._optimum[posPrev].PosPrev
-		obj._optimum[posPrev].BackPrev = backCur
-		obj._optimum[posPrev].PosPrev = cur
-		cur = posPrev
-	} while (cur > 0)
-	obj.backRes = obj._optimum[0].BackPrev
-	obj._optimumCurrentIndex = obj._optimum[0].PosPrev
-	return obj._optimumCurrentIndex
-}
-
-function $BaseInit(obj): void {
-	obj._state = 0
-	obj._previousByte = 0
-	for (let i = 0; i < 4; ++i) {
-		obj._repDistances[i] = 0
-	}
-}
-
-function $CodeOneBlock(obj, inSize, outSize, finished): void {
-	let baseVal,
-		complexState,
-		curByte,
-		distance,
-		footerBits,
-		i,
-		len,
-		lenToPosState,
-		matchByte,
-		pos,
-		posReduced,
-		posSlot,
-		posState,
-		progressPosValuePrev,
-		subCoder
-	inSize[0] = P0_longLit
-	outSize[0] = P0_longLit
-	finished[0] = 1
-	if (obj._inStream) {
-		obj._matchFinder._stream = obj._inStream
-		$Init_5(obj._matchFinder)
-		obj._needReleaseMFStream = 1
-		obj._inStream = null
-	}
-	if (obj._finished) {
-		return
-	}
-	obj._finished = 1
-	progressPosValuePrev = obj.nowPos64
-	if (eq(obj.nowPos64, P0_longLit)) {
-		if (!$GetNumAvailableBytes(obj._matchFinder)) {
-			$Flush(obj, lowBits_0(obj.nowPos64))
-			return
-		}
-		$ReadMatchDistances(obj)
-		posState = lowBits_0(obj.nowPos64) & obj._posStateMask
-		$Encode_3(
-			obj._rangeEncoder,
-			obj._isMatch,
-			(obj._state << 4) + posState,
-			0
-		)
-		obj._state = StateUpdateChar(obj._state)
-		curByte = $GetIndexByte(
-			obj._matchFinder,
-			-obj._additionalOffset
-		)
-		$Encode_1(
-			$GetSubCoder(
-				obj._literalEncoder,
-				lowBits_0(obj.nowPos64),
-				obj._previousByte
-			),
-			obj._rangeEncoder,
-			curByte
-		)
-		obj._previousByte = curByte
-		obj._additionalOffset -= 1
-		obj.nowPos64 = add(obj.nowPos64, P1_longLit)
-	}
-	if (!$GetNumAvailableBytes(obj._matchFinder)) {
-		$Flush(obj, lowBits_0(obj.nowPos64))
-		return
-	}
-	while (1) {
-		len = $GetOptimum(obj, lowBits_0(obj.nowPos64))
-		pos = obj.backRes
-		posState = lowBits_0(obj.nowPos64) & obj._posStateMask
-		complexState = (obj._state << 4) + posState
-		if (len == 1 && pos == -1) {
-			$Encode_3(
-				obj._rangeEncoder,
-				obj._isMatch,
-				complexState,
-				0
-			)
-			curByte = $GetIndexByte(
-				obj._matchFinder,
-				-obj._additionalOffset
-			)
-			subCoder = $GetSubCoder(
-				obj._literalEncoder,
-				lowBits_0(obj.nowPos64),
-				obj._previousByte
-			)
-			if (obj._state < 7) {
-				$Encode_1(subCoder, obj._rangeEncoder, curByte)
-			} else {
-				matchByte = $GetIndexByte(
-					obj._matchFinder,
-					-obj._repDistances[0] - 1 - obj._additionalOffset
-				)
-				$EncodeMatched(
-					subCoder,
-					obj._rangeEncoder,
-					matchByte,
-					curByte
-				)
-			}
-			obj._previousByte = curByte
-			obj._state = StateUpdateChar(obj._state)
-		} else {
-			$Encode_3(
-				obj._rangeEncoder,
-				obj._isMatch,
-				complexState,
-				1
-			)
-			if (pos < 4) {
-				$Encode_3(
-					obj._rangeEncoder,
-					obj._isRep,
-					obj._state,
-					1
-				)
-				if (!pos) {
-					$Encode_3(
-						obj._rangeEncoder,
-						obj._isRepG0,
-						obj._state,
-						0
-					)
-					if (len == 1) {
-						$Encode_3(
-							obj._rangeEncoder,
-							obj._isRep0Long,
-							complexState,
-							0
-						)
+					if (positionSlot < 14) {
+						decoder.rep0 += this.reverseDecode(
+							decoder.m_PosDecoders,
+							decoder.rep0 - positionSlot - 1,
+							numDirectBits,
+						);
 					} else {
-						$Encode_3(
-							obj._rangeEncoder,
-							obj._isRep0Long,
-							complexState,
-							1
-						)
+						decoder.rep0 += this.#DecodeDirectBits(numDirectBits - 4) << 4;
+						decoder.rep0 += this.#ReverseDecode();
+						if (decoder.rep0 < 0) {
+							if (decoder.rep0 == -1) {
+								return 1;
+							}
+							return -1;
+						}
 					}
 				} else {
-					$Encode_3(
-						obj._rangeEncoder,
-						obj._isRepG0,
-						obj._state,
-						1
-					)
-					if (pos == 1) {
-						$Encode_3(
-							obj._rangeEncoder,
-							obj._isRepG1,
-							obj._state,
-							0
-						)
-					} else {
-						$Encode_3(
-							obj._rangeEncoder,
-							obj._isRepG1,
-							obj._state,
-							1
-						)
-						$Encode_3(
-							obj._rangeEncoder,
-							obj._isRepG2,
-							obj._state,
-							pos - 2
-						)
-					}
+					decoder.rep0 = positionSlot;
 				}
-				if (len == 1) {
-					obj._state = obj._state < 7 ? 9 : 11
-				} else {
-					$Encode_0(
-						obj._repMatchLenEncoder,
-						obj._rangeEncoder,
-						len - 2,
-						posState
-					)
-					obj._state = obj._state < 7 ? 8 : 11
-				}
-				distance = obj._repDistances[pos]
-				if (pos != 0) {
-					for (let i = pos; i >= 1; --i) {
-						obj._repDistances[i] = obj._repDistances[i - 1]
-					}
-					obj._repDistances[0] = distance
-				}
-			} else {
-				$Encode_3(
-					obj._rangeEncoder,
-					obj._isRep,
-					obj._state,
-					0
-				)
-				obj._state = obj._state < 7 ? 7 : 10
-				$Encode_0(
-					obj._lenEncoder,
-					obj._rangeEncoder,
-					len - 2,
-					posState
-				)
-				pos -= 4
-				posSlot = GetPosSlot(pos)
-				lenToPosState = GetLenToPosState(len)
-				$Encode_2(
-					obj._posSlotEncoder[lenToPosState],
-					obj._rangeEncoder,
-					posSlot
-				)
-				if (posSlot >= 4) {
-					footerBits = (posSlot >> 1) - 1
-					baseVal = (2 | posSlot & 1) << footerBits
-					posReduced = pos - baseVal
-					if (posSlot < 14) {
-						ReverseEncode(
-							obj._posEncoders,
-							baseVal - posSlot - 1,
-							obj._rangeEncoder,
-							footerBits,
-							posReduced
-						)
-					} else {
-						$EncodeDirectBits(
-							obj._rangeEncoder,
-							posReduced >> 4,
-							footerBits - 4
-						)
-						$ReverseEncode(
-							obj._posAlignEncoder,
-							obj._rangeEncoder,
-							posReduced & 15
-						)
-						obj._alignPriceCount += 1
-					}
-				}
-				distance = pos
-				for (let i = 3; i >= 1; --i) {
-					obj._repDistances[i] = obj._repDistances[i - 1]
-				}
-				obj._repDistances[0] = distance
-				obj._matchPriceCount += 1
 			}
-			obj._previousByte = $GetIndexByte(
-				obj._matchFinder,
-				len - 1 - obj._additionalOffset
-			)
-		}
-		obj._additionalOffset -= len
-		obj.nowPos64 = add(obj.nowPos64, fromInt(len))
-		if (!obj._additionalOffset) {
-			if (obj._matchPriceCount >= 128) {
-				$FillDistancesPrices(obj)
-			}
-			if (obj._alignPriceCount >= 16) {
-				$FillAlignPrices(obj)
-			}
-			inSize[0] = obj.nowPos64
-			outSize[0] = $GetProcessedSizeAdd(obj._rangeEncoder)
-			if (!$GetNumAvailableBytes(obj._matchFinder)) {
-				$Flush(obj, lowBits_0(obj.nowPos64))
-				return
-			}
+
 			if (
-				compare(
-					sub(obj.nowPos64, progressPosValuePrev),
-					[4096, 0]
-				) >= 0
+				this.#compare(this.#fromInt(decoder.rep0), decoder.nowPos64) >= 0
+				|| decoder.rep0 >= decoder.m_DictionarySizeCheck
 			) {
-				obj._finished = 0
-				finished[0] = 0
-				return
+				return -1;
 			}
-		}
-	}
-}
 
-function $Create_2(obj): void {
-	var bt, numHashBytes
-	if (!obj._matchFinder) {
-		bt = {}
-		numHashBytes = 4
-		if (!obj._matchFinderType) {
-			numHashBytes = 2
-		}
-		$SetType(bt, numHashBytes)
-		obj._matchFinder = bt
-	}
-	$Create_1(
-		obj._literalEncoder,
-		obj._numLiteralPosStateBits,
-		obj._numLiteralContextBits
-	)
-	if (
-		obj._dictionarySize == obj._dictionarySizePrev
-		&& obj._numFastBytesPrev == obj._numFastBytes
-	) {
-		return
-	}
-	$Create_3(
-		obj._matchFinder,
-		obj._dictionarySize,
-		4096,
-		obj._numFastBytes,
-		274
-	)
-	obj._dictionarySizePrev = obj._dictionarySize
-	obj._numFastBytesPrev = obj._numFastBytes
-}
+			this.#CopyBlock(len);
 
-function $Encoder() {
-	const obj = {
-		_repDistances: initArr(4),
-		_optimum: [],
-		_rangeEncoder: {},
-		_isMatch: initArr(192),
-		_isRep: initArr(12),
-		_isRepG0: initArr(12),
-		_isRepG1: initArr(12),
-		_isRepG2: initArr(12),
-		_isRep0Long: initArr(192),
-		_posSlotEncoder: [],
-		_posEncoders: initArr(114),
-		_posAlignEncoder: bitTreeEncoder({}, 4),
-		_lenEncoder: $Encoder$LenPriceTableEncoder({}),
-		_repMatchLenEncoder: $Encoder$LenPriceTableEncoder({}),
-		_literalEncoder: {},
-		_matchDistances: [],
-		_posSlotPrices: [],
-		_distancesPrices: [],
-		_alignPrices: initArr(16),
-		reps: initArr(4),
-		repLens: initArr(4),
-		processedInSize: [P0_longLit],
-		processedOutSize: [P0_longLit],
-		finished: [0],
-		properties: initArr(5),
-		tempPrices: initArr(128),
-		_longestMatchLength: 0,
-		_matchFinderType: 1,
-		_numDistancePairs: 0,
-		_numFastBytesPrev: -1,
-		backRes: 0
-	}
-	for (let i = 0; i < 4_096; ++i) {
-		obj._optimum[i] = {}
-	}
-	for (let i = 0; i < 4; ++i) {
-		obj._posSlotEncoder[i] = bitTreeEncoder({}, 6)
-	}
-	return obj
-}
-
-function $FillAlignPrices(obj): void {
-	for (let i = 0; i < 16; ++i) {
-		obj._alignPrices[i] = $ReverseGetPrice(obj._posAlignEncoder, i)
-	}
-	obj._alignPriceCount = 0
-}
-
-function $FillDistancesPrices(obj): void {
-	var baseVal, encoder, footerBits, posSlot, st, st2
-	for (let i = 4; i < 128; ++i) {
-		posSlot = GetPosSlot(i)
-		footerBits = (posSlot >> 1) - 1
-		baseVal = (2 | posSlot & 1) << footerBits
-		obj.tempPrices[i] = ReverseGetPrice(
-			obj._posEncoders,
-			baseVal - posSlot - 1,
-			footerBits,
-			i - baseVal
-		)
-	}
-	for (let lenToPosState = 0; lenToPosState < 4; ++lenToPosState) {
-		encoder = obj._posSlotEncoder[lenToPosState]
-		st = lenToPosState << 6
-		for (posSlot = 0; posSlot < obj._distTableSize; posSlot += 1) {
-			obj._posSlotPrices[st + posSlot] = $GetPrice_1(
-				encoder,
-				posSlot
-			)
+			decoder.nowPos64 = this.#add(decoder.nowPos64, this.#fromInt(len));
+			decoder.prevByte = this.#GetByte(0);
 		}
-		for (posSlot = 14; posSlot < obj._distTableSize; posSlot += 1) {
-			obj._posSlotPrices[st + posSlot] += (posSlot >> 1) - 1 - 4 << 6
-		}
-		st2 = lenToPosState * 128
+
+		return 0;
+	}
+
+	#Init_1(): void {
+		this.#decoder.m_OutWindow._streamPos = 0;
+		this.#decoder.m_OutWindow._pos = 0;
+
+		this.InitBitModels(this.#decoder.m_IsMatchDecoders);
+		this.InitBitModels(this.#decoder.m_IsRep0LongDecoders);
+		this.InitBitModels(this.#decoder.m_IsRepDecoders);
+		this.InitBitModels(this.#decoder.m_IsRepG0Decoders);
+		this.InitBitModels(this.#decoder.m_IsRepG1Decoders);
+		this.InitBitModels(this.#decoder.m_IsRepG2Decoders);
+		this.InitBitModels(this.#decoder.m_PosDecoders);
+
+		this.#Init_0(this.#decoder.m_LiteralDecoder);
+
 		for (let i = 0; i < 4; ++i) {
-			obj._distancesPrices[st2 + i] = obj._posSlotPrices[st + i]
+			this.InitBitModels(this.#decoder.m_PosSlotDecoder[i].Models);
 		}
-		for (let i = 4; i < 128; ++i) {
-			obj._distancesPrices[st2 + i] =
-				obj._posSlotPrices[st + GetPosSlot(i)] + obj.tempPrices[i]
-		}
-	}
-	obj._matchPriceCount = 0
-}
 
-function $Flush(obj, nowPos: number): void {
-	$ReleaseMFStream(obj)
-	$WriteEndMarker(obj, nowPos & obj._posStateMask)
-	for (let i = 0; i < 5; ++i) {
-		$ShiftLow(obj._rangeEncoder)
+		this.#Init(this.#decoder.m_LenDecoder);
+		this.#Init(this.#decoder.m_RepLenDecoder);
+		this.InitBitModels(this.#decoder.m_PosAlignDecoder.Models);
+		this.#Init_8();
 	}
-}
 
-function $GetOptimum(obj, position: number) {
-	let cur,
-		curAnd1Price,
-		curAndLenCharPrice,
-		curAndLenPrice,
-		curBack,
-		curPrice,
-		currentByte,
-		distance,
-		len,
-		lenEnd,
-		lenMain,
-		lenTest,
-		lenTest2,
-		lenTestTemp,
-		matchByte,
-		matchPrice,
-		newLen,
-		nextIsChar,
-		nextMatchPrice,
-		nextOptimum,
-		nextRepMatchPrice,
-		normalMatchPrice,
-		numAvailableBytes,
-		numAvailableBytesFull,
-		numDistancePairs,
-		offs,
-		offset,
-		opt,
-		optimum,
-		pos,
-		posPrev,
-		posState,
-		posStateNext,
-		price_4,
-		repIndex,
-		repLen,
-		repMatchPrice,
-		repMaxIndex,
-		shortRepPrice,
-		startLen,
-		state,
-		state2,
-		t,
-		price,
-		price_0,
-		price_1,
-		price_2,
-		price_3
-	if (obj._optimumEndIndex != obj._optimumCurrentIndex) {
-		const lenRes = obj._optimum[obj._optimumCurrentIndex].PosPrev
-			- obj._optimumCurrentIndex
-		obj.backRes = obj._optimum[obj._optimumCurrentIndex].BackPrev
-		obj._optimumCurrentIndex =
-			obj._optimum[obj._optimumCurrentIndex].PosPrev
-		return lenRes
-	}
-	obj._optimumCurrentIndex = obj._optimumEndIndex = 0
-	if (obj._longestMatchWasFound) {
-		lenMain = obj._longestMatchLength
-		obj._longestMatchWasFound = 0
-	} else {
-		lenMain = $ReadMatchDistances(obj)
-	}
-	numDistancePairs = obj._numDistancePairs
-	numAvailableBytes = $GetNumAvailableBytes(obj._matchFinder) + 1
-	if (numAvailableBytes < 2) {
-		obj.backRes = -1
-		return 1
-	}
-	if (numAvailableBytes > 273) {
-		numAvailableBytes = 273
-	}
-	repMaxIndex = 0
-	for (let i = 0; i < 4; ++i) {
-		obj.reps[i] = obj._repDistances[i]
-		obj.repLens[i] = $GetMatchLen(
-			obj._matchFinder,
-			-1,
-			obj.reps[i],
-			273
-		)
-		if (obj.repLens[i] > obj.repLens[repMaxIndex]) {
-			repMaxIndex = i
+	#SetDecoderProperties(properties: number[]): 0 | 1 {
+		var dictionarySize, i, lc, lp, pb, remainder, val;
+		if (properties.length < 5) {
+			return 0;
 		}
-	}
-	if (obj.repLens[repMaxIndex] >= obj._numFastBytes) {
-		obj.backRes = repMaxIndex
-		lenRes = obj.repLens[repMaxIndex]
-		$MovePos(obj, lenRes - 1)
-		return lenRes
-	}
-	if (lenMain >= obj._numFastBytes) {
-		obj.backRes = obj._matchDistances[numDistancePairs - 1] + 4
-		$MovePos(obj, lenMain - 1)
-		return lenMain
-	}
-	currentByte = $GetIndexByte(obj._matchFinder, -1)
-	matchByte = $GetIndexByte(
-		obj._matchFinder,
-		-obj._repDistances[0] - 1 - 1
-	)
-	if (
-		lenMain < 2 && currentByte != matchByte && obj.repLens[repMaxIndex] < 2
-	) {
-		obj.backRes = -1
-		return 1
-	}
-	obj._optimum[0].State = obj._state
-	posState = position & obj._posStateMask
-	obj._optimum[1].Price = ProbPrices[
-		obj._isMatch[(obj._state << 4) + posState] >>> 2
-	] + $GetPrice_0(
-		$GetSubCoder(
-			obj._literalEncoder,
-			position,
-			obj._previousByte
-		),
-		obj._state >= 7,
-		matchByte,
-		currentByte
-	)
-	$MakeAsChar(obj._optimum[1])
-	matchPrice = ProbPrices[
-		2_048 - obj._isMatch[(obj._state << 4) + posState] >>> 2
-	]
-	repMatchPrice = matchPrice
-		+ ProbPrices[2_048 - obj._isRep[obj._state] >>> 2]
-	if (matchByte == currentByte) {
-		shortRepPrice = repMatchPrice
-			+ $GetRepLen1Price(obj, obj._state, posState)
-		if (shortRepPrice < obj._optimum[1].Price) {
-			obj._optimum[1].Price = shortRepPrice
-			$MakeAsShortRep(obj._optimum[1])
+
+		val = properties[0] & 255;
+		lc = val % 9;
+		remainder = ~~(val / 9);
+		lp = remainder % 5;
+		pb = ~~(remainder / 5);
+
+		dictionarySize = 0;
+		for (i = 0; i < 4; ++i) {
+			dictionarySize += (properties[1 + i] & 255) << i * 8;
 		}
-	}
-	lenEnd = lenMain >= obj.repLens[repMaxIndex]
-		? lenMain
-		: obj.repLens[repMaxIndex]
-	if (lenEnd < 2) {
-		obj.backRes = obj._optimum[1].BackPrev
-		return 1
-	}
-	obj._optimum[1].PosPrev = 0
-	obj._optimum[0].Backs0 = obj.reps[0]
-	obj._optimum[0].Backs1 = obj.reps[1]
-	obj._optimum[0].Backs2 = obj.reps[2]
-	obj._optimum[0].Backs3 = obj.reps[3]
-	len = lenEnd
-	do {
-		obj._optimum[len].Price = 268_435_455
-		len -= 1
-	} while (len >= 2)
-	for (let i = 0; i < 4; ++i) {
-		repLen = obj.repLens[i]
-		if (repLen < 2) {
-			continue
-		}
-		price_4 = repMatchPrice + $GetPureRepPrice(obj, i, obj._state, posState)
-		do {
-			curAndLenPrice = price_4 + $GetPrice(
-				obj._repMatchLenEncoder,
-				repLen - 2,
-				posState
-			)
-			optimum = obj._optimum[repLen]
-			if (curAndLenPrice < optimum.Price) {
-				optimum.Price = curAndLenPrice
-				optimum.PosPrev = 0
-				optimum.BackPrev = i
-				optimum.Prev1IsChar = 0
-			}
-		} while ((repLen -= 1) >= 2)
-	}
-	normalMatchPrice = matchPrice + ProbPrices[obj._isRep[obj._state] >>> 2]
-	len = obj.repLens[0] >= 2 ? obj.repLens[0] + 1 : 2
-	if (len <= lenMain) {
-		offs = 0
-		while (len > obj._matchDistances[offs]) {
-			offs += 2
-		}
-		for (;; len += 1) {
-			distance = obj._matchDistances[offs + 1]
-			curAndLenPrice = normalMatchPrice
-				+ $GetPosLenPrice(obj, distance, len, posState)
-			optimum = obj._optimum[len]
-			if (curAndLenPrice < optimum.Price) {
-				optimum.Price = curAndLenPrice
-				optimum.PosPrev = 0
-				optimum.BackPrev = distance + 4
-				optimum.Prev1IsChar = 0
-			}
-			if (len == obj._matchDistances[offs]) {
-				offs += 2
-				if (offs == numDistancePairs) {
-					break
-				}
-			}
-		}
-	}
-	cur = 0
-	while (1) {
-		;++cur
-		if (cur == lenEnd) {
-			return $Backward(obj, cur)
-		}
-		newLen = $ReadMatchDistances(obj)
-		numDistancePairs = obj._numDistancePairs
-		if (newLen >= obj._numFastBytes) {
-			obj._longestMatchLength = newLen
-			obj._longestMatchWasFound = 1
-			return $Backward(obj, cur)
-		}
-		position += 1
-		posPrev = obj._optimum[cur].PosPrev
-		if (obj._optimum[cur].Prev1IsChar) {
-			posPrev -= 1
-			if (obj._optimum[cur].Prev2) {
-				state = obj._optimum[obj._optimum[cur].PosPrev2]
-					.State
-				if (obj._optimum[cur].BackPrev2 < 4) {
-					state = (state < 7) ? 8 : 11
-				} else {
-					state = (state < 7) ? 7 : 10
-				}
-			} else {
-				state = obj._optimum[posPrev].State
-			}
-			state = StateUpdateChar(state)
-		} else {
-			state = obj._optimum[posPrev].State
-		}
-		if (posPrev == cur - 1) {
-			if (!obj._optimum[cur].BackPrev) {
-				state = state < 7 ? 9 : 11
-			} else {
-				state = StateUpdateChar(state)
-			}
-		} else {
-			if (
-				obj._optimum[cur].Prev1IsChar && obj._optimum[cur].Prev2
-			) {
-				posPrev = obj._optimum[cur].PosPrev2
-				pos = obj._optimum[cur].BackPrev2
-				state = state < 7 ? 8 : 11
-			} else {
-				pos = obj._optimum[cur].BackPrev
-				if (pos < 4) {
-					state = state < 7 ? 8 : 11
-				} else {
-					state = state < 7 ? 7 : 10
-				}
-			}
-			opt = obj._optimum[posPrev]
-			if (pos < 4) {
-				if (!pos) {
-					obj.reps[0] = opt.Backs0
-					obj.reps[1] = opt.Backs1
-					obj.reps[2] = opt.Backs2
-					obj.reps[3] = opt.Backs3
-				} else if (pos == 1) {
-					obj.reps[0] = opt.Backs1
-					obj.reps[1] = opt.Backs0
-					obj.reps[2] = opt.Backs2
-					obj.reps[3] = opt.Backs3
-				} else if (pos == 2) {
-					obj.reps[0] = opt.Backs2
-					obj.reps[1] = opt.Backs0
-					obj.reps[2] = opt.Backs1
-					obj.reps[3] = opt.Backs3
-				} else {
-					obj.reps[0] = opt.Backs3
-					obj.reps[1] = opt.Backs0
-					obj.reps[2] = opt.Backs1
-					obj.reps[3] = opt.Backs2
-				}
-			} else {
-				obj.reps[0] = pos - 4
-				obj.reps[1] = opt.Backs0
-				obj.reps[2] = opt.Backs1
-				obj.reps[3] = opt.Backs2
-			}
-		}
-		obj._optimum[cur].State = state
-		obj._optimum[cur].Backs0 = obj.reps[0]
-		obj._optimum[cur].Backs1 = obj.reps[1]
-		obj._optimum[cur].Backs2 = obj.reps[2]
-		obj._optimum[cur].Backs3 = obj.reps[3]
-		curPrice = obj._optimum[cur].Price
-		currentByte = $GetIndexByte(obj._matchFinder, -1)
-		matchByte = $GetIndexByte(
-			obj._matchFinder,
-			-obj.reps[0] - 1 - 1
-		)
-		posState = position & obj._posStateMask
-		curAnd1Price = curPrice
-			+ ProbPrices[obj._isMatch[(state << 4) + posState] >>> 2]
-			+ $GetPrice_0(
-				$GetSubCoder(
-					obj._literalEncoder,
-					position,
-					$GetIndexByte(obj._matchFinder, -2)
-				),
-				state >= 7,
-				matchByte,
-				currentByte
-			)
-		nextOptimum = obj._optimum[cur + 1]
-		nextIsChar = 0
-		if (curAnd1Price < nextOptimum.Price) {
-			nextOptimum.Price = curAnd1Price
-			nextOptimum.PosPrev = cur
-			nextOptimum.BackPrev = -1
-			nextOptimum.Prev1IsChar = 0
-			nextIsChar = 1
-		}
-		matchPrice = curPrice + ProbPrices[
-			2_048 - obj._isMatch[(state << 4) + posState] >>> 2
-		]
-		repMatchPrice = matchPrice + ProbPrices[2_048 - obj._isRep[state] >>> 2]
+
+		// NOTE: If the input is bad, it might call for an insanely large dictionary size, which would crash the script.
 		if (
-			matchByte == currentByte
-			&& !(nextOptimum.PosPrev < cur && !nextOptimum.BackPrev)
+			dictionarySize > 99999999 || !this.#SetLcLpPb(lc, lp, pb)
 		) {
-			shortRepPrice = repMatchPrice
-				+ (ProbPrices[obj._isRepG0[state] >>> 2] + ProbPrices[
-					obj._isRep0Long[(state << 4) + posState] >>> 2
-				])
-			if (shortRepPrice <= nextOptimum.Price) {
-				nextOptimum.Price = shortRepPrice
-				nextOptimum.PosPrev = cur
-				nextOptimum.BackPrev = 0
-				nextOptimum.Prev1IsChar = 0
-				nextIsChar = 1
+			return 0;
+		}
+
+		return this.#SetDictionarySize(dictionarySize);
+	}
+
+	#SetDictionarySize(dictionarySize: number): 0 | 1 {
+		if (dictionarySize < 0) {
+			return 0;
+		}
+
+		if (this.#decoder.m_DictionarySize != dictionarySize) {
+			this.#decoder.m_DictionarySize = dictionarySize;
+
+			this.#decoder.m_DictionarySizeCheck = Math.max(
+				this.#decoder.m_DictionarySize,
+				1,
+			);
+
+			this.#Create_5(
+				this.#decoder.m_OutWindow,
+				Math.max(this.#decoder.m_DictionarySizeCheck, 4096),
+			);
+		}
+
+		return 1;
+	}
+
+	#SetLcLpPb(
+		lc: number,
+		lp: number,
+		pb: number,
+	): 0 | 1 {
+		if (lc > 8 || lp > 4 || pb > 4) {
+			return 0;
+		}
+		this.#Create_0(lp, lc);
+		var numPosStates = 1 << pb;
+
+		this.#Create(this.#decoder.m_LenDecoder, numPosStates);
+		this.#Create(this.#decoder.m_RepLenDecoder, numPosStates);
+
+		this.#decoder.m_PosStateMask = numPosStates - 1;
+
+		return 1;
+	}
+
+	#Create(
+		decoder: any,
+		numPosStates: number,
+	): void {
+		for (; decoder.m_NumPosStates < numPosStates; decoder.m_NumPosStates += 1) {
+			decoder.m_LowCoder[decoder.m_NumPosStates] = this.#createBitTreeDecoder(3);
+			decoder.m_MidCoder[decoder.m_NumPosStates] = this.#createBitTreeDecoder(3);
+		}
+	}
+
+	#Decode(
+		obj: any,
+		posState: number,
+	): number {
+		if (!this.#decodeBit(obj.m_Choice, 0)) {
+			return this.#Decode_0(obj.m_LowCoder[posState]);
+		}
+
+		let symbol = 8;
+
+		if (!this.#decodeBit(obj.m_Choice, 1)) {
+			symbol += this.#Decode_0(obj.m_MidCoder[posState]);
+		} else {
+			symbol += 8 + this.#Decode_0(obj.m_HighCoder);
+		}
+
+		return symbol;
+	}
+
+	#createLenDecoder(obj: any): LenDecoder {
+		obj.m_Choice = this.#initArray(2);
+		obj.m_LowCoder = this.#initArray(16);
+		obj.m_MidCoder = this.#initArray(16);
+		obj.m_HighCoder = this.#createBitTreeDecoder(8);
+		obj.m_NumPosStates = 0;
+
+		return obj;
+	}
+
+	#Init(obj: any): void {
+		this.InitBitModels(obj.m_Choice);
+		for (let posState = 0; posState < obj.m_NumPosStates; ++posState) {
+			this.InitBitModels(obj.m_LowCoder[posState].Models);
+			this.InitBitModels(obj.m_MidCoder[posState].Models);
+		}
+
+		this.InitBitModels(obj.m_HighCoder.Models);
+	}
+
+	#Create_0(
+		numPosBits: number,
+		numPrevBits: number,
+	): void {
+		let i, numStates;
+		if (
+			this.#decoder.m_LiteralDecoder.m_Coders !== null
+			&& this.#decoder.m_LiteralDecoder.m_NumPrevBits == numPrevBits
+			&& this.#decoder.m_LiteralDecoder.m_NumPosBits == numPosBits
+		) {
+			return;
+		}
+
+		this.#decoder.m_LiteralDecoder.m_NumPosBits = numPosBits;
+		this.#decoder.m_LiteralDecoder.m_PosMask = (1 << numPosBits) - 1;
+		this.#decoder.m_LiteralDecoder.m_NumPrevBits = numPrevBits;
+
+		numStates = 1 << this.#decoder.m_LiteralDecoder.m_NumPrevBits + this.#decoder.m_LiteralDecoder.m_NumPosBits;
+
+		this.#decoder.m_LiteralDecoder.m_Coders = this.#initArray(numStates);
+
+		for (i = 0; i < numStates; ++i) {
+			this.#decoder.m_LiteralDecoder.m_Coders[i] = this.#createLiteralDecoderEncoder2({});
+		}
+	}
+
+	#GetDecoder(
+		pos: number,
+		prevByte: number,
+	) {
+		const literalDecoder = this.#decompressor.chunker.decoder.m_LiteralDecoder;
+
+		// Calculate index based on position and previous byte
+		const positionMask = pos & literalDecoder.m_PosMask;
+		const prevBitsMask = (prevByte & 255) >>> (8 - literalDecoder.m_NumPrevBits);
+		const index = (positionMask << literalDecoder.m_NumPrevBits) + prevBitsMask;
+
+		// Return decoder at calculated index
+		return literalDecoder.m_Coders[index];
+	}
+
+	#Init_0(obj: any): void {
+		let i, numStates;
+		numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits;
+
+		for (i = 0; i < numStates; ++i) {
+			this.InitBitModels(obj.m_Coders[i].m_Decoders);
+		}
+	}
+
+	#DecodeNormal(rangeDecoder: any): number {
+		const _rangeDecoder = this.#decompressor.chunker.decoder.m_RangeDecoder;
+
+		var symbol = 1;
+		do {
+			symbol = symbol << 1 | this.#decodeBit(rangeDecoder.m_Decoders, symbol);
+		} while (symbol < 256);
+
+		return symbol << 24 >> 24;
+	}
+
+	#DecodeWithMatchByte(
+		obj: any,
+		matchByte: number,
+	): number {
+		let bit, matchBit, symbol = 1;
+		do {
+			matchBit = matchByte >> 7 & 1;
+			matchByte <<= 1;
+			bit = this.#decodeBit(
+				obj.m_Decoders,
+				(1 + matchBit << 8) + symbol,
+			);
+			symbol = symbol << 1 | bit;
+
+			if (matchBit != bit) {
+				while (symbol < 256) {
+					symbol = symbol << 1 | this.#decodeBit(obj.m_Decoders, symbol);
+				}
+				break;
 			}
+		} while (symbol < 256);
+
+		return symbol << 24 >> 24;
+	}
+
+	#createLiteralDecoderEncoder2(obj: any): LiteralDecoderEncoder2 {
+		obj.m_Decoders = this.#initArray(768);
+		return obj;
+	}
+
+	#Backward(cur: number) {
+		const obj = this.#compressor.chunker.encoder;
+		let backCur, backMem, posMem, posPrev;
+
+		obj._optimumEndIndex = cur;
+		posMem = obj._optimum[cur].PosPrev;
+		backMem = obj._optimum[cur].BackPrev;
+
+		do {
+			if (obj._optimum[cur].Prev1IsChar) {
+				this.#MakeAsChar(obj._optimum[posMem]);
+				obj._optimum[posMem].PosPrev = posMem - 1;
+
+				if (obj._optimum[cur].Prev2) {
+					obj._optimum[posMem - 1].Prev1IsChar = 0;
+					obj._optimum[posMem - 1].PosPrev = obj._optimum[cur].PosPrev2;
+					obj._optimum[posMem - 1].BackPrev = obj._optimum[cur].BackPrev2;
+				}
+			}
+
+			posPrev = posMem;
+			backCur = backMem;
+			backMem = obj._optimum[posPrev].BackPrev;
+			posMem = obj._optimum[posPrev].PosPrev;
+			obj._optimum[posPrev].BackPrev = backCur;
+			obj._optimum[posPrev].PosPrev = cur;
+			cur = posPrev;
+		} while (cur > 0);
+
+		obj.backRes = obj._optimum[0].BackPrev;
+		obj._optimumCurrentIndex = obj._optimum[0].PosPrev;
+		return obj._optimumCurrentIndex;
+	}
+
+	#BaseInit(): void {
+		this.#encoder._state = 0;
+		this.#encoder._previousByte = 0;
+
+		for (let i = 0; i < 4; ++i) {
+			this.#encoder._repDistances[i] = 0;
 		}
-		numAvailableBytesFull = $GetNumAvailableBytes(obj._matchFinder) + 1
-		numAvailableBytesFull = 4_095 - cur < numAvailableBytesFull
-			? 4_095 - cur
-			: numAvailableBytesFull
-		numAvailableBytes = numAvailableBytesFull
-		if (numAvailableBytes < 2) {
-			continue
+	}
+
+	#CodeOneBlock(): void {
+		let baseVal,
+			complexState,
+			curByte,
+			distance,
+			footerBits,
+			i,
+			len,
+			lenToPosState,
+			matchByte,
+			pos,
+			posReduced,
+			posSlot,
+			posState,
+			progressPosValuePrev,
+			subCoder;
+
+		this.#compressor.chunker.encoder.processedInSize[0] = this.#P0_LONG_LIT;
+		this.#compressor.chunker.encoder.processedOutSize[0] = this.#P0_LONG_LIT;
+		this.#compressor.chunker.encoder.finished[0] = 1;
+
+		if (this.#compressor.chunker.encoder._inStream) {
+			this.#compressor.chunker.encoder._matchFinder._stream = this.#compressor.chunker.encoder._inStream;
+			this.#Init_5();
+			this.#compressor.chunker.encoder._needReleaseMFStream = 1;
+			this.#compressor.chunker.encoder._inStream = null;
 		}
-		if (numAvailableBytes > obj._numFastBytes) {
-			numAvailableBytes = obj._numFastBytes
+
+		if (this.#compressor.chunker.encoder._finished) {
+			return;
 		}
-		if (!nextIsChar && matchByte != currentByte) {
-			t = Math.min(numAvailableBytesFull - 1, obj._numFastBytes)
-			lenTest2 = $GetMatchLen(
-				obj._matchFinder,
+
+		this.#compressor.chunker.encoder._finished = 1;
+		progressPosValuePrev = this.#compressor.chunker.encoder.nowPos64;
+
+		if (this.#eq(this.#compressor.chunker.encoder.nowPos64, this.#P0_LONG_LIT)) {
+			if (!this.#GetNumAvailableBytes()) {
+				this.#Flush(this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64));
+				return;
+			}
+
+			this.#ReadMatchDistances();
+			posState = this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64)
+				& this.#compressor.chunker.encoder._posStateMask;
+
+			this.#Encode_3(
+				this.#compressor.chunker.encoder._isMatch,
+				(this.#compressor.chunker.encoder._state << 4) + posState,
 				0,
-				obj.reps[0],
-				t
-			)
-			if (lenTest2 >= 2) {
-				state2 = StateUpdateChar(state)
-				posStateNext = position + 1 & obj._posStateMask
-				nextRepMatchPrice = curAnd1Price + ProbPrices[
-					2_048 - obj._isMatch[(state2 << 4) + posStateNext] >>> 2
-				] + ProbPrices[2_048 - obj._isRep[state2] >>> 2]
-				offset = cur + 1 + lenTest2
-				while (lenEnd < offset) {
-					obj._optimum[lenEnd += 1].Price = 268_435_455
-				}
-				curAndLenPrice = nextRepMatchPrice + (price = $GetPrice(
-					obj._repMatchLenEncoder,
-					lenTest2 - 2,
-					posStateNext
+			);
+
+			this.#compressor.chunker.encoder._state = this.StateUpdateChar(this.#compressor.chunker.encoder._state);
+			curByte = this.#GetIndexByte(
+				-this.#compressor.chunker.encoder._additionalOffset,
+			);
+
+			this.#Encode_1(
+				this.#GetSubCoder(
+					this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64),
+					this.#compressor.chunker.encoder._previousByte,
 				),
-					price + $GetPureRepPrice(
-						obj,
+				curByte,
+			);
+
+			this.#compressor.chunker.encoder._previousByte = curByte;
+			this.#compressor.chunker.encoder._additionalOffset -= 1;
+			this.#compressor.chunker.encoder.nowPos64 = this.#add(
+				this.#compressor.chunker.encoder.nowPos64,
+				this.#P1_LONG_LIT,
+			);
+		}
+
+		if (!this.#GetNumAvailableBytes()) {
+			this.#Flush(this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64));
+			return;
+		}
+
+		while (1) {
+			len = this.#GetOptimum(this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64));
+			pos = this.#compressor.chunker.encoder.backRes;
+			posState = this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64)
+				& this.#compressor.chunker.encoder._posStateMask;
+			complexState = (this.#compressor.chunker.encoder._state << 4) + posState;
+
+			if (len == 1 && pos == -1) {
+				this.#Encode_3(
+					this.#compressor.chunker.encoder._isMatch,
+					complexState,
+					0,
+				);
+				curByte = this.#GetIndexByte(
+					-this.#compressor.chunker.encoder._additionalOffset,
+				);
+				subCoder = this.#GetSubCoder(
+					this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64),
+					this.#compressor.chunker.encoder._previousByte,
+				);
+
+				if (this.#compressor.chunker.encoder._state < 7) {
+					this.#Encode_1(subCoder, curByte);
+				} else {
+					matchByte = this.#GetIndexByte(
+						-this.#compressor.chunker.encoder._repDistances[0]
+							- 1
+							- this.#compressor.chunker.encoder._additionalOffset,
+					);
+					this.#EncodeMatched(
+						subCoder,
+						matchByte,
+						curByte,
+					);
+				}
+				this.#compressor.chunker.encoder._previousByte = curByte;
+				this.#compressor.chunker.encoder._state = this.StateUpdateChar(this.#compressor.chunker.encoder._state);
+			} else {
+				this.#Encode_3(
+					this.#compressor.chunker.encoder._isMatch,
+					complexState,
+					1,
+				);
+				if (pos < 4) {
+					this.#Encode_3(
+						this.#compressor.chunker.encoder._isRep,
+						this.#compressor.chunker.encoder._state,
+						1,
+					);
+
+					if (!pos) {
+						this.#Encode_3(
+							this.#compressor.chunker.encoder._isRepG0,
+							this.#compressor.chunker.encoder._state,
+							0,
+						);
+
+						if (len == 1) {
+							this.#Encode_3(
+								this.#compressor.chunker.encoder._isRep0Long,
+								complexState,
+								0,
+							);
+						} else {
+							this.#Encode_3(
+								this.#compressor.chunker.encoder._isRep0Long,
+								complexState,
+								1,
+							);
+						}
+					} else {
+						this.#Encode_3(
+							this.#compressor.chunker.encoder._isRepG0,
+							this.#compressor.chunker.encoder._state,
+							1,
+						);
+
+						if (pos == 1) {
+							this.#Encode_3(
+								this.#compressor.chunker.encoder._isRepG1,
+								this.#compressor.chunker.encoder._state,
+								0,
+							);
+						} else {
+							this.#Encode_3(
+								this.#compressor.chunker.encoder._isRepG1,
+								this.#compressor.chunker.encoder._state,
+								1,
+							);
+							this.#Encode_3(
+								this.#compressor.chunker.encoder._isRepG2,
+								this.#compressor.chunker.encoder._state,
+								pos - 2,
+							);
+						}
+					}
+
+					if (len == 1) {
+						this.#compressor.chunker.encoder._state = this.#compressor.chunker.encoder._state < 7 ? 9 : 11;
+					} else {
+						this.#Encode_0(
+							this.#compressor.chunker.encoder._repMatchLenEncoder,
+							len - 2,
+							posState,
+						);
+						this.#compressor.chunker.encoder._state = this.#compressor.chunker.encoder._state < 7 ? 8 : 11;
+					}
+
+					distance = this.#compressor.chunker.encoder._repDistances[pos];
+					if (pos != 0) {
+						for (let i = pos; i >= 1; --i) {
+							this.#compressor.chunker.encoder._repDistances[i] = this
+								.#compressor
+								.chunker
+								.encoder
+								._repDistances[i - 1];
+						}
+						this.#compressor.chunker.encoder._repDistances[0] = distance;
+					}
+				} else {
+					this.#Encode_3(
+						this.#compressor.chunker.encoder._isRep,
+						this.#compressor.chunker.encoder._state,
 						0,
-						state2,
-						posStateNext
-					))
-				optimum = obj._optimum[offset]
-				if (curAndLenPrice < optimum.Price) {
-					optimum.Price = curAndLenPrice
-					optimum.PosPrev = cur + 1
-					optimum.BackPrev = 0
-					optimum.Prev1IsChar = 1
-					optimum.Prev2 = 0
+					);
+					this.#compressor.chunker.encoder._state = this.#compressor.chunker.encoder._state < 7 ? 7 : 10;
+					this.#Encode_0(
+						this.#compressor.chunker.encoder._lenEncoder,
+						len - 2,
+						posState,
+					);
+					pos -= 4;
+					posSlot = this.GetPosSlot(pos);
+					lenToPosState = this.GetLenToPosState(len);
+
+					this.#Encode_2(
+						this.#compressor.chunker.encoder._posSlotEncoder[lenToPosState],
+						posSlot,
+					);
+
+					if (posSlot >= 4) {
+						footerBits = (posSlot >> 1) - 1;
+						baseVal = (2 | posSlot & 1) << footerBits;
+						posReduced = pos - baseVal;
+
+						if (posSlot < 14) {
+							this.ReverseEncode(
+								baseVal - posSlot - 1,
+								footerBits,
+								posReduced,
+							);
+						} else {
+							this.#EncodeDirectBits(posReduced >> 4, footerBits - 4);
+							this.#ReverseEncode(posReduced & 15);
+							this.#compressor.chunker.encoder._alignPriceCount += 1;
+						}
+					}
+
+					distance = pos;
+					for (let i = 3; i >= 1; --i) {
+						this.#compressor.chunker.encoder._repDistances[i] = this
+							.#compressor
+							.chunker
+							.encoder
+							._repDistances[i - 1];
+					}
+
+					this.#compressor.chunker.encoder._repDistances[0] = distance;
+					this.#compressor.chunker.encoder._matchPriceCount += 1;
+				}
+
+				this.#compressor.chunker.encoder._previousByte = this.#GetIndexByte(
+					len - 1 - this.#compressor.chunker.encoder._additionalOffset,
+				);
+			}
+
+			this.#compressor.chunker.encoder._additionalOffset -= len;
+			this.#compressor.chunker.encoder.nowPos64 = this.#add(
+				this.#compressor.chunker.encoder.nowPos64,
+				this.#fromInt(len),
+			);
+
+			if (!this.#compressor.chunker.encoder._additionalOffset) {
+				if (this.#compressor.chunker.encoder._matchPriceCount >= 128) {
+					this.#FillDistancesPrices(this.#compressor.chunker.encoder);
+				}
+
+				if (this.#compressor.chunker.encoder._alignPriceCount >= 16) {
+					this.#FillAlignPrices(this.#compressor.chunker.encoder);
+				}
+
+				this.#compressor.chunker.encoder.processedInSize[0] = this.#compressor.chunker.encoder.nowPos64;
+				this.#compressor.chunker.encoder.processedOutSize[0] = this.#GetProcessedSizeAdd();
+
+				if (!this.#GetNumAvailableBytes()) {
+					this.#Flush(this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64));
+					return;
+				}
+
+				if (
+					this.#compare(
+						this.#sub(this.#compressor.chunker.encoder.nowPos64, [4096, 0]),
+						[4096, 0],
+					) >= 0
+				) {
+					this.#compressor.chunker.encoder._finished = 0;
+					this.#compressor.chunker.encoder.finished[0] = 0;
+					return;
 				}
 			}
 		}
-		startLen = 2
-		for (repIndex = 0; repIndex < 4; ++repIndex) {
-			lenTest = $GetMatchLen(
-				obj._matchFinder,
+	}
+
+	#Create_2(): void {
+		let binTree, numHashBytes;
+
+		if (!this.#encoder._matchFinder) {
+			binTree = {} as MatchFinder;
+			numHashBytes = 4;
+
+			if (!this.#encoder._matchFinderType) {
+				numHashBytes = 2;
+			}
+
+			this.#SetType(binTree, numHashBytes);
+			this.#encoder._matchFinder = binTree;
+		}
+
+		this.#Create_1();
+
+		if (
+			this.#encoder._dictionarySize == this.#encoder._dictionarySizePrev
+			&& this.#encoder._numFastBytesPrev == this.#encoder._numFastBytes
+		) {
+			return;
+		}
+
+		this.#Create_3(4_096, 274);
+
+		this.#encoder._dictionarySizePrev = this.#encoder._dictionarySize;
+		this.#encoder._numFastBytesPrev = this.#encoder._numFastBytes;
+	}
+
+	#Encoder(): void {
+		for (let i = 0; i < 4_096; ++i) {
+			this.#encoder._optimum[i] = {};
+		}
+
+		for (let i = 0; i < 4; ++i) {
+			this.#encoder._posSlotEncoder[i] = this.#createBitTreeEncoder(6);
+		}
+	}
+
+	#FillAlignPrices(encoder: any): void {
+		for (let i = 0; i < 16; ++i) {
+			encoder._alignPrices[i] = this.#ReverseGetPrice(encoder._posAlignEncoder, i);
+		}
+		encoder._alignPriceCount = 0;
+	}
+
+	#FillDistancesPrices(obj: any): void {
+		let baseVal, encoder, footerBits, posSlot, st, st2;
+
+		for (let i = 4; i < 128; ++i) {
+			posSlot = this.GetPosSlot(i);
+			footerBits = (posSlot >> 1) - 1;
+			baseVal = (2 | posSlot & 1) << footerBits;
+			obj.tempPrices[i] = this.ReverseGetPrice(
+				obj._posEncoders,
+				baseVal - posSlot - 1,
+				footerBits,
+				i - baseVal,
+			);
+		}
+
+		for (let lenToPosState = 0; lenToPosState < 4; ++lenToPosState) {
+			encoder = obj._posSlotEncoder[lenToPosState];
+			st = lenToPosState << 6;
+			for (posSlot = 0; posSlot < obj._distTableSize; posSlot += 1) {
+				obj._posSlotPrices[st + posSlot] = this.#GetPrice_1(
+					encoder,
+					posSlot,
+				);
+			}
+
+			for (posSlot = 14; posSlot < obj._distTableSize; posSlot += 1) {
+				obj._posSlotPrices[st + posSlot] += (posSlot >> 1) - 1 - 4 << 6;
+			}
+
+			st2 = lenToPosState * 128;
+			for (let i = 0; i < 4; ++i) {
+				obj._distancesPrices[st2 + i] = obj._posSlotPrices[st + i];
+			}
+
+			for (let i = 4; i < 128; ++i) {
+				obj._distancesPrices[st2 + i] = obj._posSlotPrices[st + this.GetPosSlot(i)] + obj.tempPrices[i];
+			}
+		}
+
+		obj._matchPriceCount = 0;
+	}
+
+	#Flush(nowPos: number): void {
+		this.#ReleaseMFStream();
+		this.#WriteEndMarker(nowPos & this.#compressor.chunker.encoder._posStateMask);
+
+		for (let i = 0; i < 5; ++i) {
+			this.#ShiftLow();
+		}
+	}
+
+	#GetOptimum(position: number) {
+		let cur,
+			curAnd1Price,
+			curAndLenCharPrice,
+			curAndLenPrice,
+			curBack,
+			curPrice,
+			currentByte,
+			distance,
+			len,
+			lenEnd,
+			lenMain,
+			lenTest,
+			lenTest2,
+			lenTestTemp,
+			matchByte,
+			matchPrice,
+			newLen,
+			nextIsChar,
+			nextMatchPrice,
+			nextOptimum,
+			nextRepMatchPrice,
+			normalMatchPrice,
+			numAvailableBytes,
+			numAvailableBytesFull,
+			numDistancePairs,
+			offs,
+			offset,
+			opt,
+			optimum,
+			pos,
+			posPrev,
+			posState,
+			posStateNext,
+			price_4,
+			repIndex,
+			repLen,
+			repMatchPrice,
+			repMaxIndex,
+			shortRepPrice,
+			startLen,
+			state,
+			state2,
+			t,
+			price,
+			price_0,
+			price_1,
+			price_2,
+			price_3,
+			lenRes;
+
+		const encoder = this.#compressor.chunker.encoder!;
+
+		if (encoder._optimumEndIndex != encoder._optimumCurrentIndex) {
+			lenRes = encoder._optimum[encoder._optimumCurrentIndex].PosPrev
+				- encoder._optimumCurrentIndex;
+			encoder.backRes = encoder._optimum[encoder._optimumCurrentIndex].BackPrev;
+			encoder._optimumCurrentIndex = encoder._optimum[encoder._optimumCurrentIndex].PosPrev;
+			return lenRes;
+		}
+
+		encoder._optimumCurrentIndex = encoder._optimumEndIndex = 0;
+		if (encoder._longestMatchWasFound) {
+			lenMain = encoder._longestMatchLength;
+			encoder._longestMatchWasFound = 0;
+		} else {
+			lenMain = this.#ReadMatchDistances();
+		}
+
+		numDistancePairs = encoder._numDistancePairs;
+		numAvailableBytes = this.#GetNumAvailableBytes() + 1;
+
+		if (numAvailableBytes < 2) {
+			encoder.backRes = -1;
+			return 1;
+		}
+
+		if (numAvailableBytes > 273) {
+			numAvailableBytes = 273;
+		}
+
+		repMaxIndex = 0;
+		for (let i = 0; i < 4; ++i) {
+			encoder.reps[i] = encoder._repDistances[i];
+			encoder.repLens[i] = this.#GetMatchLen(
 				-1,
-				obj.reps[repIndex],
-				numAvailableBytes
-			)
-			if (lenTest < 2) {
-				continue
+				encoder.reps[i],
+				273,
+			);
+			if (encoder.repLens[i] > encoder.repLens[repMaxIndex]) {
+				repMaxIndex = i;
 			}
-			lenTestTemp = lenTest
+		}
+
+		if (encoder.repLens[repMaxIndex] >= encoder._numFastBytes) {
+			encoder.backRes = repMaxIndex;
+			lenRes = encoder.repLens[repMaxIndex];
+			this.#MovePos(lenRes - 1);
+
+			return lenRes;
+		}
+
+		if (lenMain >= encoder._numFastBytes) {
+			encoder.backRes = this.#compressor.chunker.encoder._matchDistances[numDistancePairs - 1] + 4;
+
+			this.#MovePos(lenMain - 1);
+			return lenMain;
+		}
+
+		currentByte = this.#GetIndexByte(-1);
+		matchByte = this.#GetIndexByte(-encoder._repDistances[0] - 1 - 1);
+
+		if (lenMain < 2 && currentByte != matchByte && encoder.repLens[repMaxIndex] < 2) {
+			encoder.backRes = -1;
+			return 1;
+		}
+
+		encoder._optimum[0].State = encoder._state;
+		posState = position & encoder._posStateMask;
+		encoder._optimum[1].Price = this.#probPrices[
+			encoder._isMatch[(encoder._state << 4) + posState] >>> 2
+		] + this.#GetPrice_0(
+			this.#GetSubCoder(
+				position,
+				encoder._previousByte,
+			),
+			encoder._state >= 7,
+			matchByte,
+			currentByte,
+		);
+
+		this.#MakeAsChar(encoder._optimum[1]);
+		matchPrice = this.#probPrices[
+			2_048
+				- encoder._isMatch[(encoder._state << 4) + posState]
+			>>> 2
+		];
+
+		repMatchPrice = matchPrice + this.#probPrices[
+			2_048 - encoder._isRep[encoder._state] >>> 2
+		];
+
+		if (matchByte == currentByte) {
+			shortRepPrice = repMatchPrice + this.#GetRepLen1Price(posState);
+			if (shortRepPrice < encoder._optimum[1].Price) {
+				encoder._optimum[1].Price = shortRepPrice;
+				this.#MakeAsShortRep(encoder._optimum[1]);
+			}
+		}
+
+		lenEnd = lenMain >= encoder.repLens[repMaxIndex]
+			? lenMain
+			: encoder.repLens[repMaxIndex];
+
+		if (lenEnd < 2) {
+			encoder.backRes = encoder._optimum[1].BackPrev;
+			return 1;
+		}
+
+		encoder._optimum[1].PosPrev = 0;
+		encoder._optimum[0].Backs0 = encoder.reps[0];
+		encoder._optimum[0].Backs1 = encoder.reps[1];
+		encoder._optimum[0].Backs2 = encoder.reps[2];
+		encoder._optimum[0].Backs3 = encoder.reps[3];
+		len = lenEnd;
+
+		do {
+			encoder._optimum[len].Price = 268_435_455;
+			len -= 1;
+		} while (len >= 2);
+
+		for (let i = 0; i < 4; ++i) {
+			repLen = encoder.repLens[i];
+			if (repLen < 2) {
+				continue;
+			}
+			price_4 = repMatchPrice + this.#GetPureRepPrice(
+				i,
+				encoder._state,
+				posState,
+			);
+
 			do {
-				while (lenEnd < cur + lenTest) {
-					obj._optimum[lenEnd += 1].Price = 268_435_455
-				}
-				curAndLenPrice = repMatchPrice + (price_0 = $GetPrice(
-					obj._repMatchLenEncoder,
-					lenTest - 2,
-					posState
-				),
-					price_0 + $GetPureRepPrice(
-						obj,
-						repIndex,
-						state,
-						posState
-					))
-				optimum = obj._optimum[cur + lenTest]
+				curAndLenPrice = price_4 + this.#GetPrice(
+					encoder._repMatchLenEncoder,
+					repLen - 2,
+					posState,
+				);
+				optimum = encoder._optimum[repLen];
 				if (curAndLenPrice < optimum.Price) {
-					optimum.Price = curAndLenPrice
-					optimum.PosPrev = cur
-					optimum.BackPrev = repIndex
-					optimum.Prev1IsChar = 0
+					optimum.Price = curAndLenPrice;
+					optimum.PosPrev = 0;
+					optimum.BackPrev = i;
+					optimum.Prev1IsChar = 0;
 				}
-			} while ((lenTest -= 1) >= 2)
-			lenTest = lenTestTemp
-			if (!repIndex) {
-				startLen = lenTest + 1
+			} while ((repLen -= 1) >= 2);
+		}
+
+		normalMatchPrice = matchPrice
+			+ this.#probPrices[encoder._isRep[encoder._state] >>> 2];
+		len = encoder.repLens[0] >= 2 ? encoder.repLens[0] + 1 : 2;
+
+		if (len <= lenMain) {
+			offs = 0;
+			while (len > encoder._matchDistances[offs]) {
+				offs += 2;
 			}
-			if (lenTest < numAvailableBytesFull) {
-				t = Math.min(
-					numAvailableBytesFull - 1 - lenTest,
-					obj._numFastBytes
-				)
-				lenTest2 = $GetMatchLen(
-					obj._matchFinder,
-					lenTest,
-					obj.reps[repIndex],
-					t
-				)
-				if (lenTest2 >= 2) {
-					state2 = state < 7 ? 8 : 11
-					posStateNext = position + lenTest & obj._posStateMask
-					curAndLenCharPrice = repMatchPrice + (price_1 = $GetPrice(
-						obj._repMatchLenEncoder,
-						lenTest - 2,
-						posState
-					),
-						price_1 + $GetPureRepPrice(
-							obj,
-							repIndex,
-							state,
-							posState
-						))
-						+ ProbPrices[
-							obj._isMatch[(state2 << 4) + posStateNext] >>> 2
-						] + $GetPrice_0(
-							$GetSubCoder(
-								obj._literalEncoder,
-								position + lenTest,
-								$GetIndexByte(
-									obj._matchFinder,
-									lenTest - 1 - 1
-								)
-							),
-							1,
-							$GetIndexByte(
-								obj._matchFinder,
-								lenTest - 1 - (obj.reps[repIndex] + 1)
-							),
-							$GetIndexByte(obj._matchFinder, lenTest - 1)
-						)
-					state2 = StateUpdateChar(state2)
-					posStateNext = position + lenTest + 1 & obj._posStateMask
-					nextMatchPrice = curAndLenCharPrice + ProbPrices[
-						2_048 - obj
-								._isMatch[(state2 << 4) + posStateNext] >>> 2
-					]
-					nextRepMatchPrice = nextMatchPrice
-						+ ProbPrices[2_048 - obj._isRep[state2] >>> 2]
-					offset = lenTest + 1 + lenTest2
-					while (lenEnd < cur + offset) {
-						obj._optimum[lenEnd += 1].Price = 268_435_455
+
+			for (;; len += 1) {
+				distance = encoder._matchDistances[offs + 1];
+				curAndLenPrice = normalMatchPrice + this.#GetPosLenPrice(distance, len, posState);
+				optimum = encoder._optimum[len];
+				if (curAndLenPrice < optimum.Price) {
+					optimum.Price = curAndLenPrice;
+					optimum.PosPrev = 0;
+					optimum.BackPrev = distance + 4;
+					optimum.Prev1IsChar = 0;
+				}
+				if (len == encoder._matchDistances[offs]) {
+					offs += 2;
+					if (offs == numDistancePairs) {
+						break;
 					}
-					curAndLenPrice = nextRepMatchPrice + (price_2 = $GetPrice(
-						obj._repMatchLenEncoder,
+				}
+			}
+		}
+		cur = 0;
+
+		while (1) {
+			++cur;
+			if (cur == lenEnd) {
+				return this.#Backward(cur);
+			}
+			newLen = this.#ReadMatchDistances();
+			numDistancePairs = encoder._numDistancePairs;
+
+			if (newLen >= encoder._numFastBytes) {
+				encoder._longestMatchLength = newLen;
+				encoder._longestMatchWasFound = 1;
+
+				return this.#Backward(cur);
+			}
+			position += 1;
+			posPrev = encoder._optimum[cur].PosPrev;
+
+			if (encoder._optimum[cur].Prev1IsChar) {
+				posPrev -= 1;
+				if (encoder._optimum[cur].Prev2) {
+					state = encoder._optimum[encoder._optimum[cur].PosPrev2].State;
+					if (encoder._optimum[cur].BackPrev2 < 4) {
+						state = (state < 7) ? 8 : 11;
+					} else {
+						state = (state < 7) ? 7 : 10;
+					}
+				} else {
+					state = encoder._optimum[posPrev].State;
+				}
+				state = this.StateUpdateChar(state);
+			} else {
+				state = encoder._optimum[posPrev].State;
+			}
+
+			if (posPrev == cur - 1) {
+				if (!encoder._optimum[cur].BackPrev) {
+					state = state < 7 ? 9 : 11;
+				} else {
+					state = this.StateUpdateChar(state);
+				}
+			} else {
+				if (
+					encoder._optimum[cur].Prev1IsChar
+					&& encoder._optimum[cur].Prev2
+				) {
+					posPrev = encoder._optimum[cur].PosPrev2;
+					pos = encoder._optimum[cur].BackPrev2;
+					state = state < 7 ? 8 : 11;
+				} else {
+					pos = encoder._optimum[cur].BackPrev;
+					if (pos < 4) {
+						state = state < 7 ? 8 : 11;
+					} else {
+						state = state < 7 ? 7 : 10;
+					}
+				}
+				opt = encoder._optimum[posPrev];
+
+				if (pos < 4) {
+					if (!pos) {
+						encoder.reps[0] = opt.Backs0;
+						encoder.reps[1] = opt.Backs1;
+						encoder.reps[2] = opt.Backs2;
+						encoder.reps[3] = opt.Backs3;
+					} else if (pos == 1) {
+						encoder.reps[0] = opt.Backs1;
+						encoder.reps[1] = opt.Backs0;
+						encoder.reps[2] = opt.Backs2;
+						encoder.reps[3] = opt.Backs3;
+					} else if (pos == 2) {
+						encoder.reps[0] = opt.Backs2;
+						encoder.reps[1] = opt.Backs0;
+						encoder.reps[2] = opt.Backs1;
+						encoder.reps[3] = opt.Backs3;
+					} else {
+						encoder.reps[0] = opt.Backs3;
+						encoder.reps[1] = opt.Backs0;
+						encoder.reps[2] = opt.Backs1;
+						encoder.reps[3] = opt.Backs2;
+					}
+				} else {
+					encoder.reps[0] = pos - 4;
+					encoder.reps[1] = opt.Backs0;
+					encoder.reps[2] = opt.Backs1;
+					encoder.reps[3] = opt.Backs2;
+				}
+			}
+
+			encoder._optimum[cur].State = state;
+			encoder._optimum[cur].Backs0 = encoder.reps[0];
+			encoder._optimum[cur].Backs1 = encoder.reps[1];
+			encoder._optimum[cur].Backs2 = encoder.reps[2];
+			encoder._optimum[cur].Backs3 = encoder.reps[3];
+			curPrice = encoder._optimum[cur].Price;
+
+			currentByte = this.#GetIndexByte(-1);
+			matchByte = this.#GetIndexByte(-encoder.reps[0] - 1 - 1);
+
+			posState = position & encoder._posStateMask;
+			curAnd1Price = curPrice
+				+ this.#probPrices[encoder._isMatch[(state << 4) + posState] >>> 2]
+				+ this.#GetPrice_0(
+					this.#GetSubCoder(position, this.#GetIndexByte(-2)),
+					state >= 7,
+					matchByte,
+					currentByte,
+				);
+			nextOptimum = encoder._optimum[cur + 1];
+			nextIsChar = 0;
+
+			if (curAnd1Price < nextOptimum.Price) {
+				nextOptimum.Price = curAnd1Price;
+				nextOptimum.PosPrev = cur;
+				nextOptimum.BackPrev = -1;
+				nextOptimum.Prev1IsChar = 0;
+				nextIsChar = 1;
+			}
+			matchPrice = curPrice + this.#probPrices[
+				2_048 - encoder._isMatch[(state << 4) + posState] >>> 2
+			];
+			repMatchPrice = matchPrice + this.#probPrices[2_048 - encoder._isRep[state] >>> 2];
+
+			if (matchByte == currentByte && !(nextOptimum.PosPrev < cur && !nextOptimum.BackPrev)) {
+				shortRepPrice = repMatchPrice
+					+ (this.#probPrices[encoder._isRepG0[state] >>> 2] + this.#probPrices[
+						encoder._isRep0Long[(state << 4) + posState] >>> 2
+					]);
+
+				if (shortRepPrice <= nextOptimum.Price) {
+					nextOptimum.Price = shortRepPrice;
+					nextOptimum.PosPrev = cur;
+					nextOptimum.BackPrev = 0;
+					nextOptimum.Prev1IsChar = 0;
+					nextIsChar = 1;
+				}
+			}
+
+			numAvailableBytesFull = this.#GetNumAvailableBytes() + 1;
+			numAvailableBytesFull = 4_095 - cur < numAvailableBytesFull
+				? 4_095 - cur
+				: numAvailableBytesFull;
+
+			numAvailableBytes = numAvailableBytesFull;
+
+			if (numAvailableBytes < 2) {
+				continue;
+			}
+
+			if (numAvailableBytes > encoder._numFastBytes) {
+				numAvailableBytes = encoder._numFastBytes;
+			}
+
+			if (!nextIsChar && matchByte != currentByte) {
+				t = Math.min(numAvailableBytesFull - 1, encoder._numFastBytes);
+				lenTest2 = this.#GetMatchLen(
+					0,
+					encoder.reps[0],
+					t,
+				);
+
+				if (lenTest2 >= 2) {
+					state2 = this.StateUpdateChar(state);
+					posStateNext = position + 1 & encoder._posStateMask;
+					nextRepMatchPrice = curAnd1Price + this.#probPrices[
+						2_048 - encoder._isMatch[(state2 << 4) + posStateNext] >>> 2
+					] + this.#probPrices[2_048 - encoder._isRep[state2] >>> 2];
+					offset = cur + 1 + lenTest2;
+
+					while (lenEnd < offset) {
+						encoder._optimum[lenEnd += 1].Price = 268_435_455;
+					}
+
+					curAndLenPrice = nextRepMatchPrice + (price = this.#GetPrice(
+						encoder._repMatchLenEncoder,
 						lenTest2 - 2,
-						posStateNext
+						posStateNext,
 					),
-						price_2 + $GetPureRepPrice(
-							obj,
+						price + this.#GetPureRepPrice(
 							0,
 							state2,
-							posStateNext
-						))
-					optimum = obj._optimum[cur + offset]
+							posStateNext,
+						));
+					optimum = encoder._optimum[offset];
+
 					if (curAndLenPrice < optimum.Price) {
-						optimum.Price = curAndLenPrice
-						optimum.PosPrev = cur + lenTest + 1
-						optimum.BackPrev = 0
-						optimum.Prev1IsChar = 1
-						optimum.Prev2 = 1
-						optimum.PosPrev2 = cur
-						optimum.BackPrev2 = repIndex
+						optimum.Price = curAndLenPrice;
+						optimum.PosPrev = cur + 1;
+						optimum.BackPrev = 0;
+						optimum.Prev1IsChar = 1;
+						optimum.Prev2 = 0;
 					}
 				}
 			}
-		}
-		if (newLen > numAvailableBytes) {
-			newLen = numAvailableBytes
-			for (
-				numDistancePairs = 0;
-				newLen > obj._matchDistances[numDistancePairs];
-				numDistancePairs += 2
-			) {}
-			obj._matchDistances[numDistancePairs] = newLen
-			numDistancePairs += 2
-		}
-		if (newLen >= startLen) {
-			normalMatchPrice = matchPrice + ProbPrices[obj._isRep[state] >>> 2]
-			while (lenEnd < cur + newLen) {
-				obj._optimum[lenEnd += 1].Price = 268_435_455
-			}
-			offs = 0
-			while (startLen > obj._matchDistances[offs]) {
-				offs += 2
-			}
-			for (lenTest = startLen;; lenTest += 1) {
-				curBack = obj._matchDistances[offs + 1]
-				curAndLenPrice = normalMatchPrice
-					+ $GetPosLenPrice(obj, curBack, lenTest, posState)
-				optimum = obj._optimum[cur + lenTest]
-				if (curAndLenPrice < optimum.Price) {
-					optimum.Price = curAndLenPrice
-					optimum.PosPrev = cur
-					optimum.BackPrev = curBack + 4
-					optimum.Prev1IsChar = 0
+			startLen = 2;
+
+			for (repIndex = 0; repIndex < 4; ++repIndex) {
+				lenTest = this.#GetMatchLen(
+					-1,
+					encoder.reps[repIndex],
+					numAvailableBytes,
+				);
+
+				if (lenTest < 2) {
+					continue;
 				}
-				if (lenTest == obj._matchDistances[offs]) {
-					if (lenTest < numAvailableBytesFull) {
-						t = Math.min(
-							numAvailableBytesFull - 1 - lenTest,
-							obj._numFastBytes
-						)
-						lenTest2 = $GetMatchLen(
-							obj._matchFinder,
-							lenTest,
-							curBack,
-							t
-						)
-						if (lenTest2 >= 2) {
-							state2 = state < 7 ? 7 : 10
-							posStateNext = position + lenTest
-								& obj._posStateMask
-							curAndLenCharPrice = curAndLenPrice + ProbPrices[
-								obj
-									._isMatch[(state2 << 4) + posStateNext]
-								>>> 2
-							] + $GetPrice_0(
-								$GetSubCoder(
-									obj._literalEncoder,
+				lenTestTemp = lenTest;
+
+				do {
+					while (lenEnd < cur + lenTest) {
+						encoder._optimum[lenEnd += 1].Price = 268_435_455;
+					}
+					curAndLenPrice = repMatchPrice + (price_0 = this.#GetPrice(
+						encoder._repMatchLenEncoder,
+						lenTest - 2,
+						posState,
+					),
+						price_0 + this.#GetPureRepPrice(
+							repIndex,
+							state,
+							posState,
+						));
+					optimum = encoder._optimum[cur + lenTest];
+					if (curAndLenPrice < optimum.Price) {
+						optimum.Price = curAndLenPrice;
+						optimum.PosPrev = cur;
+						optimum.BackPrev = repIndex;
+						optimum.Prev1IsChar = 0;
+					}
+				} while ((lenTest -= 1) >= 2);
+
+				lenTest = lenTestTemp;
+
+				if (!repIndex) {
+					startLen = lenTest + 1;
+				}
+
+				if (lenTest < numAvailableBytesFull) {
+					t = Math.min(
+						numAvailableBytesFull - 1 - lenTest,
+						encoder._numFastBytes,
+					);
+					lenTest2 = this.#GetMatchLen(
+						lenTest,
+						encoder.reps[repIndex],
+						t,
+					);
+
+					if (lenTest2 >= 2) {
+						state2 = state < 7 ? 8 : 11;
+						posStateNext = position + lenTest & encoder._posStateMask;
+						curAndLenCharPrice = repMatchPrice + (price_1 = this.#GetPrice(
+							encoder._repMatchLenEncoder,
+							lenTest - 2,
+							posState,
+						),
+							price_1 + this.#GetPureRepPrice(
+								repIndex,
+								state,
+								posState,
+							))
+							+ this.#probPrices[
+								encoder._isMatch[(state2 << 4) + posStateNext] >>> 2
+							] + this.#GetPrice_0(
+								this.#GetSubCoder(
 									position + lenTest,
-									$GetIndexByte(
-										obj._matchFinder,
-										lenTest - 1 - 1
-									)
+									this.#GetIndexByte(lenTest - 1 - 1),
 								),
 								1,
-								$GetIndexByte(
-									obj._matchFinder,
-									lenTest - (curBack + 1) - 1
-								),
-								$GetIndexByte(
-									obj._matchFinder,
-									lenTest - 1
-								)
-							)
-							state2 = StateUpdateChar(state2)
-							posStateNext = position + lenTest + 1
-								& obj._posStateMask
-							nextMatchPrice = curAndLenCharPrice + ProbPrices[
-								2_048 - obj
-										._isMatch[
-											(state2 << 4) + posStateNext
-										] >>> 2
-							]
-							nextRepMatchPrice = nextMatchPrice + ProbPrices[
-								2_048 - obj._isRep[state2] >>> 2
-							]
-							offset = lenTest + 1 + lenTest2
-							while (lenEnd < cur + offset) {
-								obj._optimum[lenEnd += 1].Price = 268_435_455
-							}
-							curAndLenPrice = nextRepMatchPrice
-								+ (price_3 = $GetPrice(
-									obj._repMatchLenEncoder,
-									lenTest2 - 2,
-									posStateNext
-								),
-									price_3 + $GetPureRepPrice(
-										obj,
-										0,
-										state2,
-										posStateNext
-									))
-							optimum = obj._optimum[cur + offset]
-							if (curAndLenPrice < optimum.Price) {
-								optimum.Price = curAndLenPrice
-								optimum.PosPrev = cur + lenTest + 1
-								optimum.BackPrev = 0
-								optimum.Prev1IsChar = 1
-								optimum.Prev2 = 1
-								optimum.PosPrev2 = cur
-								optimum.BackPrev2 = curBack + 4
-							}
+								this.#GetIndexByte(lenTest - 1 - (encoder.reps[repIndex] + 1)),
+								this.#GetIndexByte(lenTest - 1),
+							);
+
+						state2 = this.StateUpdateChar(state2);
+						posStateNext = position + lenTest + 1 & encoder._posStateMask;
+						nextMatchPrice = curAndLenCharPrice + this.#probPrices[
+							2_048 - encoder._isMatch[
+									(state2 << 4) + posStateNext
+								] >>> 2
+						];
+						nextRepMatchPrice = nextMatchPrice + this.#probPrices[
+							2_048 - encoder._isRep[state2] >>> 2
+						];
+						offset = cur + 1 + lenTest + lenTest2;
+						while (lenEnd < cur + offset) {
+							encoder._optimum[lenEnd += 1].Price = 268_435_455;
+						}
+						curAndLenPrice = nextRepMatchPrice + (price_2 = this.#GetPrice(
+							encoder._repMatchLenEncoder,
+							lenTest2 - 2,
+							posStateNext,
+						),
+							price_2 + this.#GetPureRepPrice(
+								0,
+								state2,
+								posStateNext,
+							));
+						optimum = encoder._optimum[cur + offset];
+
+						if (curAndLenPrice < optimum.Price) {
+							optimum.Price = curAndLenPrice;
+							optimum.PosPrev = cur + lenTest + 1;
+							optimum.BackPrev = 0;
+							optimum.Prev1IsChar = 1;
+							optimum.Prev2 = 1;
+							optimum.PosPrev2 = cur;
+							optimum.BackPrev2 = repIndex;
 						}
 					}
-					offs += 2
-					if (offs == numDistancePairs) {
-						break
+				}
+			}
+
+			if (newLen > numAvailableBytes) {
+				newLen = numAvailableBytes;
+				for (
+					numDistancePairs = 0;
+					newLen > encoder._matchDistances[numDistancePairs];
+					numDistancePairs += 2
+				) {}
+				encoder._matchDistances[numDistancePairs] = newLen;
+				numDistancePairs += 2;
+			}
+
+			if (newLen >= startLen) {
+				normalMatchPrice = matchPrice + this.#probPrices[encoder._isRep[state] >>> 2];
+
+				while (lenEnd < cur + newLen) {
+					encoder._optimum[lenEnd += 1].Price = 268_435_455;
+				}
+				offs = 0;
+
+				while (startLen > encoder._matchDistances[offs]) {
+					offs += 2;
+				}
+
+				for (lenTest = startLen;; lenTest += 1) {
+					curBack = encoder._matchDistances[offs + 1];
+					curAndLenPrice = normalMatchPrice + this.#GetPosLenPrice(curBack, lenTest, posState);
+					optimum = encoder._optimum[cur + lenTest];
+
+					if (curAndLenPrice < optimum.Price) {
+						optimum.Price = curAndLenPrice;
+						optimum.PosPrev = cur;
+						optimum.BackPrev = curBack + 4;
+						optimum.Prev1IsChar = 0;
+					}
+
+					if (lenTest == encoder._matchDistances[offs]) {
+						if (lenTest < numAvailableBytesFull) {
+							t = Math.min(
+								numAvailableBytesFull - 1 - lenTest,
+								encoder._numFastBytes,
+							);
+							lenTest2 = this.#GetMatchLen(
+								lenTest,
+								curBack,
+								t,
+							);
+
+							if (lenTest2 >= 2) {
+								state2 = state < 7 ? 7 : 10;
+								posStateNext = position + lenTest & encoder._posStateMask;
+								curAndLenCharPrice = curAndLenPrice + this.#probPrices[
+									encoder._isMatch[(state2 << 4) + posStateNext] >>> 2
+								] + this.#GetPrice_0(
+									this.#GetSubCoder(position + lenTest, this.#GetIndexByte(lenTest - 1 - 1)),
+									1,
+									this.#GetIndexByte(lenTest - (curBack + 1) - 1),
+									this.#GetIndexByte(lenTest - 1),
+								);
+								state2 = this.StateUpdateChar(state2);
+								posStateNext = position + lenTest + 1 & encoder._posStateMask;
+								nextMatchPrice = curAndLenCharPrice + this.#probPrices[
+									2_048 - encoder._isMatch[(state2 << 4) + posStateNext]
+									>>> 2
+								];
+								nextRepMatchPrice = nextMatchPrice + this.#probPrices[
+									2_048 - encoder._isRep[state2] >>> 2
+								];
+								offset = lenTest + 1 + lenTest2;
+								while (lenEnd < cur + offset) {
+									encoder._optimum[lenEnd += 1].Price = 268_435_455;
+								}
+								curAndLenPrice = nextRepMatchPrice + (price_3 = this.#GetPrice(
+									encoder._repMatchLenEncoder,
+									lenTest2 - 2,
+									posStateNext,
+								),
+									price_3 + this.#GetPureRepPrice(
+										0,
+										state2,
+										posStateNext,
+									));
+								optimum = encoder._optimum[cur + offset];
+
+								if (curAndLenPrice < optimum.Price) {
+									optimum.Price = curAndLenPrice;
+									optimum.PosPrev = cur + lenTest + 1;
+									optimum.BackPrev = 0;
+									optimum.Prev1IsChar = 1;
+									optimum.Prev2 = 1;
+									optimum.PosPrev2 = cur;
+									optimum.BackPrev2 = curBack + 4;
+								}
+							}
+						}
+						offs += 2;
+						if (offs == numDistancePairs) {
+							break;
+						}
 					}
 				}
 			}
 		}
 	}
-}
 
-function $GetPosLenPrice(
-	obj,
-	pos: number,
-	len: number,
-	posState: number
-): number {
-	let price: number, lenToPosState = GetLenToPosState(len)
-	if (pos < 128) {
-		price = obj._distancesPrices[lenToPosState * 128 + pos]
-	} else {
-		price = obj._posSlotPrices[(lenToPosState << 6) + GetPosSlot2(pos)]
-			+ obj._alignPrices[pos & 15]
-	}
-
-	return price + $GetPrice(obj._lenEncoder, len - 2, posState)
-}
-
-function $GetPureRepPrice(
-	obj,
-	repIndex: number,
-	state: number,
-	posState: number
-): number {
-	var price
-	if (!repIndex) {
-		price = ProbPrices[obj._isRepG0[state] >>> 2]
-		price += ProbPrices[
-			2_048 - obj._isRep0Long[(state << 4) + posState] >>> 2
-		]
-	} else {
-		price = ProbPrices[2_048 - obj._isRepG0[state] >>> 2]
-		if (repIndex == 1) {
-			price += ProbPrices[obj._isRepG1[state] >>> 2]
+	#GetPosLenPrice(
+		pos: number,
+		len: number,
+		posState: number,
+	): number {
+		let price: number, lenToPosState = this.GetLenToPosState(len);
+		if (pos < 128) {
+			price = this.#compressor.chunker.encoder._distancesPrices[lenToPosState * 128 + pos];
 		} else {
-			price += ProbPrices[2_048 - obj._isRepG1[state] >>> 2]
-			price += GetPrice(obj._isRepG2[state], repIndex - 2)
+			price = this.#compressor.chunker.encoder._posSlotPrices[(lenToPosState << 6) + this.GetPosSlot2(pos)]
+				+ this.#compressor.chunker.encoder._alignPrices[pos & 15];
+		}
+
+		return price + this.#GetPrice(this.#compressor.chunker.encoder._lenEncoder, len - 2, posState);
+	}
+
+	#GetPureRepPrice(
+		repIndex: number,
+		state: number,
+		posState: number,
+	): number {
+		var price;
+
+		if (!repIndex) {
+			price = this.#probPrices[this.#compressor.chunker.encoder._isRepG0[state] >>> 2];
+			price += this.#probPrices[
+				2_048 - this.#compressor.chunker.encoder._isRep0Long[(state << 4) + posState] >>> 2
+			];
+		} else {
+			price = this.#probPrices[2_048 - this.#compressor.chunker.encoder._isRepG0[state] >>> 2];
+			if (repIndex == 1) {
+				price += this.#probPrices[this.#compressor.chunker.encoder._isRepG1[state] >>> 2];
+			} else {
+				price += this.#probPrices[2_048 - this.#compressor.chunker.encoder._isRepG1[state] >>> 2];
+				price += this.GetPrice(this.#compressor.chunker.encoder._isRepG2[state], repIndex - 2);
+			}
+		}
+
+		return price;
+	}
+
+	#GetRepLen1Price(posState: number): number {
+		const state = this.#compressor.chunker.encoder._state;
+
+		return this.#probPrices[this.#compressor.chunker.encoder._isRepG0[state] >>> 2]
+			+ this.#probPrices[this.#compressor.chunker.encoder._isRep0Long[(state << 4) + posState] >>> 2];
+	}
+
+	#Init_4(): void {
+		this.#BaseInit();
+		this.#Init_9();
+		this.InitBitModels(this.#encoder._isMatch);
+		this.InitBitModels(this.#encoder._isRep0Long);
+		this.InitBitModels(this.#encoder._isRep);
+		this.InitBitModels(this.#encoder._isRepG0);
+		this.InitBitModels(this.#encoder._isRepG1);
+		this.InitBitModels(this.#encoder._isRepG2);
+		this.InitBitModels(this.#encoder._posEncoders);
+
+		this.#Init_3();
+		for (let i = 0; i < 4; ++i) {
+			this.InitBitModels(this.#encoder._posSlotEncoder[i].Models);
+		}
+
+		this.#Init_2(this.#encoder._lenEncoder, 1 << this.#encoder._posStateBits);
+		this.#Init_2(this.#encoder._repMatchLenEncoder, 1 << this.#encoder._posStateBits);
+		this.InitBitModels(this.#encoder._posAlignEncoder.Models);
+
+		this.#encoder._longestMatchWasFound = 0;
+		this.#encoder._optimumEndIndex = 0;
+		this.#encoder._optimumCurrentIndex = 0;
+		this.#encoder._additionalOffset = 0;
+	}
+
+	#MovePos(num: number): void {
+		if (num > 0) {
+			this.#Skip(num);
+			this.#compressor.chunker.encoder._additionalOffset += num;
 		}
 	}
-	return price
-}
 
-function $GetRepLen1Price(obj, state: number, posState: number): number {
-	return ProbPrices[obj._isRepG0[state] >>> 2]
-		+ ProbPrices[obj._isRep0Long[(state << 4) + posState] >>> 2]
-}
+	#ReadMatchDistances(): number {
+		var lenRes = 0;
+		this.#compressor.chunker.encoder._numDistancePairs = this.#GetMatches();
 
-function $Init_4(obj): void {
-	$BaseInit(obj)
-	$Init_9(obj._rangeEncoder)
-	InitBitModels(obj._isMatch)
-	InitBitModels(obj._isRep0Long)
-	InitBitModels(obj._isRep)
-	InitBitModels(obj._isRepG0)
-	InitBitModels(obj._isRepG1)
-	InitBitModels(obj._isRepG2)
-	InitBitModels(obj._posEncoders)
-	$Init_3(obj._literalEncoder)
-	for (let i = 0; i < 4; ++i) {
-		InitBitModels(obj._posSlotEncoder[i].Models)
+		if (this.#compressor.chunker.encoder._numDistancePairs > 0) {
+			lenRes = this
+				.#compressor
+				.chunker
+				.encoder
+				._matchDistances[this.#compressor.chunker.encoder._numDistancePairs - 2];
+
+			if (lenRes == this.#compressor.chunker.encoder._numFastBytes) {
+				lenRes += this.#GetMatchLen(
+					lenRes - 1,
+					this
+						.#compressor
+						.chunker
+						.encoder
+						._matchDistances[this.#compressor.chunker.encoder._numDistancePairs - 1],
+					273 - lenRes,
+				);
+			}
+		}
+
+		this.#compressor.chunker.encoder._additionalOffset += 1;
+		return lenRes;
 	}
-	$Init_2(obj._lenEncoder, 1 << obj._posStateBits)
-	$Init_2(obj._repMatchLenEncoder, 1 << obj._posStateBits)
-	InitBitModels(obj._posAlignEncoder.Models)
-	obj._longestMatchWasFound = 0
-	obj._optimumEndIndex = 0
-	obj._optimumCurrentIndex = 0
-	obj._additionalOffset = 0
-}
 
-function $MovePos(obj, num: number): void {
-	if (num > 0) {
-		$Skip(obj._matchFinder, num)
-		obj._additionalOffset += num
-	}
-}
-
-function $ReadMatchDistances(obj): number {
-	var lenRes = 0
-	obj._numDistancePairs = $GetMatches(
-		obj._matchFinder,
-		obj._matchDistances
-	)
-	if (obj._numDistancePairs > 0) {
-		lenRes = obj._matchDistances[obj._numDistancePairs - 2]
-		if (lenRes == obj._numFastBytes) {
-			lenRes += $GetMatchLen(
-				obj._matchFinder,
-				lenRes - 1,
-				obj._matchDistances[obj._numDistancePairs - 1],
-				273 - lenRes
-			)
+	#ReleaseMFStream(): void {
+		if (this.#compressor.chunker.encoder._matchFinder && this.#compressor.chunker.encoder._needReleaseMFStream) {
+			this.#compressor.chunker.encoder._matchFinder._stream = null;
+			this.#compressor.chunker.encoder._needReleaseMFStream = 0;
 		}
 	}
-	obj._additionalOffset += 1
-	return lenRes
-}
 
-function $ReleaseMFStream(obj): void {
-	if (obj._matchFinder && obj._needReleaseMFStream) {
-		obj._matchFinder._stream = null
-		obj._needReleaseMFStream = 0
-	}
-}
-
-function $ReleaseStreams(obj): void {
-	$ReleaseMFStream(obj)
-	obj._rangeEncoder.Stream = null
-}
-
-function $SetDictionarySize_0(obj, dictionarySize: number): void {
-	obj._dictionarySize = dictionarySize
-	for (
-		var dicLogSize = 0;
-		dictionarySize > (1 << dicLogSize);
-		++dicLogSize
-	);
-
-	obj._distTableSize = dicLogSize * 2
-}
-
-function $SetMatchFinder(obj, matchFinderIndex: number): void {
-	var matchFinderIndexPrev = obj._matchFinderType
-	obj._matchFinderType = matchFinderIndex
-	if (obj._matchFinder && matchFinderIndexPrev != obj._matchFinderType) {
-		obj._dictionarySizePrev = -1
-		obj._matchFinder = null
-	}
-}
-
-function writeHeaderProperties(obj, outStream): void {
-	/** LC, LP, PB 2-bytes */
-	obj.properties[0] =
-		(obj._posStateBits * 5 + obj._numLiteralPosStateBits) * 9
-		+ ((obj._numLiteralContextBits << 24) >> 24)
-
-	/** Dictionary size 4-bytes */
-	for (let i = 0; i < 4; ++i) {
-		obj.properties[1 + i] = obj._dictionarySize >> (8 * ((i << 24) >> 24))
+	#ReleaseStreams(): void {
+		this.#ReleaseMFStream();
+		this.#compressor.chunker.encoder._rangeEncoder.Stream = null;
 	}
 
-	$write_0(
-		outStream,
-		obj.properties,
-		0,
-		5
-	)
-}
+	#SetDictionarySize_0(dictionarySize: number): void {
+		this.#encoder._dictionarySize = dictionarySize;
+		for (
+			var dicLogSize = 0;
+			dictionarySize > (1 << dicLogSize);
+			++dicLogSize
+		);
 
-function $WriteEndMarker(obj, posState: number): void {
-	$Encode_3(
-		obj._rangeEncoder,
-		obj._isMatch,
-		(obj._state << 4) + posState,
-		1
-	)
-	$Encode_3(
-		obj._rangeEncoder,
-		obj._isRep,
-		obj._state,
-		0
-	)
-	obj._state = obj._state < 7 ? 7 : 10
-	$Encode_0(obj._lenEncoder, obj._rangeEncoder, 0, posState)
-	var lenToPosState = GetLenToPosState(2)
-	$Encode_2(
-		obj._posSlotEncoder[lenToPosState],
-		obj._rangeEncoder,
-		63
-	)
-	$EncodeDirectBits(obj._rangeEncoder, 67108863, 26)
-	$ReverseEncode(obj._posAlignEncoder, obj._rangeEncoder, 15)
-}
-
-function GetPosSlot(pos): number {
-	if (pos < 2_048) {
-		return g_FastPos[pos]
-	}
-	if (pos < 2097152) {
-		return g_FastPos[pos >> 10] + 20
+		this.#encoder._distTableSize = dicLogSize * 2;
 	}
 
-	return g_FastPos[pos >> 20] + 40
-}
+	#SetMatchFinder(matchFinderIndex: number): void {
+		const matchFinderIndexPrev = this.#encoder._matchFinderType;
+		this.#encoder._matchFinderType = matchFinderIndex;
 
-function GetPosSlot2(pos): number {
-	if (pos < 131072) {
-		return g_FastPos[pos >> 6] + 12
+		if (this.#encoder._matchFinder && matchFinderIndexPrev != this.#encoder._matchFinderType) {
+			this.#encoder._dictionarySizePrev = -1;
+			this.#encoder._matchFinder = null;
+		}
 	}
-	if (pos < 134217728) {
-		return g_FastPos[pos >> 16] + 32
+
+	writeHeaderProperties(): void {
+		const HEADER_SIZE = 5; // Total header size in bytes
+
+		// First byte combines posStateBits, literalPosStateBits and literalContextBits
+		// Format: (posStateBits * 5 + literalPosStateBits) * 9 + literalContextBits
+		this.#encoder.properties[0] = (
+			(this.#encoder._posStateBits * 5 + this.#encoder._numLiteralPosStateBits) * 9
+			+ this.#encoder._numLiteralContextBits
+		) & 0xFF; // Ensure byte-sized value
+
+		// Next 4 bytes store dictionary size in little-endian format
+		for (let byteIndex = 0; byteIndex < 4; byteIndex++) {
+			// Shift dictionary size right by appropriate number of bits and mask to byte
+			this.#encoder.properties[1 + byteIndex] = (
+				this.#encoder._dictionarySize >> (8 * byteIndex)
+			) & 0xFF;
+		}
+
+		// Write the 5-byte header to output
+		this.#write_0(
+			this.#compressor.output,
+			this.#encoder.properties,
+			0, // Starting from index 0
+			HEADER_SIZE,
+		);
 	}
 
-	return g_FastPos[pos >> 26] + 52
-}
+	#WriteEndMarker(positionState: number): void {
+		const encoder = this.#compressor.chunker.encoder;
 
-function $Encode(obj, rangeEncoder, symbol: number, posState: number): void {
-	if (symbol < 8) {
-		$Encode_3(rangeEncoder, obj._choice, 0, 0)
-		$Encode_2(obj._lowCoder[posState], rangeEncoder, symbol)
-	} else {
-		symbol -= 8
-		$Encode_3(rangeEncoder, obj._choice, 0, 1)
+		this.#Encode_3(
+			encoder._isMatch,
+			(encoder._state << 4) + positionState,
+			1,
+		);
+
+		this.#Encode_3(
+			encoder._isRep,
+			encoder._state,
+			0,
+		);
+
+		encoder._state = encoder._state < 7 ? 7 : 10;
+		this.#Encode_0(encoder._lenEncoder, 0, positionState);
+		var lenToPosState = this.GetLenToPosState(2);
+
+		this.#Encode_2(
+			encoder._posSlotEncoder[lenToPosState],
+			63,
+		);
+
+		this.#EncodeDirectBits(67108863, 26);
+		this.#ReverseEncode(15);
+	}
+
+	GetPosSlot(pos: number): number {
+		if (pos < 2_048) {
+			return this.#gFastPos[pos];
+		}
+
+		if (pos < 2097152) {
+			return this.#gFastPos[pos >> 10] + 20;
+		}
+
+		return this.#gFastPos[pos >> 20] + 40;
+	}
+
+	GetPosSlot2(pos: number): number {
+		if (pos < 131072) {
+			return this.#gFastPos[pos >> 6] + 12;
+		}
+
+		if (pos < 134217728) {
+			return this.#gFastPos[pos >> 16] + 32;
+		}
+
+		return this.#gFastPos[pos >> 26] + 52;
+	}
+
+	#Encode(
+		obj: any,
+		symbol: number,
+		posState: number,
+	): void {
 		if (symbol < 8) {
-			$Encode_3(rangeEncoder, obj._choice, 1, 0)
-			$Encode_2(obj._midCoder[posState], rangeEncoder, symbol)
+			this.#Encode_3(obj._choice, 0, 0);
+			this.#Encode_2(obj._lowCoder[posState], symbol);
 		} else {
-			$Encode_3(rangeEncoder, obj._choice, 1, 1)
-			$Encode_2(obj._highCoder, rangeEncoder, symbol - 8)
+			symbol -= 8;
+			this.#Encode_3(obj._choice, 0, 1);
+
+			if (symbol < 8) {
+				this.#Encode_3(obj._choice, 1, 0);
+				this.#Encode_2(obj._midCoder[posState], symbol);
+			} else {
+				this.#Encode_3(obj._choice, 1, 1);
+				this.#Encode_2(obj._highCoder, symbol - 8);
+			}
 		}
 	}
-}
 
-function $Encoder$LenEncoder(obj) {
-	obj._choice = initArr(2)
-	obj._lowCoder = initArr(16)
-	obj._midCoder = initArr(16)
-	obj._highCoder = bitTreeEncoder({}, 8)
-	for (let posState = 0; posState < 16; ++posState) {
-		obj._lowCoder[posState] = bitTreeEncoder({}, 3)
-		obj._midCoder[posState] = bitTreeEncoder({}, 3)
-	}
+	#createLenEncoder(): LenEncoder {
+		const encoder = {} as LenEncoder;
 
-	return obj
-}
+		encoder._choice = this.#initArray(2);
+		encoder._lowCoder = this.#initArray(16);
+		encoder._midCoder = this.#initArray(16);
+		encoder._highCoder = this.#createBitTreeEncoder(8);
 
-function $Init_2(obj, numPosStates: number): void {
-	InitBitModels(obj._choice)
-	for (let posState = 0; posState < numPosStates; ++posState) {
-		InitBitModels(obj._lowCoder[posState].Models)
-		InitBitModels(obj._midCoder[posState].Models)
-	}
-	InitBitModels(obj._highCoder.Models)
-}
-
-function $SetPrices(
-	obj,
-	posState: number,
-	numSymbols: number,
-	prices: number[],
-	st: number
-): void {
-	var a0, a1, b0, b1, i
-	a0 = ProbPrices[obj._choice[0] >>> 2]
-	a1 = ProbPrices[2_048 - obj._choice[0] >>> 2]
-	b0 = a1 + ProbPrices[obj._choice[1] >>> 2]
-	b1 = a1 + ProbPrices[2_048 - obj._choice[1] >>> 2]
-	i = 0
-	for (i = 0; i < 8; ++i) {
-		if (i >= numSymbols) {
-			return
+		for (let posState = 0; posState < 16; ++posState) {
+			encoder._lowCoder[posState] = this.#createBitTreeEncoder(3);
+			encoder._midCoder[posState] = this.#createBitTreeEncoder(3);
 		}
-		prices[st + i] = a0 + $GetPrice_1(obj._lowCoder[posState], i)
+
+		return encoder;
 	}
-	for (; i < 16; ++i) {
-		if (i >= numSymbols) {
-			return
+
+	#Init_2(obj: any, numPosStates: number): void {
+		this.InitBitModels(obj._choice);
+		for (let posState = 0; posState < numPosStates; ++posState) {
+			this.InitBitModels(obj._lowCoder[posState].Models);
+			this.InitBitModels(obj._midCoder[posState].Models);
 		}
-		prices[st + i] = b0 + $GetPrice_1(obj._midCoder[posState], i - 8)
+		this.InitBitModels(obj._highCoder.Models);
 	}
-	for (; i < numSymbols; ++i) {
-		prices[st + i] = b1 + $GetPrice_1(obj._highCoder, i - 8 - 8)
-	}
-}
 
-function $Encode_0(obj, rangeEncoder, symbol: number, posState: number): void {
-	$Encode(obj, rangeEncoder, symbol, posState)
-	if ((obj._counters[posState] -= 1) == 0) {
-		$SetPrices(
-			obj,
-			posState,
-			obj._tableSize,
-			obj._prices,
-			posState * 272
-		)
-		obj._counters[posState] = obj._tableSize
-	}
-}
+	#SetPrices(
+		obj: any,
+		posState: number,
+		numSymbols: number,
+		prices: number[],
+		st: number,
+	): void {
+		let a0, a1, b0, b1, i;
+		a0 = this.#probPrices[obj._choice[0] >>> 2];
+		a1 = this.#probPrices[2_048 - obj._choice[0] >>> 2];
+		b0 = a1 + this.#probPrices[obj._choice[1] >>> 2];
+		b1 = a1 + this.#probPrices[2_048 - obj._choice[1] >>> 2];
+		i = 0;
 
-function $Encoder$LenPriceTableEncoder(obj) {
-	$Encoder$LenEncoder(obj)
-	obj._prices = []
-	obj._counters = []
-
-	return obj
-}
-
-function $GetPrice(obj, symbol: number, posState: number): number {
-	return obj._prices[posState * 272 + symbol]
-}
-
-function $UpdateTables(obj, numPosStates: number): void {
-	for (let posState = 0; posState < numPosStates; ++posState) {
-		$SetPrices(
-			obj,
-			posState,
-			obj._tableSize,
-			obj._prices,
-			posState * 272
-		)
-		obj._counters[posState] = obj._tableSize
-	}
-}
-
-function $Create_1(obj, numPosBits: number, numPrevBits: number): void {
-	var i, numStates
-	if (
-		obj.m_Coders != null
-		&& obj.m_NumPrevBits == numPrevBits
-		&& obj.m_NumPosBits == numPosBits
-	) {
-		return
-	}
-	obj.m_NumPosBits = numPosBits
-	obj.m_PosMask = (1 << numPosBits) - 1
-	obj.m_NumPrevBits = numPrevBits
-	numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits
-	obj.m_Coders = initArr(numStates)
-	for (i = 0; i < numStates; ++i) {
-		obj.m_Coders[i] = $Encoder$LiteralEncoder$Encoder2({})
-	}
-}
-
-function $GetSubCoder(obj, pos: number, prevByte: number): number {
-	return obj
-		.m_Coders[
-			((pos & obj.m_PosMask) << obj.m_NumPrevBits)
-			+ ((prevByte & 255) >>> 8 - obj.m_NumPrevBits)
-		]
-}
-
-function $Init_3(obj): void {
-	var i, numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits
-	for (i = 0; i < numStates; ++i) {
-		InitBitModels(obj.m_Coders[i].m_Encoders)
-	}
-}
-
-function $Encode_1(obj, rangeEncoder, symbol: number): void {
-	var bit, context = 1
-	for (let i = 7; i >= 0; --i) {
-		bit = symbol >> i & 1
-		$Encode_3(rangeEncoder, obj.m_Encoders, context, bit)
-		context = context << 1 | bit
-	}
-}
-
-function $EncodeMatched(
-	obj,
-	rangeEncoder,
-	matchByte,
-	symbol
-): void {
-	var bit, matchBit, state, same = true, context = 1
-	for (let i = 7; i >= 0; --i) {
-		bit = symbol >> i & 1
-		state = context
-		if (same) {
-			matchBit = matchByte >> i & 1
-			state += 1 + matchBit << 8
-			same = matchBit === bit
+		for (i = 0; i < 8; ++i) {
+			if (i >= numSymbols) {
+				return;
+			}
+			prices[st + i] = a0 + this.#GetPrice_1(obj._lowCoder[posState], i);
 		}
-		$Encode_3(rangeEncoder, obj.m_Encoders, state, bit)
-		context = context << 1 | bit
+
+		for (; i < 16; ++i) {
+			if (i >= numSymbols) {
+				return;
+			}
+			prices[st + i] = b0 + this.#GetPrice_1(obj._midCoder[posState], i - 8);
+		}
+
+		for (; i < numSymbols; ++i) {
+			prices[st + i] = b1 + this.#GetPrice_1(obj._highCoder, i - 8 - 8);
+		}
 	}
-}
 
-function $Encoder$LiteralEncoder$Encoder2(obj) {
-	obj.m_Encoders = initArr(768)
-	return obj
-}
+	#Encode_0(
+		obj: any,
+		symbol: number,
+		posState: number,
+	): void {
+		this.#Encode(obj, symbol, posState);
 
-function $GetPrice_0(obj, matchMode, matchByte, symbol): number {
-	var bit, context = 1, i = 7, matchBit, price = 0
-	if (matchMode) {
+		if ((obj._counters[posState] -= 1) == 0) {
+			this.#SetPrices(
+				obj,
+				posState,
+				obj._tableSize,
+				obj._prices,
+				posState * 272,
+			);
+
+			obj._counters[posState] = obj._tableSize;
+		}
+	}
+
+	#createLenPriceTableEncoder(): LenEncoder {
+		const encoder = this.#createLenEncoder();
+		encoder._prices = [];
+		encoder._counters = [];
+
+		return encoder;
+	}
+
+	#GetPrice(
+		obj: any,
+		symbol: number,
+		posState: number,
+	): number {
+		return obj._prices[posState * 272 + symbol];
+	}
+
+	#UpdateTables(
+		obj: any,
+		numPosStates: number,
+	): void {
+		for (let posState = 0; posState < numPosStates; ++posState) {
+			this.#SetPrices(
+				obj,
+				posState,
+				obj._tableSize,
+				obj._prices,
+				posState * 272,
+			);
+
+			obj._counters[posState] = obj._tableSize;
+		}
+	}
+
+	#Create_1(): void {
+		let i, numStates;
+
+		if (
+			this.#encoder._literalEncoder.m_Coders != null
+			&& this.#encoder._literalEncoder.m_NumPrevBits == this.#encoder._numLiteralContextBits
+			&& this.#encoder._literalEncoder.m_NumPosBits == this.#encoder._numLiteralPosStateBits
+		) {
+			return;
+		}
+
+		this.#encoder._literalEncoder.m_NumPosBits = this.#encoder._numLiteralPosStateBits;
+		this.#encoder._literalEncoder.m_PosMask = (1 << this.#encoder._numLiteralPosStateBits) - 1;
+		this.#encoder._literalEncoder.m_NumPrevBits = this.#encoder._numLiteralContextBits;
+
+		numStates = 1 << this.#encoder._literalEncoder.m_NumPrevBits + this.#encoder._literalEncoder.m_NumPosBits;
+		this.#encoder._literalEncoder.m_Coders = this.#initArray(numStates);
+
+		for (i = 0; i < numStates; ++i) {
+			this.#encoder._literalEncoder.m_Coders[i] = this.#createLiteralEncoderEncoder2({});
+		}
+	}
+
+	#GetSubCoder(pos: number, prevByte: number): number {
+		const literalEncoder = this.#compressor.chunker.encoder._literalEncoder;
+
+		// Calculate position mask bits
+		const posBits = pos & literalEncoder.m_PosMask;
+		const posShifted = posBits << literalEncoder.m_NumPrevBits;
+
+		// Calculate previous byte bits
+		const prevByteShift = 8 - literalEncoder.m_NumPrevBits;
+		const prevByteBits = (prevByte & 255) >>> prevByteShift;
+
+		// Combine position and prevByte bits to get final index
+		const coderIndex = posShifted + prevByteBits;
+
+		return literalEncoder.m_Coders[coderIndex];
+	}
+
+	#Init_3(): void {
+		const totalStates = 1
+			<< this.#encoder._literalEncoder.m_NumPrevBits + this.#encoder._literalEncoder.m_NumPosBits;
+
+		for (let i = 0; i < totalStates; ++i) {
+			this.InitBitModels(this.#encoder._literalEncoder.m_Coders[i].m_Encoders);
+		}
+	}
+
+	#Encode_1(
+		obj: any,
+		symbol: number,
+	): void {
+		var bit, context = 1;
+
+		for (let i = 7; i >= 0; --i) {
+			bit = symbol >> i & 1;
+			this.#Encode_3(obj.m_Encoders, context, bit);
+			context = context << 1 | bit;
+		}
+	}
+
+	#EncodeMatched(
+		obj: any,
+		matchByte: number,
+		symbol: number,
+	): void {
+		let bit, matchBit, state, same = true, context = 1;
+
+		for (let i = 7; i >= 0; --i) {
+			bit = symbol >> i & 1;
+			state = context;
+
+			if (same) {
+				matchBit = matchByte >> i & 1;
+				state += 1 + matchBit << 8;
+				same = matchBit === bit;
+			}
+
+			this.#Encode_3(obj.m_Encoders, state, bit);
+			context = context << 1 | bit;
+		}
+	}
+
+	#createLiteralEncoderEncoder2(obj: any): LiteralDecoderEncoder2 {
+		obj.m_Encoders = this.#initArray(768);
+		return obj;
+	}
+
+	#GetPrice_0(obj: any, matchMode: boolean, matchByte: number, symbol: number): number {
+		let bit, context = 1, i = 7, matchBit, price = 0;
+
+		if (matchMode) {
+			for (; i >= 0; --i) {
+				matchBit = matchByte >> i & 1;
+				bit = symbol >> i & 1;
+				price += this.GetPrice(
+					obj.m_Encoders[(1 + matchBit << 8) + context],
+					bit,
+				);
+				context = context << 1 | bit;
+
+				if (matchBit != bit) {
+					--i;
+					break;
+				}
+			}
+		}
 		for (; i >= 0; --i) {
-			matchBit = matchByte >> i & 1
-			bit = symbol >> i & 1
-			price += GetPrice(
-				obj.m_Encoders[(1 + matchBit << 8) + context],
-				bit
-			)
-			context = context << 1 | bit
-			if (matchBit != bit) {
-				;--i
-				break
-			}
+			bit = symbol >> i & 1;
+			price += this.GetPrice(obj.m_Encoders[context], bit);
+			context = context << 1 | bit;
+		}
+		return price;
+	}
+
+	#MakeAsChar(obj: any): void {
+		obj.BackPrev = -1;
+		obj.Prev1IsChar = 0;
+	}
+
+	#MakeAsShortRep(obj: any): void {
+		obj.BackPrev = 0;
+		obj.Prev1IsChar = 0;
+	}
+
+	#createBitTreeDecoder(numBitLevels: number): BitTreeDecoder {
+		return {
+			NumBitLevels: numBitLevels,
+			Models: this.#initArray(1 << numBitLevels),
+		};
+	}
+
+	// BitTreeDecoder.Decoder
+	#Decode_0(rangeDecoder: any): number {
+		const _rangeDecoder = this.#decompressor.chunker.decoder.m_RangeDecoder;
+
+		let bitIndex, m = 1;
+
+		for (bitIndex = rangeDecoder.NumBitLevels; bitIndex != 0; bitIndex -= 1) {
+			m = (m << 1) + this.#decodeBit(rangeDecoder.Models, m);
+		}
+
+		return m - (1 << rangeDecoder.NumBitLevels);
+	}
+
+	#ReverseDecode(): number {
+		const positionAlignmentDecoder = this.#decompressor.chunker.decoder.m_PosAlignDecoder;
+
+		let symbol = 0;
+		for (
+			let m = 1, bitIndex = 0, bit: number;
+			bitIndex < positionAlignmentDecoder.NumBitLevels;
+			++bitIndex
+		) {
+			bit = this.#decodeBit(positionAlignmentDecoder.Models, m);
+			m <<= 1;
+			m += bit;
+			symbol |= bit << bitIndex;
+		}
+
+		return symbol;
+	}
+
+	reverseDecode(
+		Models: number[],
+		startIndex: number,
+		NumBitLevels: number,
+	): number {
+		const rangeDecoder = this.#decompressor.chunker.decoder.m_RangeDecoder;
+		let symbol = 0;
+
+		for (
+			let bitIndex = 0, m = 1, bit: number;
+			bitIndex < NumBitLevels;
+			++bitIndex
+		) {
+			bit = this.#decodeBit(Models, startIndex + m);
+			m <<= 1;
+			m += bit;
+			symbol |= bit << bitIndex;
+		}
+
+		return symbol;
+	}
+
+	#createBitTreeEncoder(numBitLevels: number): BitTreeEncoder {
+		return {
+			NumBitLevels: numBitLevels,
+			Models: this.#initArray(1 << numBitLevels),
+		};
+	}
+
+	#Encode_2(
+		obj: any,
+		symbol: number,
+	): void {
+		var bit, bitIndex, m = 1;
+		for (bitIndex = obj.NumBitLevels; bitIndex != 0;) {
+			bitIndex -= 1;
+			bit = symbol >>> bitIndex & 1;
+			this.#Encode_3(obj.Models, m, bit);
+			m = m << 1 | bit;
 		}
 	}
-	for (; i >= 0; --i) {
-		bit = symbol >> i & 1
-		price += GetPrice(obj.m_Encoders[context], bit)
-		context = context << 1 | bit
-	}
-	return price
-}
 
-function $MakeAsChar(obj): void {
-	obj.BackPrev = -1
-	obj.Prev1IsChar = 0
-}
-
-function $MakeAsShortRep(obj): void {
-	obj.BackPrev = 0
-	obj.Prev1IsChar = 0
-}
-
-function $BitTreeDecoder(obj, numBitLevels) {
-	obj.NumBitLevels = numBitLevels
-	obj.Models = initArr(1 << numBitLevels)
-	return obj
-}
-
-function $Decode_0(obj, rangeDecoder): number {
-	var bitIndex, m = 1
-	for (bitIndex = obj.NumBitLevels; bitIndex != 0; bitIndex -= 1) {
-		m = (m << 1) + decodeBit(rangeDecoder, obj.Models, m)
-	}
-	return m - (1 << obj.NumBitLevels)
-}
-
-function $ReverseDecode(obj, rangeDecoder): number {
-	let symbol = 0
-	for (
-		let m = 1, bitIndex = 0, bit: number;
-		bitIndex < obj.NumBitLevels;
-		++bitIndex
-	) {
-		bit = decodeBit(rangeDecoder, obj.Models, m)
-		m <<= 1
-		m += bit
-		symbol |= bit << bitIndex
-	}
-	return symbol
-}
-
-function reverseDecode(
-	Models,
-	startIndex: number,
-	rangeDecoder,
-	NumBitLevels: number
-): number {
-	let symbol = 0
-	for (
-		let bitIndex = 0, m = 1, bit: number;
-		bitIndex < NumBitLevels;
-		++bitIndex
-	) {
-		bit = decodeBit(rangeDecoder, Models, startIndex + m)
-		m <<= 1
-		m += bit
-		symbol |= bit << bitIndex
-	}
-	return symbol
-}
-function bitTreeEncoder(obj, numBitLevels: number) {
-	obj.NumBitLevels = numBitLevels
-	obj.Models = initArr(1 << numBitLevels)
-	return obj
-}
-
-function $Encode_2(obj, rangeEncoder, symbol): void {
-	var bit, bitIndex, m = 1
-	for (bitIndex = obj.NumBitLevels; bitIndex != 0;) {
-		bitIndex -= 1
-		bit = symbol >>> bitIndex & 1
-		$Encode_3(rangeEncoder, obj.Models, m, bit)
-		m = m << 1 | bit
-	}
-}
-
-function $GetPrice_1(obj, symbol): number {
-	var bit, bitIndex, m = 1, price = 0
-	for (bitIndex = obj.NumBitLevels; bitIndex != 0;) {
-		bitIndex -= 1
-		bit = symbol >>> bitIndex & 1
-		price += GetPrice(obj.Models[m], bit)
-		m = (m << 1) + bit
-	}
-	return price
-}
-
-function $ReverseEncode(obj, rangeEncoder, symbol: number): void {
-	var bit, m = 1
-	for (let i = 0; i < obj.NumBitLevels; ++i) {
-		bit = symbol & 1
-		$Encode_3(rangeEncoder, obj.Models, m, bit)
-		m = m << 1 | bit
-		symbol >>= 1
-	}
-}
-
-function $ReverseGetPrice(obj, symbol: number): number {
-	var bit, m = 1, price = 0
-	for (let i = obj.NumBitLevels; i != 0; i -= 1) {
-		bit = symbol & 1
-		symbol >>>= 1
-		price += GetPrice(obj.Models[m], bit)
-		m = m << 1 | bit
-	}
-	return price
-}
-
-function ReverseEncode(
-	Models,
-	startIndex,
-	rangeEncoder,
-	NumBitLevels,
-	symbol
-): void {
-	var bit, m = 1
-	for (let i = 0; i < NumBitLevels; ++i) {
-		bit = symbol & 1
-		$Encode_3(rangeEncoder, Models, startIndex + m, bit)
-		m = m << 1 | bit
-		symbol >>= 1
-	}
-}
-
-function ReverseGetPrice(Models, startIndex, NumBitLevels, symbol): number {
-	var bit, m = 1, price = 0
-	for (let i = NumBitLevels; i != 0; i -= 1) {
-		bit = symbol & 1
-		symbol >>>= 1
-		price +=
-			ProbPrices[((Models[startIndex + m] - bit ^ -bit) & 2047) >>> 2]
-		m = m << 1 | bit
-	}
-	return price
-}
-function decodeBit(obj, probs: number[], index: number): 0 | 1 {
-	var newBound, prob = probs[index]
-	newBound = (obj.Range >>> 11) * prob
-	if ((obj.Code ^ MIN_INT32) < (newBound ^ MIN_INT32)) {
-		obj.Range = newBound
-		probs[index] = prob + (2_048 - prob >>> 5) << 16 >> 16
-		if (!(obj.Range & -16777216)) {
-			obj.Code = obj.Code << 8 | $read(obj.Stream)
-			obj.Range <<= 8
+	#GetPrice_1(obj: any, symbol: number): number {
+		var bit, bitIndex, m = 1, price = 0;
+		for (bitIndex = obj.NumBitLevels; bitIndex != 0;) {
+			bitIndex -= 1;
+			bit = symbol >>> bitIndex & 1;
+			price += this.GetPrice(obj.Models[m], bit);
+			m = (m << 1) + bit;
 		}
-		return 0
-	} else {
-		obj.Range -= newBound
-		obj.Code -= newBound
-		probs[index] = prob - (prob >>> 5) << 16 >> 16
-		if (!(obj.Range & -16777216)) {
-			obj.Code = obj.Code << 8 | $read(obj.Stream)
-			obj.Range <<= 8
-		}
-		return 1
+		return price;
 	}
-}
 
-function $DecodeDirectBits(obj, numTotalBits: number): number {
-	let result = 0
-	for (let i = numTotalBits; i != 0; i -= 1) {
-		obj.Range >>>= 1
-		let t = obj.Code - obj.Range >>> 31
-		obj.Code -= obj.Range & t - 1
-		result = result << 1 | 1 - t
-		if (!(obj.Range & -16777216)) {
-			obj.Code = obj.Code << 8 | $read(obj.Stream)
-			obj.Range <<= 8
+	#ReverseEncode(symbol: number): void {
+		const posAlignEncoder = this.#compressor.chunker.encoder._posAlignEncoder;
+
+		var bit, m = 1;
+		for (let i = 0; i < posAlignEncoder.NumBitLevels; ++i) {
+			bit = symbol & 1;
+			this.#Encode_3(posAlignEncoder.Models, m, bit);
+			m = m << 1 | bit;
+			symbol >>= 1;
 		}
 	}
-	return result
-}
 
-function $Init_8(obj): void {
-	obj.Code = 0
-	obj.Range = -1
-	for (let i = 0; i < 5; ++i) {
-		obj.Code = obj.Code << 8 | $read(obj.Stream)
-	}
-}
+	ReverseEncode(
+		startIndex: number,
+		NumBitLevels: number,
+		symbol: number,
+	): void {
+		let bit, m = 1;
 
-function InitBitModels(probs): void {
-	for (let i = probs.length - 1; i >= 0; --i) {
-		probs[i] = 1024
-	}
-}
-
-const ProbPrices = function(): number[] {
-	var end, i, j, start, ProbPrices = []
-	for (i = 8; i >= 0; --i) {
-		start = 1
-		start <<= 9 - i - 1
-		end = 1
-		end <<= 9 - i
-		for (j = start; j < end; ++j) {
-			ProbPrices[j] = (i << 6) + (end - j << 6 >>> 9 - i - 1)
+		for (let i = 0; i < NumBitLevels; ++i) {
+			bit = symbol & 1;
+			this.#Encode_3(this.#compressor.chunker.encoder._posEncoders, startIndex + m, bit);
+			m = m << 1 | bit;
+			symbol >>= 1;
 		}
 	}
-	return ProbPrices
-}()
 
-function $Encode_3(obj, probs, index: number, symbol: number): void {
-	var newBound, prob = probs[index]
-	newBound = (obj.Range >>> 11) * prob
-	if (!symbol) {
-		obj.Range = newBound
-		probs[index] = prob + (2_048 - prob >>> 5) << 16 >> 16
-	} else {
-		obj.Low = add(
-			obj.Low,
-			and(fromInt(newBound), [4294967295, 0])
-		)
-		obj.Range -= newBound
-		probs[index] = prob - (prob >>> 5) << 16 >> 16
-	}
-	if (!(obj.Range & -16777216)) {
-		obj.Range <<= 8
-		$ShiftLow(obj)
-	}
-}
+	#ReverseGetPrice(
+		obj: any,
+		symbol: number,
+	): number {
+		let bit, m = 1, price = 0;
 
-function $EncodeDirectBits(obj, v: number, numTotalBits: number): void {
-	for (let i = numTotalBits - 1; i >= 0; i -= 1) {
-		obj.Range >>>= 1
-		if ((v >>> i & 1) == 1) {
-			obj.Low = add(obj.Low, fromInt(obj.Range))
+		for (let i = obj.NumBitLevels; i != 0; i -= 1) {
+			bit = symbol & 1;
+			symbol >>>= 1;
+			price += this.GetPrice(obj.Models[m], bit);
+			m = m << 1 | bit;
 		}
-		if (!(obj.Range & -16777216)) {
-			obj.Range <<= 8
-			$ShiftLow(obj)
+
+		return price;
+	}
+
+	ReverseGetPrice(
+		Models: number[],
+		startIndex: number,
+		NumBitLevels: number,
+		symbol: number,
+	): number {
+		var bit, m = 1, price = 0;
+		for (let i = NumBitLevels; i != 0; i -= 1) {
+			bit = symbol & 1;
+			symbol >>>= 1;
+			price += this.#probPrices[((Models[startIndex + m] - bit ^ -bit) & 2047) >>> 2];
+			m = m << 1 | bit;
 		}
+
+		return price;
 	}
-}
 
-function $GetProcessedSizeAdd(obj): [number, number] {
-	return add(add(fromInt(obj._cacheSize), obj._position), [4, 0])
-}
+	#decodeBit(
+		probs: number[],
+		index: number,
+	): 0 | 1 {
+		const rangeDecoder = this.#decompressor.chunker.decoder.m_RangeDecoder;
 
-function $Init_9(obj): void {
-	obj._position = P0_longLit
-	obj.Low = P0_longLit
-	obj.Range = -1
-	obj._cacheSize = 1
-	obj._cache = 0
-}
+		let newBound, prob = probs[index];
+		newBound = (rangeDecoder.Range >>> 11) * prob;
 
-function $ShiftLow(obj): void {
-	const LowHi = lowBits_0(shru(obj.Low, 32))
-	if (LowHi != 0 || compare(obj.Low, [4278190080, 0]) < 0) {
-		obj._position = add(
-			obj._position,
-			fromInt(obj._cacheSize)
-		)
-		let temp = obj._cache
-		do {
-			$write(obj.Stream, temp + LowHi)
-			temp = 255
-		} while ((obj._cacheSize -= 1) != 0)
-		obj._cache = lowBits_0(obj.Low) >>> 24
-	}
-	obj._cacheSize += 1
-	obj.Low = shl(and(obj.Low, [16777215, 0]), 8)
-}
+		if ((rangeDecoder.Code ^ this.#MIN_INT32) < (newBound ^ this.#MIN_INT32)) {
+			rangeDecoder.Range = newBound;
+			probs[index] = prob + (2_048 - prob >>> 5) << 16 >> 16;
+			if (!(rangeDecoder.Range & -16777216)) {
+				rangeDecoder.Code = rangeDecoder.Code << 8 | this.#read(rangeDecoder.Stream);
+				rangeDecoder.Range <<= 8;
+			}
 
-function GetPrice(Prob, symbol: number): number {
-	return ProbPrices[
-		((Prob - symbol ^ -symbol) & 2047) >>> 2
-	]
-}
-
-function decode(utf: number[]): string | number[] {
-	let j = 0, x, y, z, l = utf.length, buf = [], charCodes = []
-	for (let i = 0; i < l; ++i, ++j) {
-		x = utf[i] & 255
-		if (!(x & 128)) {
-			if (!x) {
-				// It appears that this is binary data, so it cannot be
-				// converted to a string, so just send it back.
-				return utf
-			}
-			charCodes[j] = x
-		} else if ((x & 224) == 192) {
-			if (i + 1 >= l) {
-				// It appears that this is binary data, so it cannot be
-				// converted to a string, so just send it back.
-				return utf
-			}
-			y = utf[++i] & 255
-			if ((y & 192) != 128) {
-				// It appears that this is binary data, so it cannot be
-				// converted to a string, so just send it back.
-				return utf
-			}
-			charCodes[j] = ((x & 31) << 6) | (y & 63)
-		} else if ((x & 240) == 224) {
-			if (i + 2 >= l) {
-				// It appears that this is binary data, so it cannot be
-				// converted to a string, so just send it back.
-				return utf
-			}
-			y = utf[++i] & 255
-			if ((y & 192) != 128) {
-				// It appears that this is binary data, so it cannot be
-				// converted to a string, so just send it back.
-				return utf
-			}
-			z = utf[++i] & 255
-			if ((z & 192) != 128) {
-				// It appears that this is binary data, so it cannot be
-				// converted to a string, so just send it back.
-				return utf
-			}
-			charCodes[j] = ((x & 15) << 12) | ((y & 63) << 6) | (z & 63)
+			return 0;
 		} else {
-			// It appears that this is binary data, so it cannot be converted to
-			// a string, so just send it back.
-			return utf
+			rangeDecoder.Range -= newBound;
+			rangeDecoder.Code -= newBound;
+			probs[index] = prob - (prob >>> 5) << 16 >> 16;
+			if (!(rangeDecoder.Range & -16777216)) {
+				rangeDecoder.Code = rangeDecoder.Code << 8 | this.#read(rangeDecoder.Stream);
+				rangeDecoder.Range <<= 8;
+			}
+
+			return 1;
 		}
-		if (j == 16383) {
-			buf.push(String.fromCharCode.apply(String, charCodes))
-			j = -1
-		}
-	}
-	if (j > 0) {
-		charCodes.length = j
-		buf.push(String.fromCharCode.apply(String, charCodes))
 	}
 
-	return buf.join("")
+	#DecodeDirectBits(numTotalBits: number): number {
+		const rangeDecoder = this.#decompressor.chunker.decoder.m_RangeDecoder;
+		let result = 0;
+
+		for (let i = numTotalBits; i != 0; i -= 1) {
+			rangeDecoder.Range >>>= 1;
+			let t = rangeDecoder.Code - rangeDecoder.Range >>> 31;
+			rangeDecoder.Code -= rangeDecoder.Range & t - 1;
+			result = result << 1 | 1 - t;
+
+			if (!(rangeDecoder.Range & -16777216)) {
+				rangeDecoder.Code = rangeDecoder.Code << 8 | this.#read(rangeDecoder.Stream);
+				rangeDecoder.Range <<= 8;
+			}
+		}
+
+		return result;
+	}
+
+	#Init_8(): void {
+		this.#decoder.m_RangeDecoder.Code = 0;
+		this.#decoder.m_RangeDecoder.Range = -1;
+
+		for (let i = 0; i < 5; ++i) {
+			this.#decoder.m_RangeDecoder.Code = this.#decoder.m_RangeDecoder.Code << 8
+				| this.#read(this.#decoder.m_RangeDecoder.Stream);
+		}
+	}
+
+	InitBitModels(probs: number[]): void {
+		for (let i = probs.length - 1; i >= 0; --i) {
+			probs[i] = 1024;
+		}
+	}
+
+	#Encode_3(
+		probs: number[],
+		index: number,
+		symbol: number,
+	): void {
+		const rangeEncoder = this.#compressor.chunker.encoder._rangeEncoder;
+
+		var newBound, prob = probs[index];
+		newBound = (rangeEncoder.Range >>> 11) * prob;
+
+		if (!symbol) {
+			rangeEncoder.Range = newBound;
+			probs[index] = prob + (2_048 - prob >>> 5) << 16 >> 16;
+		} else {
+			rangeEncoder.Low = this.#add(
+				rangeEncoder.Low,
+				this.#and(this.#fromInt(newBound), [4294967295, 0]),
+			);
+			rangeEncoder.Range -= newBound;
+			probs[index] = prob - (prob >>> 5) << 16 >> 16;
+		}
+
+		if (!(rangeEncoder.Range & -16777216)) {
+			rangeEncoder.Range <<= 8;
+			this.#ShiftLow();
+		}
+	}
+
+	#EncodeDirectBits(
+		valueToEncode: number,
+		numTotalBits: number,
+	): void {
+		const rangeEncoder = this.#compressor.chunker.encoder._rangeEncoder;
+
+		for (let i = numTotalBits - 1; i >= 0; i -= 1) {
+			rangeEncoder.Range >>>= 1;
+			if ((valueToEncode >>> i & 1) == 1) {
+				rangeEncoder.Low = this.#add(rangeEncoder.Low, this.#fromInt(rangeEncoder.Range));
+			}
+			if (!(rangeEncoder.Range & -16777216)) {
+				rangeEncoder.Range <<= 8;
+				this.#ShiftLow();
+			}
+		}
+	}
+
+	#GetProcessedSizeAdd(): [number, number] {
+		const processedCacheSize = this.#add(
+			this.#fromInt(this.#compressor.chunker.encoder._rangeEncoder._cacheSize),
+			this.#compressor.chunker.encoder._rangeEncoder._position,
+		);
+
+		return this.#add(
+			processedCacheSize,
+			[4, 0],
+		);
+	}
+
+	#Init_9(): void {
+		this.#encoder._rangeEncoder._position = this.#P0_LONG_LIT;
+		this.#encoder._rangeEncoder.Low = this.#P0_LONG_LIT;
+		this.#encoder._rangeEncoder.Range = -1;
+		this.#encoder._rangeEncoder._cacheSize = 1;
+		this.#encoder._rangeEncoder._cache = 0;
+	}
+
+	#ShiftLow(): void {
+		const rangeEncoder = this.#compressor.chunker.encoder._rangeEncoder;
+
+		const LowHi = this.#lowBits_0(this.#shru(rangeEncoder.Low, 32));
+		if (LowHi != 0 || this.#compare(rangeEncoder.Low, [4278190080, 0]) < 0) {
+			rangeEncoder._position = this.#add(
+				rangeEncoder._position,
+				this.#fromInt(rangeEncoder._cacheSize),
+			);
+
+			let temp = rangeEncoder._cache;
+			do {
+				this.#write(rangeEncoder.Stream, temp + LowHi);
+				temp = 255;
+			} while ((rangeEncoder._cacheSize -= 1) != 0);
+
+			rangeEncoder._cache = this.#lowBits_0(rangeEncoder.Low) >>> 24;
+		}
+
+		rangeEncoder._cacheSize += 1;
+		rangeEncoder.Low = this.#shl(this.#and(rangeEncoder.Low, [16777215, 0]), 8);
+	}
+
+	GetPrice(Prob: number, symbol: number): number {
+		return this.#probPrices[
+			((Prob - symbol ^ -symbol) & 2047) >>> 2
+		];
+	}
+
+	#decode(utf: number[]): string | number[] {
+		let j = 0, x, y, z, l = utf.length, buf = [], charCodes = [];
+
+		for (let i = 0; i < l; ++i, ++j) {
+			x = utf[i] & 255;
+			if (!(x & 128)) {
+				if (!x) {
+					// It appears that this is binary data, so it cannot be
+					// converted to a string, so just send it back.
+					return utf;
+				}
+				charCodes[j] = x;
+			} else if ((x & 224) == 192) {
+				if (i + 1 >= l) {
+					// It appears that this is binary data, so it cannot be
+					// converted to a string, so just send it back.
+					return utf;
+				}
+				y = utf[++i] & 255;
+				if ((y & 192) != 128) {
+					// It appears that this is binary data, so it cannot be
+					// converted to a string, so just send it back.
+					return utf;
+				}
+				charCodes[j] = ((x & 31) << 6) | (y & 63);
+			} else if ((x & 240) == 224) {
+				if (i + 2 >= l) {
+					// It appears that this is binary data, so it cannot be
+					// converted to a string, so just send it back.
+					return utf;
+				}
+				y = utf[++i] & 255;
+				if ((y & 192) != 128) {
+					// It appears that this is binary data, so it cannot be
+					// converted to a string, so just send it back.
+					return utf;
+				}
+				z = utf[++i] & 255;
+				if ((z & 192) != 128) {
+					// It appears that this is binary data, so it cannot be converted to
+					// a string, so just send it back.
+					return utf;
+				}
+				charCodes[j] = ((x & 15) << 12) | ((y & 63) << 6) | (z & 63);
+			} else {
+				// It appears that this is binary data, so it cannot be converted to
+				// a string, so just send it back.
+				return utf;
+			}
+			if (j == 16383) {
+				buf.push(String.fromCharCode.apply(String, charCodes));
+				j = -1;
+			}
+		}
+
+		if (j > 0) {
+			charCodes.length = j;
+			buf.push(String.fromCharCode.apply(String, charCodes));
+		}
+
+		return buf.join("");
+	}
+
+	encode(inputString: string | Uint8Array): number[] | Uint8Array {
+		let ch, chars = [], elen = 0, l = inputString.length;
+
+		// Be able to handle binary arrays and buffers.
+		if (typeof inputString === "object") {
+			return inputString;
+		} else {
+			this.#getChars(inputString, 0, l, chars, 0);
+		}
+
+		// Add extra spaces in the array to break up the unicode symbols.
+		for (let i = 0; i < l; ++i) {
+			ch = chars[i];
+			if (ch >= 1 && ch <= 127) {
+				++elen;
+			} else if (!ch || ch >= 128 && ch <= 2047) {
+				elen += 2;
+			} else {
+				elen += 3;
+			}
+		}
+
+		const data = [];
+		elen = 0;
+		for (let i = 0; i < l; ++i) {
+			ch = chars[i];
+			if (ch >= 1 && ch <= 127) {
+				data[elen++] = ch << 24 >> 24;
+			} else if (!ch || ch >= 128 && ch <= 2047) {
+				data[elen++] = (192 | ch >> 6 & 31) << 24 >> 24;
+				data[elen++] = (128 | ch & 63) << 24 >> 24;
+			} else {
+				data[elen++] = (224 | ch >> 12 & 15) << 24 >> 24;
+				data[elen++] = (128 | ch >> 6 & 63) << 24 >> 24;
+				data[elen++] = (128 | ch & 63) << 24 >> 24;
+			}
+		}
+
+		return data;
+	}
+
+	public compress(
+		data: string | Uint8Array | ArrayBuffer,
+		mode: keyof typeof this.CompressionModes = 5,
+	): Int8Array {
+		const encodedData = this.encode(data);
+		const compressionMode = this.CompressionModes[mode];
+
+		this.#byteArrayCompressor(
+			encodedData,
+			compressionMode,
+		);
+
+		while (this.#processChunkEncode());
+
+		const compressedByteArray = this.#toByteArray(this.#compressor.output);
+		return new Int8Array(compressedByteArray);
+	}
+
+	public decompress(
+		bytearray: Uint8Array | ArrayBuffer,
+	): Int8Array | string {
+		this.#byteArrayDecompressor(bytearray);
+
+		while (this.#processChunkDecode());
+
+		const decodedByteArray = this.#toByteArray(this.#decompressor.output);
+		const decoded = this.#decode(decodedByteArray);
+
+		return decoded instanceof Array
+			? new Int8Array(decoded)
+			: decoded;
+	}
 }
 
-function encode(s: string | Uint8Array): number[] | Uint8Array {
-	let ch, chars = [], elen = 0, l = s.length
-	// Be able to handle binary arrays and buffers.
-	if (typeof s == "object") {
-		return s
-	} else {
-		$getChars(s, 0, l, chars, 0)
-	}
-	// Add extra spaces in the array to break up the unicode symbols.
-	for (let i = 0; i < l; ++i) {
-		ch = chars[i]
-		if (ch >= 1 && ch <= 127) {
-			;++elen
-		} else if (!ch || ch >= 128 && ch <= 2047) {
-			elen += 2
-		} else {
-			elen += 3
-		}
-	}
-	const data = []
-	elen = 0
-	for (let i = 0; i < l; ++i) {
-		ch = chars[i]
-		if (ch >= 1 && ch <= 127) {
-			data[elen++] = ch << 24 >> 24
-		} else if (!ch || ch >= 128 && ch <= 2047) {
-			data[elen++] = (192 | ch >> 6 & 31) << 24 >> 24
-			data[elen++] = (128 | ch & 63) << 24 >> 24
-		} else {
-			data[elen++] = (224 | ch >> 12 & 15) << 24 >> 24
-			data[elen++] = (128 | ch >> 6 & 63) << 24 >> 24
-			data[elen++] = (128 | ch & 63) << 24 >> 24
-		}
-	}
+type CompressionMode = keyof LZMA["CompressionModes"];
 
-	return data
-}
-
-type Mode = {
-	s: number
-	f: number
-	m: number
+/**
+ * Compresses data using LZMA algorithm
+ *
+ * @param data Data to compress - can be string, Uint8Array or ArrayBuffer
+ * @param mode Compression mode (1-9), defaults to 5
+ * @returns Compressed data as Int8Array
+ */
+export function compress(
+	data: string | Uint8Array | ArrayBuffer,
+	mode: CompressionMode = 5,
+): Int8Array {
+	const lzma = new LZMA();
+	return lzma.compress(data, mode);
 }
 
 /**
- * s - dictionary size
- * f - fb
- * m - matchFinder
+ * Decompresses LZMA compressed data
  *
- * NOTE: Because some values are always the same, they have been removed.
- * lc is always 3
- * lp is always 0
- * pb is always 2
+ * @param data Compressed data as Uint8Array or ArrayBuffer
+ * @returns Decompressed data as string if input was string, or Int8Array if input was binary
  */
-const ModeMap = {
-	1: { s: 16, f: 64, m: 0 },
-	2: { s: 20, f: 64, m: 0 },
-	3: { s: 19, f: 64, m: 1 },
-	4: { s: 20, f: 64, m: 1 },
-	5: { s: 21, f: 128, m: 1 },
-	6: { s: 22, f: 128, m: 1 },
-	7: { s: 23, f: 128, m: 1 },
-	8: { s: 24, f: 255, m: 1 },
-	9: { s: 25, f: 255, m: 1 }
-} as const satisfies Record<number, Mode>
-
-type Modes = keyof typeof ModeMap
-
-export function compress(
-	data: string | Uint8Array | ArrayBuffer,
-	mode: Modes = 5
-): Int8Array {
-	const obj = {
-		c: $LZMAByteArrayCompressor(
-			{},
-			encode(data),
-			ModeMap[mode]
-		)
-	}
-	while ($processChunkEncode(obj.c.chunker));
-	return new Int8Array($toByteArray(obj.c.output))
-}
-
 export function decompress(
-	bytearray: Uint8Array | ArrayBuffer
-): Int8Array | string {
-	const obj = {
-		d: $LZMAByteArrayDecompressor({}, bytearray)
-	}
-	while ($processChunkDecode(obj.d.chunker)) {}
-	const decoded = decode($toByteArray(obj.d.output))
-	if (decoded instanceof Array) {
-		return new Int8Array(decoded)
-	}
-
-	return decoded
+	data: Uint8Array | ArrayBuffer,
+): string | Int8Array {
+	const lzma = new LZMA();
+	return lzma.decompress(data);
 }

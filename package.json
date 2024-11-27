@@ -1,14 +1,19 @@
 {
 	"name": "lzma1",
+	"type": "module",
 	"version": "0.0.3",
 	"license": "Apache-2.0",
-	"author": "Filip Seman <filip.seman@pm.me>",
+	"authors": [
+		"Filip Seman <filip.seman@pm.me>",
+		"Nathan Rugg <nmrugg@gmail.com> - Original library"
+	],
 	"description": "A JavaScript implementation of the Lempel-Ziv-Markov (LZMA) chain compression algorithm",
 	"funding": "https://github.com/sponsors/xseman",
 	"homepage": "https://github.com/xseman/lzma1#readme",
 	"keywords": [
 		"lzma",
 		"lzma1",
+		"lzma alone",
 		"compression",
 		"decompression"
 	],
@@ -17,36 +22,36 @@
 		"url": "git+https://github.com/xseman/lzma1.git"
 	},
 	"scripts": {
-		"test": "node --test --test-reporter=spec --loader=tsx *.test.ts",
-		"test:watch": "node --test --watch --test-reporter=spec --loader=tsx *.test.ts",
+		"prebuild": "tsc --build --clean",
+		"build": "tsc",
+		"fmt": "dprint fmt",
+		"fmt:check": "dprint check",
 		"typecheck": "tsc --noEmit",
-		"release": "make release",
-		"build": "make clean build",
-		"version": "git checkout develop && make version"
+		"version": "git checkout develop && npm test",
+		"postversion": "echo 'Now run npm run build && npm publish'",
+		"test": "TS_NODE_TRANSPILE_ONLY=true node --no-warnings --test --test-reporter=spec --loader=ts-node/esm ./*.test.ts",
+		"test:watch": "TS_NODE_TRANSPILE_ONLY=true node --no-warnings --test --watch --test-reporter=spec --loader=ts-node/esm ./*.test.ts"
 	},
 	"dependencies": {},
 	"devDependencies": {
-		"@types/node": ">=16.17",
-		"dprint": "~0.35.0",
-		"esbuild": "~0.17.0",
-		"tsx": "~3.12.0",
-		"typescript": "~5.0.0"
+		"@types/node": ">=18.8",
+		"dprint": "~0.47.0",
+		"ts-node": "~10.9.0",
+		"typescript": "^5.7.0"
 	},
-	"type": "module",
-	"main": "./lib/cjs/lzma.js",
-	"module": "./lib/esm/lzma.js",
+	"types": "./dist/lzma.d.ts",
+	"module": "./dist/lzma.js",
 	"exports": {
 		".": {
-			"import": "./lib/esm/lzma.js",
-			"require": "./lib/cjs/lzma.js",
-			"types": "./lib/lzma.d.ts"
+			"import": "./dist/lzma.js"
 		}
 	},
 	"files": [
-		"lib"
+		"dist",
+		"!dist/*.test.*"
 	],
 	"engines": {
-		"node": ">=14.16",
+		"node": ">=18.8",
 		"npm": ">=7.0"
 	}
 }
