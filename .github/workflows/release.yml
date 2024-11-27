@@ -6,13 +6,16 @@ on:
             - "quality checks"
         types:
             - completed
-    # manual
     workflow_dispatch:
         inputs:
             publish-release:
                 description: Publish the release?
                 required: true
                 default: "false"
+            tag:
+                description: Tag to release manually
+                required: false
+                type: string
 
 permissions:
     contents: write
@@ -25,24 +28,27 @@ jobs:
         steps:
             - uses: googleapis/release-please-action@v4
               id: release
+              if: ${{ !github.event.inputs.tag }}
               with:
                   manifest-file: .github/.release-please-manifest.json
                   config-file: .github/release-please-config.json
                   token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
-            - if: ${{ github.event.inputs.publish-release == 'true' || steps.release.outputs.release_created }}
-              uses: actions/checkout@v4
+            - uses: actions/checkout@v4
+              if: ${{ github.event.inputs.publish-release == 'true' || steps.release.outputs.release_created }}
+              with:
+                  ref: ${{ github.event.inputs.tag || github.ref }}
 
-            - if: ${{ github.event.inputs.publish-release == 'true' || steps.release.outputs.release_created }}
-              uses: actions/setup-node@v4
+            - uses: actions/setup-node@v4
+              if: ${{ steps.release.outputs.release_created }}
               with:
                   node-version-file: ".nvmrc"
                   registry-url: "https://registry.npmjs.org"
 
-            - if: ${{ github.event.inputs.publish-release == 'true' || steps.release.outputs.release_created }}
+            - if: ${{ steps.release.outputs.release_created }}
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
               run: >
-                  npm ci &&
+                  npm install &&
                   npm run build &&
                   npm publish --provenance --access public
