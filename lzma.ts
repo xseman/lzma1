@@ -4,8 +4,16 @@ interface Mode {
 	modeIndex: number;
 }
 
+interface BitTreeBase {
+	NumBitLevels: number;
+	Models: number[];
+}
+
+type BitTreeDecoder = BitTreeBase;
+type BitTreeEncoder = BitTreeBase;
+
 interface BaseStream {
-	buf: Uint8Array | ArrayBuffer | number[];
+	buf: RelativeIndexable<number> | Uint8Array | ArrayBuffer | number[];
 	pos: number;
 	count: number;
 }
@@ -20,14 +28,6 @@ interface BaseWindow {
 interface BaseRangeCoder {
 	Stream: BaseStream;
 }
-
-interface BitTreeBase {
-	NumBitLevels: number;
-	Models: number[];
-}
-
-type BitTreeDecoder = BitTreeBase;
-type BitTreeEncoder = BitTreeBase;
 
 interface RangeDecoder extends BaseRangeCoder {
 	Code: number;
@@ -463,7 +463,6 @@ export class LZMA {
 		// This is MUCH faster than "new Array(len)" in newer versions of v8
 		// (starting with Node.js 0.11.15, which uses v8 3.28.73).
 		array[len - 1] = undefined;
-
 		return array;
 	}
 
@@ -3487,12 +3486,10 @@ export class LZMA {
 	}
 
 	#createBitTreeDecoder(numBitLevels: number): BitTreeDecoder {
-		const bitTreeDecoder = {
+		return {
 			NumBitLevels: numBitLevels,
 			Models: this.#initArray(1 << numBitLevels),
 		};
-
-		return bitTreeDecoder;
 	}
 
 	// BitTreeDecoder.Decoder
@@ -3947,7 +3944,10 @@ type CompressionMode = keyof LZMA["CompressionModes"];
  * @param mode Compression mode (1-9), defaults to 5
  * @returns Compressed data as Int8Array
  */
-export function compress(data: string | Uint8Array | ArrayBuffer, mode: CompressionMode = 5): Int8Array {
+export function compress(
+	data: string | Uint8Array | ArrayBuffer,
+	mode: CompressionMode = 5,
+): Int8Array {
 	const lzma = new LZMA();
 	return lzma.compress(data, mode);
 }
@@ -3958,7 +3958,9 @@ export function compress(data: string | Uint8Array | ArrayBuffer, mode: Compress
  * @param data Compressed data as Uint8Array or ArrayBuffer
  * @returns Decompressed data as string if input was string, or Int8Array if input was binary
  */
-export function decompress(data: Uint8Array | ArrayBuffer): string | Int8Array {
+export function decompress(
+	data: Uint8Array | ArrayBuffer,
+): string | Int8Array {
 	const lzma = new LZMA();
 	return lzma.decompress(data);
 }
