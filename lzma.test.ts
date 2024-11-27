@@ -18,22 +18,6 @@ function bytesToHex(byteArray: Int8Array | Uint8Array): string {
 }
 
 describe("Levels", () => {
-	test("compress and decompress", () => {
-		const input = "Hello, World!";
-		const compressed = compress(input, 1);
-		const decompressed = decompress(compressed);
-
-		assert.equal(decompressed, input);
-	});
-
-	test("compress long string", () => {
-		const input = "a".repeat(1000);
-		const compressed = compress(input, 1);
-		const decompressed = decompress(compressed);
-
-		assert.equal(decompressed, input);
-	});
-
 	test("Level 1.", () => {
 		assert.equal(
 			bytesToHex(compress("Level 1", 1)),
@@ -95,5 +79,61 @@ describe("Levels", () => {
 			bytesToHex(compress("Level 9", 9)),
 			"5d 00 00 00 02 07 00 00 00 00 00 00 00 00 26 19 4a c6 67 50 c7 8b d1 4a ff ff ff 59 d8 00 00",
 		);
+	});
+});
+
+describe("compress and decompress edge cases", () => {
+	test("empty string", () => {
+		const input = "";
+		const compressed = compress(input, 1);
+		const decompressed = decompress(compressed);
+
+		assert.equal(decompressed, input);
+	});
+
+	test("special characters", () => {
+		const input = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
+		const compressed = compress(input, 1);
+		const decompressed = decompress(compressed);
+
+		assert.equal(decompressed, input);
+	});
+
+	test("unicode characters", () => {
+		const input = "你好，世界！";
+		const compressed = compress(input, 1);
+		const decompressed = decompress(compressed);
+
+		assert.equal(decompressed, input);
+	});
+
+	test("binary data", () => {
+		const input = new Int8Array(1_000).map((_, i) => i % 256);
+		const compressed = compress(input, 1);
+		const decompressed = decompress(compressed);
+
+		assert.deepEqual(decompressed, input);
+	});
+
+	test("null character", () => {
+		const input = "\0";
+		const compressed = compress(input, 1);
+		const decompressed = decompress(compressed);
+
+		assert.equal(decompressed, input);
+	});
+
+	test("repeated patterns", () => {
+		const input = "abcabcabc".repeat(100);
+		const compressed = compress(input, 1);
+		const decompressed = decompress(compressed);
+		assert.equal(decompressed, input);
+	});
+
+	test("alternating patterns", () => {
+		const input = "10".repeat(500);
+		const compressed = compress(input, 1);
+		const decompressed = decompress(compressed);
+		assert.equal(decompressed, input);
 	});
 });
