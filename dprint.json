@@ -14,9 +14,7 @@
 		"trailingCommas": "onlyMultiLine",
 		"quoteStyle": "preferDouble",
 		"quoteProps": "consistent",
-		"importDeclaration.forceMultiLine": "whenMultiple",
-		"memberExpression.preferSingleLine": true,
-		"memberExpression.linePerExpression": true
+		"importDeclaration.forceMultiLine": "whenMultiple"
 	},
 	"includes": [
 		"**/*.{ts,js,json,md,yml,yaml}"
