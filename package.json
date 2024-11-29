@@ -27,8 +27,6 @@
 		"fmt": "dprint fmt",
 		"fmt:check": "dprint check",
 		"typecheck": "tsc --noEmit",
-		"version": "git checkout develop && npm test",
-		"postversion": "echo 'Now run npm run build && npm publish'",
 		"test": "TS_NODE_TRANSPILE_ONLY=true node --no-warnings --test --test-reporter=spec --loader=ts-node/esm ./*.test.ts",
 		"test:watch": "TS_NODE_TRANSPILE_ONLY=true node --no-warnings --test --watch --test-reporter=spec --loader=ts-node/esm ./*.test.ts"
 	},
