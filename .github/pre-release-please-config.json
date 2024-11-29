@@ -8,7 +8,9 @@
 			"include-component-in-tag": false,
 			"pull-request-title-pattern": "v${version}",
 			"pull-request-header": "",
-			"pull-request-footer": ""
+			"pull-request-footer": "",
+			"prerelease": true,
+			"prerelease-type": "next"
 		}
 	},
 	"changelog-sections": [
