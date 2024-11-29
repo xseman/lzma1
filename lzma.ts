@@ -168,6 +168,7 @@ interface LenEncoder {
 }
 
 interface MatchFinder {
+	_posLimit: number;
 	_bufferBase: number[];
 	_pos: number;
 	_streamPos: number;
@@ -200,7 +201,7 @@ interface CompressionContext {
 		decoder: Decoder | null;
 	};
 	output: {
-		buf: BitTreeEncoder[];
+		buf: number[];
 		count: number;
 	};
 }
@@ -300,6 +301,7 @@ export class LZMA {
 	readonly #MIN_VALUE: [number, number];
 	readonly #P0_LONG_LIT: [number, number] = [0, 0];
 	readonly #P1_LONG_LIT: [number, number] = [1, 0];
+	readonly #kIfinityPrice = 268435455;
 
 	readonly CompressionModes = {
 		1: { searchDepth: 16, filterStrength: 64, modeIndex: 0 },
@@ -389,10 +391,10 @@ export class LZMA {
 			m_PosSlotDecoder: this.#initArray(4),
 			m_PosDecoders: this.#initArray(114),
 			m_PosAlignDecoder: this.#createBitTreeDecoder(4),
-			m_LenDecoder: this.#createLenDecoder({}),
-			m_RepLenDecoder: this.#createLenDecoder({}),
+			m_LenDecoder: this.#createLenDecoder(),
+			m_RepLenDecoder: this.#createLenDecoder(),
 			m_LiteralDecoder: {} as LiteralDecoder,
-		};
+		} as unknown as Decoder;
 
 		for (let i = 0; i < 4; ++i) {
 			decoder.m_PosSlotDecoder[i] = this.#createBitTreeDecoder(6);
@@ -407,7 +409,7 @@ export class LZMA {
 				alive: 0,
 				encoder: null,
 				decoder: null,
-				inBytesProcessed: [],
+				inBytesProcessed: [0, 0],
 			},
 			output: {
 				buf: this.#initArray(32),
@@ -422,7 +424,7 @@ export class LZMA {
 				alive: 0,
 				encoder: null,
 				decoder: null,
-				inBytesProcessed: [],
+				inBytesProcessed: [0, 0],
 			},
 			output: {
 				buf: this.#initArray(32),
@@ -460,12 +462,14 @@ export class LZMA {
 		return gFastPos;
 	}
 
-	#initArray(len: number) {
+	#initArray(len: number): number[] {
 		const array = [];
+
 		// This is MUCH faster than "new Array(len)" in newer versions of v8
 		// (starting with Node.js 0.11.15, which uses v8 3.28.73).
 		array[len - 1] = undefined;
-		return array;
+
+		return array as unknown as number[];
 	}
 
 	#add(a: [number, number], b: [number, number]): [number, number] {
@@ -760,13 +764,13 @@ export class LZMA {
 
 		// Configure length encoders
 		this.#encoder._lenEncoder._tableSize = this.#encoder._numFastBytes + 1 - 2;
-		this.#UpdateTables(
+		this.#LZMA_LenPriceTableEncoder_UpdateTablesUpdateTables(
 			this.#encoder._lenEncoder,
 			1 << this.#encoder._posStateBits,
 		);
 
 		this.#encoder._repMatchLenEncoder._tableSize = this.#encoder._numFastBytes + 1 - 2;
-		this.#UpdateTables(
+		this.#LZMA_LenPriceTableEncoder_UpdateTablesUpdateTables(
 			this.#encoder._repMatchLenEncoder,
 			1 << this.#encoder._posStateBits,
 		);
@@ -896,7 +900,7 @@ export class LZMA {
 		this.#encoder._matchFinder._pointerToLastSafePosition = this.#encoder._matchFinder._blockSize - keepSizeAfter;
 	}
 
-	#GetIndexByte(index: number) {
+	#GetIndexByte(index: number): number {
 		return this.#compressor.chunker.encoder._matchFinder._bufferBase[
 			this.#compressor.chunker.encoder._matchFinder._bufferOffset
 			+ this.#compressor.chunker.encoder._matchFinder._pos
@@ -909,27 +913,29 @@ export class LZMA {
 		distance: number,
 		limit: number,
 	): number {
-		if (this.#compressor.chunker.encoder._matchFinder._streamEndWasReached) {
+		const encoder = this.#compressor.chunker.encoder!;
+
+		if (encoder._matchFinder._streamEndWasReached) {
 			if (
-				this.#compressor.chunker.encoder._matchFinder._pos + index + limit
-					> this.#compressor.chunker.encoder._matchFinder._streamPos
+				encoder._matchFinder._pos + index + limit
+					> encoder._matchFinder._streamPos
 			) {
-				limit = this.#compressor.chunker.encoder._matchFinder._streamPos
-					- (this.#compressor.chunker.encoder._matchFinder._pos + index);
+				limit = encoder._matchFinder._streamPos
+					- (encoder._matchFinder._pos + index);
 			}
 		}
 
 		++distance;
 		let i,
-			pby = this.#compressor.chunker.encoder._matchFinder._bufferOffset
-				+ this.#compressor.chunker.encoder._matchFinder._pos
+			pby = encoder._matchFinder._bufferOffset
+				+ encoder._matchFinder._pos
 				+ index;
 
 		for (
 			i = 0;
 			i < limit
-			&& this.#compressor.chunker.encoder._matchFinder._bufferBase[pby + i]
-				== this.#compressor.chunker.encoder._matchFinder._bufferBase[pby + i - distance];
+			&& encoder._matchFinder._bufferBase[pby + i]
+				== encoder._matchFinder._bufferBase[pby + i - distance];
 			++i
 		);
 
@@ -937,14 +943,13 @@ export class LZMA {
 	}
 
 	#GetNumAvailableBytes(): number {
-		return (
-			this.#compressor.chunker.encoder._matchFinder._streamPos
-			- this.#compressor.chunker.encoder._matchFinder._pos
-		);
+		const encoder = this.#compressor.chunker.encoder!;
+
+		return encoder._matchFinder._streamPos - encoder._matchFinder._pos;
 	}
 
 	#MoveBlock(): void {
-		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+		const matchFinder = this.#compressor.chunker.encoder!._matchFinder;
 
 		let offset = matchFinder._bufferOffset + matchFinder._pos - matchFinder._keepSizeBefore;
 
@@ -960,7 +965,7 @@ export class LZMA {
 	}
 
 	#MovePos_1(): void {
-		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+		const matchFinder = this.#compressor.chunker.encoder!._matchFinder;
 		let pointerToPostion;
 
 		matchFinder._pos += 1;
@@ -977,7 +982,7 @@ export class LZMA {
 	}
 
 	#ReadBlock(): void {
-		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
+		const matchFinder = this.#compressor.chunker.encoder!._matchFinder;
 
 		let bytesRead, pointerToPostion, size;
 		if (matchFinder._streamEndWasReached) {
@@ -1004,23 +1009,22 @@ export class LZMA {
 				}
 
 				matchFinder._streamEndWasReached = 1;
+
 				return;
 			}
 
 			matchFinder._streamPos += bytesRead;
-			if (
-				matchFinder._streamPos >= matchFinder._pos + matchFinder._keepSizeAfter
-			) {
+			if (matchFinder._streamPos >= matchFinder._pos + matchFinder._keepSizeAfter) {
 				matchFinder._posLimit = matchFinder._streamPos - matchFinder._keepSizeAfter;
 			}
 		}
 	}
 
 	#ReduceOffsets(subValue: number): void {
-		this.#compressor.chunker.encoder._matchFinder._bufferOffset += subValue;
-		this.#compressor.chunker.encoder._matchFinder._posLimit -= subValue;
-		this.#compressor.chunker.encoder._matchFinder._pos -= subValue;
-		this.#compressor.chunker.encoder._matchFinder._streamPos -= subValue;
+		this.#compressor.chunker.encoder!._matchFinder._bufferOffset += subValue;
+		this.#compressor.chunker.encoder!._matchFinder._posLimit -= subValue;
+		this.#compressor.chunker.encoder!._matchFinder._pos -= subValue;
+		this.#compressor.chunker.encoder!._matchFinder._streamPos -= subValue;
 	}
 
 	#Create_3(
@@ -1285,7 +1289,7 @@ export class LZMA {
 	}
 
 	#SetType(
-		binTree: any,
+		binTree: MatchFinder,
 		numHashBytes: number,
 	): void {
 		binTree.HASH_ARRAY = numHashBytes > 2;
@@ -1304,7 +1308,7 @@ export class LZMA {
 	#Skip(num: number): void {
 		const matchFinder = this.#compressor.chunker.encoder._matchFinder;
 
-		var count,
+		let count,
 			cur,
 			curMatch,
 			cyclicPos,
@@ -1421,12 +1425,15 @@ export class LZMA {
 			pos += 1;
 
 			if (outputWindow._pos >= outputWindow._windowSize) {
-				this.#Flush_0(outputWindow);
+				this.#Flush_0();
 			}
 		}
 	}
 
-	#Create_5(m_OutWindow: any, windowSize: number): void {
+	#OutWindow_Create(
+		m_OutWindow: OutWindow,
+		windowSize: number,
+	): void {
 		if (m_OutWindow._buffer == null || m_OutWindow._windowSize != windowSize) {
 			m_OutWindow._buffer = this.#initArray(windowSize);
 		}
@@ -1436,46 +1443,48 @@ export class LZMA {
 		m_OutWindow._streamPos = 0;
 	}
 
-	#Flush_0(obj: any): void {
-		var size = obj._pos - obj._streamPos;
+	#Flush_0(): void {
+		let size = this.#decoder.m_OutWindow._pos - this.#decoder.m_OutWindow._streamPos;
+
 		if (!size) {
 			return;
 		}
 
 		this.#write_0(
-			obj._stream,
-			obj._buffer,
-			obj._streamPos,
+			this.#decoder.m_OutWindow._stream,
+			this.#decoder.m_OutWindow._buffer,
+			this.#decoder.m_OutWindow._streamPos,
 			size,
 		);
 
-		if (obj._pos >= obj._windowSize) {
-			obj._pos = 0;
+		if (this.#decoder.m_OutWindow._pos >= this.#decoder.m_OutWindow._windowSize) {
+			this.#decoder.m_OutWindow._pos = 0;
 		}
-		obj._streamPos = obj._pos;
+		this.#decoder.m_OutWindow._streamPos = this.#decoder.m_OutWindow._pos;
 	}
 
 	#GetByte(distance: number) {
 		const outputWindow = this.#decompressor.chunker.decoder.m_OutWindow;
 
-		var pos = outputWindow._pos - distance - 1;
+		let pos = outputWindow._pos - distance - 1;
 		if (pos < 0) {
 			pos += outputWindow._windowSize;
 		}
 		return outputWindow._buffer[pos];
 	}
 
-	#PutByte(obj: any, b: number): void {
-		obj._buffer[obj._pos] = b;
-		obj._pos += 1;
-		if (obj._pos >= obj._windowSize) {
-			this.#Flush_0(obj);
+	#PutByte(b: number): void {
+		this.#decoder.m_OutWindow._buffer[this.#decoder.m_OutWindow._pos] = b;
+		this.#decoder.m_OutWindow._pos += 1;
+
+		if (this.#decoder.m_OutWindow._pos >= this.#decoder.m_OutWindow._windowSize) {
+			this.#Flush_0();
 		}
 	}
 
-	#ReleaseStream(obj: any): void {
-		this.#Flush_0(obj);
-		obj._stream = null;
+	#OutWindow_ReleaseStream(): void {
+		this.#Flush_0();
+		this.#decoder.m_OutWindow._stream = null;
 	}
 
 	GetLenToPosState(len: number): number {
@@ -1531,8 +1540,8 @@ export class LZMA {
 			|| this.#compare(decoder.outSize, this.#P0_LONG_LIT) >= 0
 				&& this.#compare(decoder.nowPos64, decoder.outSize) >= 0
 		) {
-			this.#Flush_0(decoder.m_OutWindow);
-			this.#ReleaseStream(decoder.m_OutWindow);
+			this.#Flush_0();
+			this.#OutWindow_ReleaseStream();
 			decoder.m_RangeDecoder.Stream = null;
 			this.#decompressor.chunker.alive = 0;
 		}
@@ -1563,9 +1572,9 @@ export class LZMA {
 	#CodeInChunks(
 		inStream: BaseStream,
 		outSize: [number, number],
-	): any {
+	): Decoder {
 		this.#decoder.m_RangeDecoder.Stream = inStream;
-		this.#ReleaseStream(this.#decoder.m_OutWindow);
+		this.#OutWindow_ReleaseStream();
 		this.#decoder.m_OutWindow._stream = this.#decompressor.output;
 
 		this.#Init_1();
@@ -1581,12 +1590,13 @@ export class LZMA {
 		this.#decoder.decoder = this.#decoder;
 		this.#decoder.encoder = null;
 		this.#decoder.alive = 1;
+
 		return this.#decoder;
 	}
 
 	#CodeOneChunk(): 0 | 1 | -1 {
 		const decoder = this.#decompressor.chunker.decoder;
-		let decoder2, distance, len, numDirectBits, positionSlot;
+		let decoder2: LiteralDecoderEncoder2, distance, len, numDirectBits, positionSlot;
 
 		let posState = this.#lowBits_0(decoder.nowPos64)
 			& decoder.m_PosStateMask;
@@ -1606,7 +1616,7 @@ export class LZMA {
 				);
 			}
 
-			this.#PutByte(decoder.m_OutWindow, decoder.prevByte);
+			this.#PutByte(decoder.prevByte);
 			decoder.state = this.StateUpdateChar(decoder.state);
 			decoder.nowPos64 = this.#add(
 				decoder.nowPos64,
@@ -1658,7 +1668,9 @@ export class LZMA {
 
 				decoder.state = decoder.state < 7 ? 7 : 10;
 
-				positionSlot = this.#Decode_0(decoder.m_PosSlotDecoder[this.GetLenToPosState(len)]);
+				positionSlot = this.#RangeCoder_BitTreeDecoder_Decoder(
+					decoder.m_PosSlotDecoder[this.GetLenToPosState(len)],
+				);
 
 				if (positionSlot >= 4) {
 					numDirectBits = (positionSlot >> 1) - 1;
@@ -1726,7 +1738,7 @@ export class LZMA {
 	}
 
 	#SetDecoderProperties(properties: number[]): 0 | 1 {
-		var dictionarySize, i, lc, lp, pb, remainder, val;
+		let dictionarySize, i, lc, lp, pb, remainder, val;
 		if (properties.length < 5) {
 			return 0;
 		}
@@ -1765,7 +1777,7 @@ export class LZMA {
 				1,
 			);
 
-			this.#Create_5(
+			this.#OutWindow_Create(
 				this.#decoder.m_OutWindow,
 				Math.max(this.#decoder.m_DictionarySizeCheck, 4096),
 			);
@@ -1783,7 +1795,7 @@ export class LZMA {
 			return 0;
 		}
 		this.#Create_0(lp, lc);
-		var numPosStates = 1 << pb;
+		let numPosStates = 1 << pb;
 
 		this.#Create(this.#decoder.m_LenDecoder, numPosStates);
 		this.#Create(this.#decoder.m_RepLenDecoder, numPosStates);
@@ -1794,7 +1806,7 @@ export class LZMA {
 	}
 
 	#Create(
-		decoder: any,
+		decoder: LenDecoder,
 		numPosStates: number,
 	): void {
 		for (; decoder.m_NumPosStates < numPosStates; decoder.m_NumPosStates += 1) {
@@ -1804,42 +1816,45 @@ export class LZMA {
 	}
 
 	#Decode(
-		obj: any,
+		decoder: LenDecoder,
 		posState: number,
 	): number {
-		if (!this.#decodeBit(obj.m_Choice, 0)) {
-			return this.#Decode_0(obj.m_LowCoder[posState]);
+		if (!this.#decodeBit(decoder.m_Choice, 0)) {
+			return this.#RangeCoder_BitTreeDecoder_Decoder(decoder.m_LowCoder[posState]);
 		}
 
 		let symbol = 8;
 
-		if (!this.#decodeBit(obj.m_Choice, 1)) {
-			symbol += this.#Decode_0(obj.m_MidCoder[posState]);
+		if (!this.#decodeBit(decoder.m_Choice, 1)) {
+			symbol += this.#RangeCoder_BitTreeDecoder_Decoder(decoder.m_MidCoder[posState]);
 		} else {
-			symbol += 8 + this.#Decode_0(obj.m_HighCoder);
+			symbol += 8 + this.#RangeCoder_BitTreeDecoder_Decoder(decoder.m_HighCoder);
 		}
 
 		return symbol;
 	}
 
-	#createLenDecoder(obj: any): LenDecoder {
-		obj.m_Choice = this.#initArray(2);
-		obj.m_LowCoder = this.#initArray(16);
-		obj.m_MidCoder = this.#initArray(16);
-		obj.m_HighCoder = this.#createBitTreeDecoder(8);
-		obj.m_NumPosStates = 0;
+	#createLenDecoder(): LenDecoder {
+		const decoder = {
+			m_Choice: this.#initArray(2),
+			m_LowCoder: this.#initArray(16),
+			m_MidCoder: this.#initArray(16),
+			m_HighCoder: this.#createBitTreeDecoder(8),
+			m_NumPosStates: 0,
+		};
 
-		return obj;
+		return decoder;
 	}
 
-	#Init(obj: any): void {
-		this.InitBitModels(obj.m_Choice);
-		for (let posState = 0; posState < obj.m_NumPosStates; ++posState) {
-			this.InitBitModels(obj.m_LowCoder[posState].Models);
-			this.InitBitModels(obj.m_MidCoder[posState].Models);
+	#Init(decoder: LenDecoder): void {
+		this.InitBitModels(decoder.m_Choice);
+
+		for (let posState = 0; posState < decoder.m_NumPosStates; ++posState) {
+			this.InitBitModels(decoder.m_LowCoder[posState].Models);
+			this.InitBitModels(decoder.m_MidCoder[posState].Models);
 		}
 
-		this.InitBitModels(obj.m_HighCoder.Models);
+		this.InitBitModels(decoder.m_HighCoder.Models);
 	}
 
 	#Create_0(
@@ -1847,6 +1862,7 @@ export class LZMA {
 		numPrevBits: number,
 	): void {
 		let i, numStates;
+
 		if (
 			this.#decoder.m_LiteralDecoder.m_Coders !== null
 			&& this.#decoder.m_LiteralDecoder.m_NumPrevBits == numPrevBits
@@ -1864,14 +1880,14 @@ export class LZMA {
 		this.#decoder.m_LiteralDecoder.m_Coders = this.#initArray(numStates);
 
 		for (i = 0; i < numStates; ++i) {
-			this.#decoder.m_LiteralDecoder.m_Coders[i] = this.#createLiteralDecoderEncoder2({});
+			this.#decoder.m_LiteralDecoder.m_Coders[i] = this.#createLiteralDecoderEncoder2();
 		}
 	}
 
 	#GetDecoder(
 		pos: number,
 		prevByte: number,
-	) {
+	): LiteralDecoderEncoder2 {
 		const literalDecoder = this.#decompressor.chunker.decoder.m_LiteralDecoder;
 
 		// Calculate index based on position and previous byte
@@ -1883,28 +1899,26 @@ export class LZMA {
 		return literalDecoder.m_Coders[index];
 	}
 
-	#Init_0(obj: any): void {
+	#Init_0(decoder: LiteralDecoder): void {
 		let i, numStates;
-		numStates = 1 << obj.m_NumPrevBits + obj.m_NumPosBits;
+		numStates = 1 << decoder.m_NumPrevBits + decoder.m_NumPosBits;
 
 		for (i = 0; i < numStates; ++i) {
-			this.InitBitModels(obj.m_Coders[i].m_Decoders);
+			this.InitBitModels(decoder.m_Coders[i].m_Decoders);
 		}
 	}
 
-	#DecodeNormal(rangeDecoder: any): number {
-		const _rangeDecoder = this.#decompressor.chunker.decoder.m_RangeDecoder;
-
-		var symbol = 1;
+	#DecodeNormal(decoder: LiteralDecoderEncoder2): number {
+		let symbol = 1;
 		do {
-			symbol = symbol << 1 | this.#decodeBit(rangeDecoder.m_Decoders, symbol);
+			symbol = symbol << 1 | this.#decodeBit(decoder.m_Decoders, symbol);
 		} while (symbol < 256);
 
 		return symbol << 24 >> 24;
 	}
 
 	#DecodeWithMatchByte(
-		obj: any,
+		encoder: LiteralDecoderEncoder2,
 		matchByte: number,
 	): number {
 		let bit, matchBit, symbol = 1;
@@ -1912,14 +1926,14 @@ export class LZMA {
 			matchBit = matchByte >> 7 & 1;
 			matchByte <<= 1;
 			bit = this.#decodeBit(
-				obj.m_Decoders,
+				encoder.m_Decoders,
 				(1 + matchBit << 8) + symbol,
 			);
 			symbol = symbol << 1 | bit;
 
 			if (matchBit != bit) {
 				while (symbol < 256) {
-					symbol = symbol << 1 | this.#decodeBit(obj.m_Decoders, symbol);
+					symbol = symbol << 1 | this.#decodeBit(encoder.m_Decoders, symbol);
 				}
 				break;
 			}
@@ -1928,43 +1942,46 @@ export class LZMA {
 		return symbol << 24 >> 24;
 	}
 
-	#createLiteralDecoderEncoder2(obj: any): LiteralDecoderEncoder2 {
-		obj.m_Decoders = this.#initArray(768);
-		return obj;
+	#createLiteralDecoderEncoder2(): LiteralDecoderEncoder2 {
+		const literalDecoder = {
+			m_Decoders: this.#initArray(0x300),
+		};
+
+		return literalDecoder;
 	}
 
-	#Backward(cur: number) {
-		const obj = this.#compressor.chunker.encoder;
+	#Backward(cur: number): number {
+		const encoder = this.#compressor.chunker.encoder;
 		let backCur, backMem, posMem, posPrev;
 
-		obj._optimumEndIndex = cur;
-		posMem = obj._optimum[cur].PosPrev;
-		backMem = obj._optimum[cur].BackPrev;
+		encoder._optimumEndIndex = cur;
+		posMem = encoder._optimum[cur].PosPrev;
+		backMem = encoder._optimum[cur].BackPrev;
 
 		do {
-			if (obj._optimum[cur].Prev1IsChar) {
-				this.#MakeAsChar(obj._optimum[posMem]);
-				obj._optimum[posMem].PosPrev = posMem - 1;
+			if (encoder._optimum[cur].Prev1IsChar) {
+				this.#MakeAsChar(encoder._optimum[posMem]);
+				encoder._optimum[posMem].PosPrev = posMem - 1;
 
-				if (obj._optimum[cur].Prev2) {
-					obj._optimum[posMem - 1].Prev1IsChar = 0;
-					obj._optimum[posMem - 1].PosPrev = obj._optimum[cur].PosPrev2;
-					obj._optimum[posMem - 1].BackPrev = obj._optimum[cur].BackPrev2;
+				if (encoder._optimum[cur].Prev2) {
+					encoder._optimum[posMem - 1].Prev1IsChar = 0;
+					encoder._optimum[posMem - 1].PosPrev = encoder._optimum[cur].PosPrev2;
+					encoder._optimum[posMem - 1].BackPrev = encoder._optimum[cur].BackPrev2;
 				}
 			}
 
 			posPrev = posMem;
 			backCur = backMem;
-			backMem = obj._optimum[posPrev].BackPrev;
-			posMem = obj._optimum[posPrev].PosPrev;
-			obj._optimum[posPrev].BackPrev = backCur;
-			obj._optimum[posPrev].PosPrev = cur;
+			backMem = encoder._optimum[posPrev].BackPrev;
+			posMem = encoder._optimum[posPrev].PosPrev;
+			encoder._optimum[posPrev].BackPrev = backCur;
+			encoder._optimum[posPrev].PosPrev = cur;
 			cur = posPrev;
 		} while (cur > 0);
 
-		obj.backRes = obj._optimum[0].BackPrev;
-		obj._optimumCurrentIndex = obj._optimum[0].PosPrev;
-		return obj._optimumCurrentIndex;
+		encoder.backRes = encoder._optimum[0].BackPrev;
+		encoder._optimumCurrentIndex = encoder._optimum[0].PosPrev;
+		return encoder._optimumCurrentIndex;
 	}
 
 	#BaseInit(): void {
@@ -2033,7 +2050,7 @@ export class LZMA {
 			);
 
 			this.#Encode_1(
-				this.#GetSubCoder(
+				this.#LZMA_Encoder_GetSubCoder(
 					this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64),
 					this.#compressor.chunker.encoder._previousByte,
 				),
@@ -2069,7 +2086,7 @@ export class LZMA {
 				curByte = this.#GetIndexByte(
 					-this.#compressor.chunker.encoder._additionalOffset,
 				);
-				subCoder = this.#GetSubCoder(
+				subCoder = this.#LZMA_Encoder_GetSubCoder(
 					this.#lowBits_0(this.#compressor.chunker.encoder.nowPos64),
 					this.#compressor.chunker.encoder._previousByte,
 				);
@@ -2281,7 +2298,7 @@ export class LZMA {
 			this.#encoder._matchFinder = binTree;
 		}
 
-		this.#Create_1();
+		this.#LZMA_Encoder_LiteralEncoder_Create();
 
 		if (
 			this.#encoder._dictionarySize == this.#encoder._dictionarySizePrev
@@ -2306,14 +2323,14 @@ export class LZMA {
 		}
 	}
 
-	#FillAlignPrices(encoder: any): void {
+	#FillAlignPrices(encoder: Encoder): void {
 		for (let i = 0; i < 16; ++i) {
 			encoder._alignPrices[i] = this.#ReverseGetPrice(encoder._posAlignEncoder, i);
 		}
 		encoder._alignPriceCount = 0;
 	}
 
-	#FillDistancesPrices(obj: any): void {
+	#FillDistancesPrices(obj: Encoder): void {
 		let baseVal, encoder, footerBits, posSlot, st, st2;
 
 		for (let i = 4; i < 128; ++i) {
@@ -2332,7 +2349,7 @@ export class LZMA {
 			encoder = obj._posSlotEncoder[lenToPosState];
 			st = lenToPosState << 6;
 			for (posSlot = 0; posSlot < obj._distTableSize; posSlot += 1) {
-				obj._posSlotPrices[st + posSlot] = this.#GetPrice_1(
+				obj._posSlotPrices[st + posSlot] = this.#RangeCoder_Encoder_GetPrice_1(
 					encoder,
 					posSlot,
 				);
@@ -2485,8 +2502,8 @@ export class LZMA {
 		posState = position & encoder._posStateMask;
 		encoder._optimum[1].Price = this.#probPrices[
 			encoder._isMatch[(encoder._state << 4) + posState] >>> 2
-		] + this.#GetPrice_0(
-			this.#GetSubCoder(
+		] + this.#RangeCoder_Encoder_GetPrice_0(
+			this.#LZMA_Encoder_GetSubCoder(
 				position,
 				encoder._previousByte,
 			),
@@ -2531,7 +2548,7 @@ export class LZMA {
 		len = lenEnd;
 
 		do {
-			encoder._optimum[len].Price = 268_435_455;
+			encoder._optimum[len].Price = this.#kIfinityPrice;
 			len -= 1;
 		} while (len >= 2);
 
@@ -2547,7 +2564,7 @@ export class LZMA {
 			);
 
 			do {
-				curAndLenPrice = price_4 + this.#GetPrice(
+				curAndLenPrice = price_4 + this.#RangeCoder_Encoder_GetPrice(
 					encoder._repMatchLenEncoder,
 					repLen - 2,
 					posState,
@@ -2574,7 +2591,7 @@ export class LZMA {
 
 			for (;; len += 1) {
 				distance = encoder._matchDistances[offs + 1];
-				curAndLenPrice = normalMatchPrice + this.#GetPosLenPrice(distance, len, posState);
+				curAndLenPrice = normalMatchPrice + this.#LZMA_Encoder_GetPosLenPrice(distance, len, posState);
 				optimum = encoder._optimum[len];
 				if (curAndLenPrice < optimum.Price) {
 					optimum.Price = curAndLenPrice;
@@ -2693,8 +2710,8 @@ export class LZMA {
 			posState = position & encoder._posStateMask;
 			curAnd1Price = curPrice
 				+ this.#probPrices[encoder._isMatch[(state << 4) + posState] >>> 2]
-				+ this.#GetPrice_0(
-					this.#GetSubCoder(position, this.#GetIndexByte(-2)),
+				+ this.#RangeCoder_Encoder_GetPrice_0(
+					this.#LZMA_Encoder_GetSubCoder(position, this.#GetIndexByte(-2)),
 					state >= 7,
 					matchByte,
 					currentByte,
@@ -2761,10 +2778,10 @@ export class LZMA {
 					offset = cur + 1 + lenTest2;
 
 					while (lenEnd < offset) {
-						encoder._optimum[lenEnd += 1].Price = 268_435_455;
+						encoder._optimum[lenEnd += 1].Price = this.#kIfinityPrice;
 					}
 
-					curAndLenPrice = nextRepMatchPrice + (price = this.#GetPrice(
+					curAndLenPrice = nextRepMatchPrice + (price = this.#RangeCoder_Encoder_GetPrice(
 						encoder._repMatchLenEncoder,
 						lenTest2 - 2,
 						posStateNext,
@@ -2801,9 +2818,9 @@ export class LZMA {
 
 				do {
 					while (lenEnd < cur + lenTest) {
-						encoder._optimum[lenEnd += 1].Price = 268_435_455;
+						encoder._optimum[lenEnd += 1].Price = this.#kIfinityPrice;
 					}
-					curAndLenPrice = repMatchPrice + (price_0 = this.#GetPrice(
+					curAndLenPrice = repMatchPrice + (price_0 = this.#RangeCoder_Encoder_GetPrice(
 						encoder._repMatchLenEncoder,
 						lenTest - 2,
 						posState,
@@ -2842,7 +2859,7 @@ export class LZMA {
 					if (lenTest2 >= 2) {
 						state2 = state < 7 ? 8 : 11;
 						posStateNext = position + lenTest & encoder._posStateMask;
-						curAndLenCharPrice = repMatchPrice + (price_1 = this.#GetPrice(
+						curAndLenCharPrice = repMatchPrice + (price_1 = this.#RangeCoder_Encoder_GetPrice(
 							encoder._repMatchLenEncoder,
 							lenTest - 2,
 							posState,
@@ -2854,8 +2871,8 @@ export class LZMA {
 							))
 							+ this.#probPrices[
 								encoder._isMatch[(state2 << 4) + posStateNext] >>> 2
-							] + this.#GetPrice_0(
-								this.#GetSubCoder(
+							] + this.#RangeCoder_Encoder_GetPrice_0(
+								this.#LZMA_Encoder_GetSubCoder(
 									position + lenTest,
 									this.#GetIndexByte(lenTest - 1 - 1),
 								),
@@ -2876,9 +2893,9 @@ export class LZMA {
 						];
 						offset = cur + 1 + lenTest + lenTest2;
 						while (lenEnd < cur + offset) {
-							encoder._optimum[lenEnd += 1].Price = 268_435_455;
+							encoder._optimum[lenEnd += 1].Price = this.#kIfinityPrice;
 						}
-						curAndLenPrice = nextRepMatchPrice + (price_2 = this.#GetPrice(
+						curAndLenPrice = nextRepMatchPrice + (price_2 = this.#RangeCoder_Encoder_GetPrice(
 							encoder._repMatchLenEncoder,
 							lenTest2 - 2,
 							posStateNext,
@@ -2918,7 +2935,7 @@ export class LZMA {
 				normalMatchPrice = matchPrice + this.#probPrices[encoder._isRep[state] >>> 2];
 
 				while (lenEnd < cur + newLen) {
-					encoder._optimum[lenEnd += 1].Price = 268_435_455;
+					encoder._optimum[lenEnd += 1].Price = this.#kIfinityPrice;
 				}
 				offs = 0;
 
@@ -2928,7 +2945,7 @@ export class LZMA {
 
 				for (lenTest = startLen;; lenTest += 1) {
 					curBack = encoder._matchDistances[offs + 1];
-					curAndLenPrice = normalMatchPrice + this.#GetPosLenPrice(curBack, lenTest, posState);
+					curAndLenPrice = normalMatchPrice + this.#LZMA_Encoder_GetPosLenPrice(curBack, lenTest, posState);
 					optimum = encoder._optimum[cur + lenTest];
 
 					if (curAndLenPrice < optimum.Price) {
@@ -2953,14 +2970,19 @@ export class LZMA {
 							if (lenTest2 >= 2) {
 								state2 = state < 7 ? 7 : 10;
 								posStateNext = position + lenTest & encoder._posStateMask;
+
 								curAndLenCharPrice = curAndLenPrice + this.#probPrices[
 									encoder._isMatch[(state2 << 4) + posStateNext] >>> 2
-								] + this.#GetPrice_0(
-									this.#GetSubCoder(position + lenTest, this.#GetIndexByte(lenTest - 1 - 1)),
+								] + this.#RangeCoder_Encoder_GetPrice_0(
+									this.#LZMA_Encoder_GetSubCoder(
+										position + lenTest,
+										this.#GetIndexByte(lenTest - 1 - 1),
+									),
 									1,
 									this.#GetIndexByte(lenTest - (curBack + 1) - 1),
 									this.#GetIndexByte(lenTest - 1),
 								);
+
 								state2 = this.StateUpdateChar(state2);
 								posStateNext = position + lenTest + 1 & encoder._posStateMask;
 								nextMatchPrice = curAndLenCharPrice + this.#probPrices[
@@ -2971,10 +2993,12 @@ export class LZMA {
 									2_048 - encoder._isRep[state2] >>> 2
 								];
 								offset = lenTest + 1 + lenTest2;
+
 								while (lenEnd < cur + offset) {
-									encoder._optimum[lenEnd += 1].Price = 268_435_455;
+									encoder._optimum[lenEnd += 1].Price = this.#kIfinityPrice;
 								}
-								curAndLenPrice = nextRepMatchPrice + (price_3 = this.#GetPrice(
+
+								curAndLenPrice = nextRepMatchPrice + (price_3 = this.#RangeCoder_Encoder_GetPrice(
 									encoder._repMatchLenEncoder,
 									lenTest2 - 2,
 									posStateNext,
@@ -3007,20 +3031,26 @@ export class LZMA {
 		}
 	}
 
-	#GetPosLenPrice(
+	#LZMA_Encoder_GetPosLenPrice(
 		pos: number,
 		len: number,
 		posState: number,
 	): number {
+		const encoder = this.#compressor.chunker.encoder;
 		let price: number, lenToPosState = this.GetLenToPosState(len);
+
 		if (pos < 128) {
-			price = this.#compressor.chunker.encoder._distancesPrices[lenToPosState * 128 + pos];
+			price = encoder._distancesPrices[lenToPosState * 128 + pos];
 		} else {
-			price = this.#compressor.chunker.encoder._posSlotPrices[(lenToPosState << 6) + this.GetPosSlot2(pos)]
-				+ this.#compressor.chunker.encoder._alignPrices[pos & 15];
+			const position = (lenToPosState << 6) + this.GetPosSlot2(pos);
+			price = encoder._posSlotPrices[position] + encoder._alignPrices[pos & 15];
 		}
 
-		return price + this.#GetPrice(this.#compressor.chunker.encoder._lenEncoder, len - 2, posState);
+		return price + this.#RangeCoder_Encoder_GetPrice(
+			encoder._lenEncoder,
+			len - 2,
+			posState,
+		);
 	}
 
 	#GetPureRepPrice(
@@ -3028,7 +3058,7 @@ export class LZMA {
 		state: number,
 		posState: number,
 	): number {
-		var price;
+		let price;
 
 		if (!repIndex) {
 			price = this.#probPrices[this.#compressor.chunker.encoder._isRepG0[state] >>> 2];
@@ -3089,30 +3119,24 @@ export class LZMA {
 	}
 
 	#ReadMatchDistances(): number {
-		var lenRes = 0;
-		this.#compressor.chunker.encoder._numDistancePairs = this.#GetMatches();
+		let lenRes = 0;
+		const encoder = this.#compressor.chunker.encoder!;
+		encoder._numDistancePairs = this.#GetMatches();
 
-		if (this.#compressor.chunker.encoder._numDistancePairs > 0) {
-			lenRes = this
-				.#compressor
-				.chunker
-				.encoder
-				._matchDistances[this.#compressor.chunker.encoder._numDistancePairs - 2];
+		if (encoder._numDistancePairs > 0) {
+			lenRes = encoder._matchDistances[encoder._numDistancePairs - 2];
 
-			if (lenRes == this.#compressor.chunker.encoder._numFastBytes) {
+			if (lenRes == encoder._numFastBytes) {
 				lenRes += this.#GetMatchLen(
 					lenRes - 1,
-					this
-						.#compressor
-						.chunker
-						.encoder
-						._matchDistances[this.#compressor.chunker.encoder._numDistancePairs - 1],
+					encoder._matchDistances[encoder._numDistancePairs - 1],
 					273 - lenRes,
 				);
 			}
 		}
 
-		this.#compressor.chunker.encoder._additionalOffset += 1;
+		encoder._additionalOffset += 1;
+
 		return lenRes;
 	}
 
@@ -3130,11 +3154,9 @@ export class LZMA {
 
 	#SetDictionarySize_0(dictionarySize: number): void {
 		this.#encoder._dictionarySize = dictionarySize;
-		for (
-			var dicLogSize = 0;
-			dictionarySize > (1 << dicLogSize);
-			++dicLogSize
-		);
+
+		let dicLogSize = 0;
+		for (; dictionarySize > (1 << dicLogSize); ++dicLogSize);
 
 		this.#encoder._distTableSize = dicLogSize * 2;
 	}
@@ -3193,7 +3215,7 @@ export class LZMA {
 
 		encoder._state = encoder._state < 7 ? 7 : 10;
 		this.#Encode_0(encoder._lenEncoder, 0, positionState);
-		var lenToPosState = this.GetLenToPosState(2);
+		let lenToPosState = this.GetLenToPosState(2);
 
 		this.#Encode_2(
 			encoder._posSlotEncoder[lenToPosState],
@@ -3229,23 +3251,23 @@ export class LZMA {
 	}
 
 	#Encode(
-		obj: any,
+		encoder: LenEncoder,
 		symbol: number,
 		posState: number,
 	): void {
 		if (symbol < 8) {
-			this.#Encode_3(obj._choice, 0, 0);
-			this.#Encode_2(obj._lowCoder[posState], symbol);
+			this.#Encode_3(encoder._choice, 0, 0);
+			this.#Encode_2(encoder._lowCoder[posState], symbol);
 		} else {
 			symbol -= 8;
-			this.#Encode_3(obj._choice, 0, 1);
+			this.#Encode_3(encoder._choice, 0, 1);
 
 			if (symbol < 8) {
-				this.#Encode_3(obj._choice, 1, 0);
-				this.#Encode_2(obj._midCoder[posState], symbol);
+				this.#Encode_3(encoder._choice, 1, 0);
+				this.#Encode_2(encoder._midCoder[posState], symbol);
 			} else {
-				this.#Encode_3(obj._choice, 1, 1);
-				this.#Encode_2(obj._highCoder, symbol - 8);
+				this.#Encode_3(encoder._choice, 1, 1);
+				this.#Encode_2(encoder._highCoder, symbol - 8);
 			}
 		}
 	}
@@ -3266,7 +3288,7 @@ export class LZMA {
 		return encoder;
 	}
 
-	#Init_2(obj: any, numPosStates: number): void {
+	#Init_2(obj: LenEncoder, numPosStates: number): void {
 		this.InitBitModels(obj._choice);
 		for (let posState = 0; posState < numPosStates; ++posState) {
 			this.InitBitModels(obj._lowCoder[posState].Models);
@@ -3276,55 +3298,55 @@ export class LZMA {
 	}
 
 	#SetPrices(
-		obj: any,
+		encoder: LenEncoder,
 		posState: number,
 		numSymbols: number,
 		prices: number[],
 		st: number,
 	): void {
 		let a0, a1, b0, b1, i;
-		a0 = this.#probPrices[obj._choice[0] >>> 2];
-		a1 = this.#probPrices[2_048 - obj._choice[0] >>> 2];
-		b0 = a1 + this.#probPrices[obj._choice[1] >>> 2];
-		b1 = a1 + this.#probPrices[2_048 - obj._choice[1] >>> 2];
+		a0 = this.#probPrices[encoder._choice[0] >>> 2];
+		a1 = this.#probPrices[2_048 - encoder._choice[0] >>> 2];
+		b0 = a1 + this.#probPrices[encoder._choice[1] >>> 2];
+		b1 = a1 + this.#probPrices[2_048 - encoder._choice[1] >>> 2];
 		i = 0;
 
 		for (i = 0; i < 8; ++i) {
 			if (i >= numSymbols) {
 				return;
 			}
-			prices[st + i] = a0 + this.#GetPrice_1(obj._lowCoder[posState], i);
+			prices[st + i] = a0 + this.#RangeCoder_Encoder_GetPrice_1(encoder._lowCoder[posState], i);
 		}
 
 		for (; i < 16; ++i) {
 			if (i >= numSymbols) {
 				return;
 			}
-			prices[st + i] = b0 + this.#GetPrice_1(obj._midCoder[posState], i - 8);
+			prices[st + i] = b0 + this.#RangeCoder_Encoder_GetPrice_1(encoder._midCoder[posState], i - 8);
 		}
 
 		for (; i < numSymbols; ++i) {
-			prices[st + i] = b1 + this.#GetPrice_1(obj._highCoder, i - 8 - 8);
+			prices[st + i] = b1 + this.#RangeCoder_Encoder_GetPrice_1(encoder._highCoder, i - 8 - 8);
 		}
 	}
 
 	#Encode_0(
-		obj: any,
+		encoder: LenEncoder,
 		symbol: number,
 		posState: number,
 	): void {
-		this.#Encode(obj, symbol, posState);
+		this.#Encode(encoder, symbol, posState);
 
-		if ((obj._counters[posState] -= 1) == 0) {
+		if ((encoder._counters[posState] -= 1) == 0) {
 			this.#SetPrices(
-				obj,
+				encoder,
 				posState,
-				obj._tableSize,
-				obj._prices,
+				encoder._tableSize,
+				encoder._prices,
 				posState * 272,
 			);
 
-			obj._counters[posState] = obj._tableSize;
+			encoder._counters[posState] = encoder._tableSize;
 		}
 	}
 
@@ -3336,32 +3358,32 @@ export class LZMA {
 		return encoder;
 	}
 
-	#GetPrice(
-		obj: any,
+	#RangeCoder_Encoder_GetPrice(
+		encoder: LenEncoder,
 		symbol: number,
 		posState: number,
 	): number {
-		return obj._prices[posState * 272 + symbol];
+		return encoder._prices[posState * 272 + symbol];
 	}
 
-	#UpdateTables(
-		obj: any,
+	#LZMA_LenPriceTableEncoder_UpdateTablesUpdateTables(
+		encoder: LenEncoder,
 		numPosStates: number,
 	): void {
 		for (let posState = 0; posState < numPosStates; ++posState) {
 			this.#SetPrices(
-				obj,
+				encoder,
 				posState,
-				obj._tableSize,
-				obj._prices,
+				encoder._tableSize,
+				encoder._prices,
 				posState * 272,
 			);
 
-			obj._counters[posState] = obj._tableSize;
+			encoder._counters[posState] = encoder._tableSize;
 		}
 	}
 
-	#Create_1(): void {
+	#LZMA_Encoder_LiteralEncoder_Create(): void {
 		let i, numStates;
 
 		if (
@@ -3380,11 +3402,11 @@ export class LZMA {
 		this.#encoder._literalEncoder.m_Coders = this.#initArray(numStates);
 
 		for (i = 0; i < numStates; ++i) {
-			this.#encoder._literalEncoder.m_Coders[i] = this.#createLiteralEncoderEncoder2({});
+			this.#encoder._literalEncoder.m_Coders[i] = this.#createLiteralEncoderEncoder2();
 		}
 	}
 
-	#GetSubCoder(pos: number, prevByte: number): number {
+	#LZMA_Encoder_GetSubCoder(pos: number, prevByte: number): LiteralDecoderEncoder2 {
 		const literalEncoder = this.#compressor.chunker.encoder._literalEncoder;
 
 		// Calculate position mask bits
@@ -3411,20 +3433,20 @@ export class LZMA {
 	}
 
 	#Encode_1(
-		obj: any,
+		encoder: LiteralDecoderEncoder2,
 		symbol: number,
 	): void {
-		var bit, context = 1;
+		let bit, context = 1;
 
 		for (let i = 7; i >= 0; --i) {
 			bit = symbol >> i & 1;
-			this.#Encode_3(obj.m_Encoders, context, bit);
+			this.#Encode_3(encoder.m_Encoders, context, bit);
 			context = context << 1 | bit;
 		}
 	}
 
 	#EncodeMatched(
-		obj: any,
+		encoder: LiteralDecoderEncoder2,
 		matchByte: number,
 		symbol: number,
 	): void {
@@ -3440,17 +3462,25 @@ export class LZMA {
 				same = matchBit === bit;
 			}
 
-			this.#Encode_3(obj.m_Encoders, state, bit);
+			this.#Encode_3(encoder.m_Encoders, state, bit);
 			context = context << 1 | bit;
 		}
 	}
 
-	#createLiteralEncoderEncoder2(obj: any): LiteralDecoderEncoder2 {
-		obj.m_Encoders = this.#initArray(768);
-		return obj;
+	#createLiteralEncoderEncoder2(): LiteralDecoderEncoder2 {
+		const encoder = {
+			m_Encoders: this.#initArray(768),
+		} as LiteralDecoderEncoder2;
+
+		return encoder;
 	}
 
-	#GetPrice_0(obj: any, matchMode: boolean, matchByte: number, symbol: number): number {
+	#RangeCoder_Encoder_GetPrice_0(
+		encoder: LiteralDecoderEncoder2,
+		matchMode: boolean,
+		matchByte: number,
+		symbol: number,
+	): number {
 		let bit, context = 1, i = 7, matchBit, price = 0;
 
 		if (matchMode) {
@@ -3458,7 +3488,7 @@ export class LZMA {
 				matchBit = matchByte >> i & 1;
 				bit = symbol >> i & 1;
 				price += this.GetPrice(
-					obj.m_Encoders[(1 + matchBit << 8) + context],
+					encoder.m_Encoders[(1 + matchBit << 8) + context],
 					bit,
 				);
 				context = context << 1 | bit;
@@ -3469,22 +3499,24 @@ export class LZMA {
 				}
 			}
 		}
+
 		for (; i >= 0; --i) {
 			bit = symbol >> i & 1;
-			price += this.GetPrice(obj.m_Encoders[context], bit);
+			price += this.GetPrice(encoder.m_Encoders[context], bit);
 			context = context << 1 | bit;
 		}
+
 		return price;
 	}
 
-	#MakeAsChar(obj: any): void {
-		obj.BackPrev = -1;
-		obj.Prev1IsChar = 0;
+	#MakeAsChar(optimum: Optimum): void {
+		optimum.BackPrev = -1;
+		optimum.Prev1IsChar = 0;
 	}
 
-	#MakeAsShortRep(obj: any): void {
-		obj.BackPrev = 0;
-		obj.Prev1IsChar = 0;
+	#MakeAsShortRep(optimum: Optimum): void {
+		optimum.BackPrev = 0;
+		optimum.Prev1IsChar = 0;
 	}
 
 	#createBitTreeDecoder(numBitLevels: number): BitTreeDecoder {
@@ -3494,8 +3526,7 @@ export class LZMA {
 		};
 	}
 
-	// BitTreeDecoder.Decoder
-	#Decode_0(rangeDecoder: any): number {
+	#RangeCoder_BitTreeDecoder_Decoder(rangeDecoder: BitTreeDecoder): number {
 		const _rangeDecoder = this.#decompressor.chunker.decoder.m_RangeDecoder;
 
 		let bitIndex, m = 1;
@@ -3555,33 +3586,37 @@ export class LZMA {
 	}
 
 	#Encode_2(
-		obj: any,
+		encoder: BitTreeEncoder,
 		symbol: number,
 	): void {
-		var bit, bitIndex, m = 1;
-		for (bitIndex = obj.NumBitLevels; bitIndex != 0;) {
+		let bit, bitIndex, m = 1;
+		for (bitIndex = encoder.NumBitLevels; bitIndex != 0;) {
 			bitIndex -= 1;
 			bit = symbol >>> bitIndex & 1;
-			this.#Encode_3(obj.Models, m, bit);
+			this.#Encode_3(encoder.Models, m, bit);
 			m = m << 1 | bit;
 		}
 	}
 
-	#GetPrice_1(obj: any, symbol: number): number {
-		var bit, bitIndex, m = 1, price = 0;
-		for (bitIndex = obj.NumBitLevels; bitIndex != 0;) {
+	#RangeCoder_Encoder_GetPrice_1(
+		encoder: BitTreeEncoder,
+		symbol: number,
+	): number {
+		let bit, bitIndex, m = 1, price = 0;
+		for (bitIndex = encoder.NumBitLevels; bitIndex != 0;) {
 			bitIndex -= 1;
 			bit = symbol >>> bitIndex & 1;
-			price += this.GetPrice(obj.Models[m], bit);
+			price += this.GetPrice(encoder.Models[m], bit);
 			m = (m << 1) + bit;
 		}
+
 		return price;
 	}
 
 	#ReverseEncode(symbol: number): void {
 		const posAlignEncoder = this.#compressor.chunker.encoder._posAlignEncoder;
 
-		var bit, m = 1;
+		let bit, m = 1;
 		for (let i = 0; i < posAlignEncoder.NumBitLevels; ++i) {
 			bit = symbol & 1;
 			this.#Encode_3(posAlignEncoder.Models, m, bit);
@@ -3606,15 +3641,15 @@ export class LZMA {
 	}
 
 	#ReverseGetPrice(
-		obj: any,
+		encoder: BitTreeEncoder,
 		symbol: number,
 	): number {
 		let bit, m = 1, price = 0;
 
-		for (let i = obj.NumBitLevels; i != 0; i -= 1) {
+		for (let i = encoder.NumBitLevels; i != 0; i -= 1) {
 			bit = symbol & 1;
 			symbol >>>= 1;
-			price += this.GetPrice(obj.Models[m], bit);
+			price += this.GetPrice(encoder.Models[m], bit);
 			m = m << 1 | bit;
 		}
 
@@ -3627,7 +3662,8 @@ export class LZMA {
 		NumBitLevels: number,
 		symbol: number,
 	): number {
-		var bit, m = 1, price = 0;
+		let bit, m = 1, price = 0;
+
 		for (let i = NumBitLevels; i != 0; i -= 1) {
 			bit = symbol & 1;
 			symbol >>>= 1;
@@ -3711,7 +3747,7 @@ export class LZMA {
 	): void {
 		const rangeEncoder = this.#compressor.chunker.encoder._rangeEncoder;
 
-		var newBound, prob = probs[index];
+		let newBound, prob = probs[index];
 		newBound = (rangeEncoder.Range >>> 11) * prob;
 
 		if (!symbol) {
