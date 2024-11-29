@@ -36,12 +36,18 @@ interface RangeDecoder extends BaseRangeCoder {
 	Range: number;
 }
 
+interface BufferWithCount {
+	buf: number[];
+	count: number;
+}
+
 interface RangeEncoder extends BaseRangeCoder {
 	Low: [number, number];
 	Range: number;
 	_cacheSize: number;
 	_cache: number;
 	_position: [number, number];
+	Stream: BufferWithCount;
 }
 
 interface OutWindow extends BaseWindow {
@@ -71,15 +77,7 @@ interface Encoder {
 	_repDistances: number[];
 	_optimum: Optimum[];
 
-	_rangeEncoder: {
-		_cache: number;
-		Low: [number, number];
-		Range: number;
-		Stream: {
-			buf: BitTreeEncoder[];
-			count: number;
-		};
-	};
+	_rangeEncoder: RangeEncoder;
 
 	_isMatch: number[];
 	_isRep: number[];
@@ -192,22 +190,6 @@ interface MatchFinder {
 	_cutValue?: number;
 }
 
-interface CompressionContext {
-	length_0?: [number, number];
-	chunker: {
-		inBytesProcessed: [number, number];
-		alive: number;
-		encoder: Encoder | null;
-		decoder: Decoder | null;
-	};
-	output: {
-		buf: number[];
-		count: number;
-	};
-}
-
-type DecompressionContext = CompressionContext;
-
 interface LiteralEncoder {
 	m_NumPrevBits: number;
 	m_NumPosBits: number;
@@ -293,15 +275,20 @@ const CRC32_TABLE = [
 ];
 
 export class LZMA {
-	readonly #MAX_UINT32 = 4_294_967_296;
-	readonly #MAX_INT32 = 2_147_483_647;
-	readonly #MIN_INT32 = -2_147_483_648;
-	readonly #MAX_COMPRESSION_SIZE = 9_223_372_036_854_775_807;
+	readonly #MAX_UINT32 = 0x100000000; // 2^32
+	readonly #_MAX_UINT32 = 0xFFFFFFFF; // 2^32 - 1
+	readonly #MAX_INT32 = 0x7FFFFFFF; // 2^31 - 1
+	readonly #MIN_INT32 = -0x80000000; // -2^31
+	readonly #MAX_UINT64 = 0x10000000000000000; // 2^64
+	readonly #MAX_INT64 = 0x7FFFFFFFFFFFFFFF; // 2^63
+	readonly #MIN_INT64 = -0x8000000000000000; // -2^63
+	readonly #MAX_COMPRESSION_SIZE = 0x7FFFFFFFFFFFFFFF; // 2^63 - 1
+	readonly #kIfinityPrice = 0xFFFFFFF; // 2^28 - 1
+	readonly #dictionarySizeThreshold = 0x3FFFFFFF;
 	readonly #N1_LONG_LIT: [number, number];
 	readonly #MIN_VALUE: [number, number];
 	readonly #P0_LONG_LIT: [number, number] = [0, 0];
 	readonly #P1_LONG_LIT: [number, number] = [1, 0];
-	readonly #kIfinityPrice = 268435455;
 
 	readonly CompressionModes = {
 		1: { searchDepth: 16, filterStrength: 64, modeIndex: 0 },
@@ -322,9 +309,11 @@ export class LZMA {
 	#compressor: CompressionContext;
 	#decompressor: DecompressionContext;
 
+	readonly bitMaskForRange = -16777216;
+
 	constructor() {
-		this.#N1_LONG_LIT = [4294967295, -this.#MAX_UINT32];
-		this.#MIN_VALUE = [0, -9223372036854775808];
+		this.#N1_LONG_LIT = [this.#_MAX_UINT32, -this.#MAX_UINT32];
+		this.#MIN_VALUE = [0, this.#MIN_INT64];
 
 		this.#encoder = this.#initEncoder();
 		this.#decoder = this.#initDecoder();
@@ -523,8 +512,8 @@ export class LZMA {
 		valueHigh: number,
 	): [number, number] {
 		let diffHigh, diffLow;
-		valueHigh %= 1.8446744073709552E19;
-		valueLow %= 1.8446744073709552E19;
+		valueHigh %= this.#MAX_UINT64;
+		valueLow %= this.#MAX_UINT64;
 		diffHigh = valueHigh % this.#MAX_UINT32;
 		diffLow = Math.floor(valueLow / this.#MAX_UINT32) * this.#MAX_UINT32;
 		valueHigh = valueHigh - diffHigh + diffLow;
@@ -535,18 +524,18 @@ export class LZMA {
 			valueHigh -= this.#MAX_UINT32;
 		}
 
-		while (valueLow > 4294967295) {
+		while (valueLow > this.#MAX_UINT32) {
 			valueLow -= this.#MAX_UINT32;
 			valueHigh += this.#MAX_UINT32;
 		}
-		valueHigh = valueHigh % 1.8446744073709552E19;
+		valueHigh = valueHigh % this.#MAX_UINT64;
 
-		while (valueHigh > 9223372032559808512) {
-			valueHigh -= 1.8446744073709552E19;
+		while (valueHigh > this.#MAX_INT64) {
+			valueHigh -= this.#MAX_UINT64;
 		}
 
-		while (valueHigh < -9223372036854775808) {
-			valueHigh += 1.8446744073709552E19;
+		while (valueHigh < this.#MIN_INT64) {
+			valueHigh += this.#MAX_UINT64;
 		}
 
 		return [valueLow, valueHigh];
@@ -601,14 +590,14 @@ export class LZMA {
 			throw new Error("Neg");
 		}
 		twoToN = this.#pwrAsDouble(n);
-		newHigh = a[1] * twoToN % 1.8446744073709552E19;
+		newHigh = a[1] * twoToN % this.#MAX_UINT64;
 		newLow = a[0] * twoToN;
 		diff = newLow - newLow % this.#MAX_UINT32;
 		newHigh += diff;
 		newLow -= diff;
 
 		if (newHigh >= this.#MAX_COMPRESSION_SIZE) {
-			newHigh -= 1.8446744073709552E19;
+			newHigh -= this.#MAX_UINT64;
 		}
 
 		return [newLow, newHigh];
@@ -669,12 +658,12 @@ export class LZMA {
 		return data;
 	}
 
-	#write(obj: { buf: number[]; count: number; }, b: number): void {
-		obj.buf[obj.count++] = b << 24 >> 24;
+	#write(buffer: BufferWithCount, b: number): void {
+		buffer.buf[buffer.count++] = b & 0xFF;
 	}
 
 	#write_0(
-		obj: { buf: number[]; count: number; },
+		buffer: BufferWithCount,
 		buf: number[],
 		off: number,
 		len: number,
@@ -682,12 +671,12 @@ export class LZMA {
 		this.#arraycopy(
 			buf,
 			off,
-			obj.buf,
-			obj.count,
+			buffer.buf,
+			buffer.count,
 			len,
 		);
 
-		obj.count += len;
+		buffer.count += len;
 	}
 
 	#getChars(
@@ -702,7 +691,13 @@ export class LZMA {
 		}
 	}
 
-	#arraycopy(src: number[], srcOfs: number, dest: number[], destOfs: number, len: number): void {
+	#arraycopy(
+		src: number[],
+		srcOfs: number,
+		dest: number[],
+		destOfs: number,
+		len: number,
+	): void {
 		for (let i = 0; i < len; ++i) {
 			try {
 				dest[destOfs + i] = src[srcOfs + i];
@@ -820,7 +815,7 @@ export class LZMA {
 			if (r == -1) {
 				throw new Error("truncated input");
 			}
-			properties[i] = r << 24 >> 24;
+			properties[i] = r & 0xFF;
 		}
 
 		if (!this.#SetDecoderProperties(properties)) {
@@ -851,7 +846,7 @@ export class LZMA {
 			 */
 			tmp_length = parseInt(hex_length, 16);
 			// If the length is too long to handle, just set it to unknown.
-			if (tmp_length > 4294967295) {
+			if (tmp_length > this.#_MAX_UINT32) {
 				this.#compressor.length_0 = this.#N1_LONG_LIT;
 			} else {
 				this.#compressor.length_0 = this.#fromInt(tmp_length);
@@ -1031,7 +1026,7 @@ export class LZMA {
 		keepAddBufferBefore: number,
 		keepAddBufferAfter: number,
 	): void {
-		if (this.#encoder._dictionarySize < 1073741567) {
+		if (this.#encoder._dictionarySize < this.#dictionarySizeThreshold) {
 			this.#encoder._matchFinder._cutValue = 16 + (this.#encoder._numFastBytes >> 1);
 			const windowReservSize = ~~((this.#encoder._dictionarySize
 				+ keepAddBufferBefore
@@ -1914,7 +1909,7 @@ export class LZMA {
 			symbol = symbol << 1 | this.#decodeBit(decoder.m_Decoders, symbol);
 		} while (symbol < 256);
 
-		return symbol << 24 >> 24;
+		return symbol & 0xFF;
 	}
 
 	#DecodeWithMatchByte(
@@ -1939,7 +1934,7 @@ export class LZMA {
 			}
 		} while (symbol < 256);
 
-		return symbol << 24 >> 24;
+		return symbol & 0xFF;
 	}
 
 	#createLiteralDecoderEncoder2(): LiteralDecoderEncoder2 {
@@ -3686,7 +3681,7 @@ export class LZMA {
 		if ((rangeDecoder.Code ^ this.#MIN_INT32) < (newBound ^ this.#MIN_INT32)) {
 			rangeDecoder.Range = newBound;
 			probs[index] = prob + (2_048 - prob >>> 5) << 16 >> 16;
-			if (!(rangeDecoder.Range & -16777216)) {
+			if (!(rangeDecoder.Range & this.bitMaskForRange)) {
 				rangeDecoder.Code = rangeDecoder.Code << 8 | this.#read(rangeDecoder.Stream);
 				rangeDecoder.Range <<= 8;
 			}
@@ -3696,7 +3691,7 @@ export class LZMA {
 			rangeDecoder.Range -= newBound;
 			rangeDecoder.Code -= newBound;
 			probs[index] = prob - (prob >>> 5) << 16 >> 16;
-			if (!(rangeDecoder.Range & -16777216)) {
+			if (!(rangeDecoder.Range & this.bitMaskForRange)) {
 				rangeDecoder.Code = rangeDecoder.Code << 8 | this.#read(rangeDecoder.Stream);
 				rangeDecoder.Range <<= 8;
 			}
@@ -3715,7 +3710,7 @@ export class LZMA {
 			rangeDecoder.Code -= rangeDecoder.Range & t - 1;
 			result = result << 1 | 1 - t;
 
-			if (!(rangeDecoder.Range & -16777216)) {
+			if (!(rangeDecoder.Range & this.bitMaskForRange)) {
 				rangeDecoder.Code = rangeDecoder.Code << 8 | this.#read(rangeDecoder.Stream);
 				rangeDecoder.Range <<= 8;
 			}
@@ -3756,13 +3751,13 @@ export class LZMA {
 		} else {
 			rangeEncoder.Low = this.#add(
 				rangeEncoder.Low,
-				this.#and(this.#fromInt(newBound), [4294967295, 0]),
+				this.#and(this.#fromInt(newBound), [this.#_MAX_UINT32, 0]),
 			);
 			rangeEncoder.Range -= newBound;
 			probs[index] = prob - (prob >>> 5) << 16 >> 16;
 		}
 
-		if (!(rangeEncoder.Range & -16777216)) {
+		if (!(rangeEncoder.Range & this.bitMaskForRange)) {
 			rangeEncoder.Range <<= 8;
 			this.#ShiftLow();
 		}
@@ -3779,7 +3774,7 @@ export class LZMA {
 			if ((valueToEncode >>> i & 1) == 1) {
 				rangeEncoder.Low = this.#add(rangeEncoder.Low, this.#fromInt(rangeEncoder.Range));
 			}
-			if (!(rangeEncoder.Range & -16777216)) {
+			if (!(rangeEncoder.Range & this.bitMaskForRange)) {
 				rangeEncoder.Range <<= 8;
 				this.#ShiftLow();
 			}
@@ -3925,14 +3920,14 @@ export class LZMA {
 		for (let i = 0; i < l; ++i) {
 			ch = chars[i];
 			if (ch >= 1 && ch <= 127) {
-				data[elen++] = ch << 24 >> 24;
+				data[elen++] = ch & 0xFF;
 			} else if (!ch || ch >= 128 && ch <= 2047) {
-				data[elen++] = (192 | ch >> 6 & 31) << 24 >> 24;
-				data[elen++] = (128 | ch & 63) << 24 >> 24;
+				data[elen++] = (192 | ch >> 6 & 31) & 0xFF;
+				data[elen++] = (128 | ch & 63) & 0xFF;
 			} else {
-				data[elen++] = (224 | ch >> 12 & 15) << 24 >> 24;
-				data[elen++] = (128 | ch >> 6 & 63) << 24 >> 24;
-				data[elen++] = (128 | ch & 63) << 24 >> 24;
+				data[elen++] = (224 | ch >> 12 & 15) & 0xFF;
+				data[elen++] = (128 | ch >> 6 & 63) & 0xFF;
+				data[elen++] = (128 | ch & 63) & 0xFF;
 			}
 		}
 
