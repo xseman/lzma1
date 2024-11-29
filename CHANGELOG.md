@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.5](https://github.com/xseman/lzma1/compare/v0.0.4...v0.0.5) (2024-11-29)
+
+
+### Maintenance
+
+* add pre-release workflow ([b3cc9b8](https://github.com/xseman/lzma1/commit/b3cc9b8977354a9257edfbb237fa209ebd2f9dbd))
+* fix release config ([64dbfc8](https://github.com/xseman/lzma1/commit/64dbfc8e103594d9cd17b3f7c163e0ce405388bd))
+
 ## [0.0.4](https://github.com/xseman/lzma1/compare/v0.0.3...v0.0.4) (2024-11-27)
 
 
