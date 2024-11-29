@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/xseman/lzma1/compare/v0.0.4...v0.0.5) (2024-11-29)
+
+
+### Continuous Integration
+
+* fix release config ([64dbfc8](https://github.com/xseman/lzma1/commit/64dbfc8e103594d9cd17b3f7c163e0ce405388bd))
+
 ## [0.0.4](https://github.com/xseman/lzma1/compare/v0.0.3...v0.0.4) (2024-11-27)
 
 
