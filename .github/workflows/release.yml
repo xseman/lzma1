@@ -1,6 +1,10 @@
 name: release-please
 
 on:
+    push:
+        branches:
+            - master
+            - next
     workflow_run:
         workflows:
             - "quality checks"
@@ -19,21 +23,23 @@ permissions:
     id-token: write
 
 jobs:
-    release-please:
+    release:
         runs-on: ubuntu-latest
+        if: github.ref_name == 'master'
         steps:
             - uses: googleapis/release-please-action@v4
-              id: release
               if: ${{ !github.event.inputs.tag }}
+              id: release
               with:
                   manifest-file: .github/.release-please-manifest.json
-                  config-file: .github/release-please-config.json
+                  config-file: .github/.release-please-config.json
                   token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+                  target-branch: ${{ github.ref_name }}
 
             - uses: actions/checkout@v4
               if: ${{ steps.release.outputs.release_created || github.event.inputs.tag }}
               with:
-                  ref: ${{ github.event.inputs.tag || github.ref }}
+                  ref: ${{ github.event.inputs.tag || github.ref_name }}
 
             - uses: actions/setup-node@v4
               if: ${{ steps.release.outputs.release_created || github.event.inputs.tag}}
@@ -47,4 +53,36 @@ jobs:
               run: >
                   npm install &&
                   npm run build &&
-                  npm publish --provenance --access public
+                  npm publish --provenance --access public --tag latest
+
+    prerelease:
+        runs-on: ubuntu-latest
+        if: ${{ github.ref_name == 'next' }}
+        steps:
+            - uses: googleapis/release-please-action@v4
+              if: ${{ !github.event.inputs.tag }}
+              id: prerelease
+              with:
+                  manifest-file: .github/.release-please-manifest.json
+                  config-file: .github/.pre-release-please-config.json
+                  token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+                  target-branch: ${{ github.ref_name }}
+
+            - uses: actions/checkout@v4
+              if: ${{ steps.prerelease.outputs.release_created || github.event.inputs.tag }}
+              with:
+                  ref: ${{ github.event.inputs.tag || github.ref_name }}
+
+            - uses: actions/setup-node@v4
+              if: ${{ steps.prerelease.outputs.release_created || github.event.inputs.tag}}
+              with:
+                  node-version-file: ".nvmrc"
+                  registry-url: "https://registry.npmjs.org"
+
+            - if: ${{ steps.prerelease.outputs.release_created || github.event.inputs.tag }}
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: >
+                  npm install &&
+                  npm run build &&
+                  npm publish --provenance --access public --tag next
