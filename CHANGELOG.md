@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/xseman/lzma1/compare/v0.5.0...v0.5.1) (2024-12-04)
+
+
+### Maintenance
+
+* update config ([a3e757c](https://github.com/xseman/lzma1/commit/a3e757c439727ab54e11c6c2506b75f72f9790f2))
+
 ## [0.5.0](https://github.com/xseman/lzma1/compare/v0.4.0-next.0...v0.5.0) (2024-12-04)
 
 
