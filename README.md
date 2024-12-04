@@ -1,6 +1,7 @@
 # lzma1
 
-This is a simplified [fork][fork-link] of [Nathan Rugg's][fork-author] package.
+This is a [fork][fork-link] of [Nathan Rugg's][fork-author] package that adds
+types and makes the logic more structured and readable.
 
 [fork-link]: https://github.com/LZMA-JS/LZMA-JS
 [fork-author]: https://github.com/nmrugg
@@ -64,8 +65,16 @@ const decompressed = decompress(result);
 // data === decompressed
 ```
 
+## LZMA header
+
+More [information][header_link] about the LZMA header.
+
+![lzma](./docs/lzma.svg)
+
 ## Related
 
 - <https://github.com/cscott/lzma-purejs>
 - <https://github.com/glinscott/lzmajs>
 - <https://github.com/mauron85/lzma-purejs/tree/master>
+
+[header_link]: https://docs.fileformat.com/compression/lzma/#lzma-header
