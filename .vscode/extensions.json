@@ -1,6 +1,7 @@
 {
 	"recommendations": [
 		"dprint.dprint",
-		"editorconfig.editorconfig"
+		"editorconfig.editorconfig",
+		"pomdtr.excalidraw-editor"
 	]
 }
