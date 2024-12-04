@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/xseman/lzma1/compare/v0.4.0-next.0...v0.5.0) (2024-12-04)
+
+
+### Documentation
+
+* update README & header diagram ([a2e0fc4](https://github.com/xseman/lzma1/commit/a2e0fc4acb1b16a9322a47b9d1aed7631ee9ffbf))
+
+
+### Maintenance
+
+* improve types & constants ([ebafca8](https://github.com/xseman/lzma1/commit/ebafca81391daafaa0dfc8c51e3af82142450ef5))
+* update workflows & configs ([c002794](https://github.com/xseman/lzma1/commit/c0027949fa79d8ec36b5f7db2837845e962e4fb7))
+
 ## [0.4.0-next.0](https://github.com/xseman/lzma1/compare/v0.0.4...v0.4.0-next.0) (2024-11-29)
 
 
