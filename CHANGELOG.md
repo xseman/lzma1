@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.6](https://github.com/xseman/lzma1/compare/v0.0.5...v0.0.6) (2025-03-29)
+
+
+### Maintenance
+
+* types, consistency, docs & tests ([#14](https://github.com/xseman/lzma1/issues/14)) ([2d354c1](https://github.com/xseman/lzma1/commit/2d354c1f85f29637258b801845678b4f3264fded))
+* update deps & configs ([#12](https://github.com/xseman/lzma1/issues/12)) ([d55f8ef](https://github.com/xseman/lzma1/commit/d55f8ef47dbe5f4656a7dde6300fb32b151938e2))
+
 ## [0.0.5](https://github.com/xseman/lzma1/compare/v0.0.4...v0.0.5) (2024-12-10)
 
 
