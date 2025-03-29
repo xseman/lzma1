@@ -238,17 +238,6 @@ interface DecompressionContext {
 	output: BufferWithCount;
 }
 
-// Computed CRC32 lookup table
-// const CRC32_TABLE = new Uint32Array(256);
-
-// for (let i = 0; i < CRC32_TABLE.length; i++) {
-// 	let crc = i;
-// 	for (let j = 0; j < 8; j++) {
-// 		crc = (crc >>> 1) ^ (0xEDB88320 * (crc & 1));
-// 	}
-// 	CRC32_TABLE[i] = crc;
-// }
-
 // dprint-ignore
 const CRC32_TABLE = [
 	0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F,
