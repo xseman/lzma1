@@ -27,29 +27,23 @@
 		"fmt": "dprint fmt",
 		"fmt:check": "dprint check",
 		"typecheck": "tsc --noEmit",
-		"test": "TS_NODE_TRANSPILE_ONLY=true node --no-warnings --test --test-reporter=spec --loader=ts-node/esm ./*.test.ts",
-		"test:watch": "TS_NODE_TRANSPILE_ONLY=true node --no-warnings --test --watch --test-reporter=spec --loader=ts-node/esm ./*.test.ts"
+		"test": "TS_NODE_TRANSPILE_ONLY=true node --test --experimental-test-coverage --test-coverage-exclude=*.test.ts --loader=ts-node/esm --no-warnings *.test.ts",
+		"test:watch": "TS_NODE_TRANSPILE_ONLY=true node --test --watch --loader=ts-node/esm --no-warnings *.test.ts"
 	},
-	"dependencies": {},
 	"devDependencies": {
-		"@types/node": "^22.10.0",
-		"dprint": "~0.47.0",
+		"@types/node": "^22.13.0",
+		"dprint": "~0.49.0",
 		"ts-node": "~10.9.0",
-		"typescript": "^5.7.0"
+		"typescript": "^5.8.0"
 	},
-	"types": "./dist/lzma.d.ts",
-	"module": "./dist/lzma.js",
 	"exports": {
 		".": {
-			"import": "./dist/lzma.js"
+			"import": "./dist/lzma.js",
+			"types": "./dist/lzma.d.ts"
 		}
 	},
 	"files": [
 		"dist",
-		"!dist/*.test.*"
-	],
-	"engines": {
-		"node": ">=18.8",
-		"npm": ">=7.0"
-	}
+		"!dist/*test*"
+	]
 }
