@@ -25,6 +25,7 @@
         // "noLib": true,                                    /* Disable including any library files, including the default lib.d.ts. */
         // "useDefineForClassFields": true,                  /* Emit ECMAScript-standard-compliant class fields. */
         // "moduleDetection": "auto",                        /* Control what method is used to detect module-format JS files. */
+        // "libReplacement": true,                           /* Enable lib replacement. */
 
         /* Modules */
         "module": "Node16",                                  /* Specify what module code is generated. */
@@ -44,6 +45,8 @@
         "resolveJsonModule": true,                           /* Enable importing .json files. */
         // "allowArbitraryExtensions": true,                 /* Enable importing files with any extension, provided a declaration file is present. */
         // "noResolve": true,                                /* Disallow 'import's, 'require's or '<reference>'s from expanding the number of files TypeScript should add to a project. */
+        // "rewriteRelativeImportExtensions": true,          /* Rewrite '.ts', '.tsx', '.mts', and '.cts' file extensions in relative import paths to their JavaScript equivalent in output files. */
+        // "noUncheckedSideEffectImports": true,             /* Check side effect imports. */
 
         /* JavaScript Support */
         // "allowJs": true,                                  /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */
@@ -82,6 +85,8 @@
         "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
         // "preserveSymlinks": true,                         /* Disable resolving symlinks to their realpath. This correlates to the same flag in node. */
         "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
+		// "isolatedDeclarations": true,                     /* Require sufficient annotation on exports so other tools can trivially generate declaration files. */
+		// "erasableSyntaxOnly": true,                       /* Do not allow runtime constructs that are not part of ECMAScript. */
 
         /* Type Checking */
         "strict": true,                                      /* Enable all strict type-checking options. */
@@ -103,6 +108,7 @@
         // "noPropertyAccessFromIndexSignature": true,       /* Enforces using indexed accessors for keys declared using an indexed type. */
         // "allowUnusedLabels": true,                        /* Disable error reporting for unused labels. */
         // "allowUnreachableCode": true,                     /* Disable error reporting for unreachable code. */
+		// "strictBuiltinIteratorReturn": true,              /* Built-in iterators are instantiated with a 'TReturn' type of 'undefined' instead of 'any'. */
 
         /* Completeness */
         // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
