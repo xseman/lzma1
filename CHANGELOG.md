@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.7](https://github.com/xseman/lzma1/compare/v0.0.6...v0.0.7) (2025-05-07)
+
+
+### Maintenance
+
+* speedup tests using Bun with Node compatible tests & other improvements ([592489a](https://github.com/xseman/lzma1/commit/592489aab23007d517aed20ce6ce4385abe03901))
+* update copyright year and owner ([296ee0b](https://github.com/xseman/lzma1/commit/296ee0bbf991feac453d4e108b2a9f8b90ea7179))
+
 ## [0.0.6](https://github.com/xseman/lzma1/compare/v0.0.5...v0.0.6) (2025-03-29)
 
 
