@@ -3,10 +3,7 @@
 	"type": "module",
 	"version": "0.0.6",
 	"license": "Apache-2.0",
-	"authors": [
-		"Filip Seman <filip.seman@pm.me>",
-		"Nathan Rugg <nmrugg@gmail.com> - Original library"
-	],
+	"author": "Filip Seman <filip.seman@pm.me>",
 	"description": "A JavaScript implementation of the Lempel-Ziv-Markov (LZMA) chain compression algorithm",
 	"funding": "https://github.com/sponsors/xseman",
 	"homepage": "https://github.com/xseman/lzma1#readme",
@@ -27,23 +24,23 @@
 		"fmt": "dprint fmt",
 		"fmt:check": "dprint check",
 		"typecheck": "tsc --noEmit",
-		"test": "TS_NODE_TRANSPILE_ONLY=true node --test --experimental-test-coverage --test-coverage-exclude=*.test.ts --loader=ts-node/esm --no-warnings *.test.ts",
-		"test:watch": "TS_NODE_TRANSPILE_ONLY=true node --test --watch --loader=ts-node/esm --no-warnings *.test.ts"
+		"test": "bun test --coverage *.test.ts",
+		"test:watch": "bun test --watch --coverage *.test.ts"
 	},
 	"devDependencies": {
 		"@types/node": "^22.13.0",
 		"dprint": "~0.49.0",
-		"ts-node": "~10.9.0",
 		"typescript": "^5.8.0"
 	},
 	"exports": {
+		"./package.json": "./package.json",
 		".": {
-			"import": "./dist/index.js",
-			"types": "./dist/index.d.ts"
+			"import": "./lib/index.js",
+			"types": "./lib/index.d.ts"
 		}
 	},
 	"files": [
-		"dist",
-		"!dist/*test*"
+		"lib",
+		"!lib/*test*"
 	]
 }
