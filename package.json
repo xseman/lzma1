@@ -10,9 +10,7 @@
 	"keywords": [
 		"lzma",
 		"lzma1",
-		"lzma alone",
-		"compression",
-		"decompression"
+		"lzma alone"
 	],
 	"repository": {
 		"type": "git",
@@ -24,8 +22,8 @@
 		"fmt": "dprint fmt",
 		"fmt:check": "dprint check",
 		"typecheck": "tsc --noEmit",
-		"test": "bun test --coverage *.test.ts",
-		"test:watch": "bun test --watch --coverage *.test.ts"
+		"test": "bun test --coverage lzma.test.ts",
+		"test:watch": "bun test --watch lzma.test.ts"
 	},
 	"devDependencies": {
 		"@types/node": "^22.13.0",
