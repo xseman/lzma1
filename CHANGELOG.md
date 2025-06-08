@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.0.7](https://github.com/xseman/lzma1/compare/v0.0.6...v0.0.7) (2025-06-08)
+
+
+### Bug Fixes
+
+* interpret an 8-bit and 16-bit value as signed & types improvements ([#16](https://github.com/xseman/lzma1/issues/16)) ([c053e8b](https://github.com/xseman/lzma1/commit/c053e8b541e9d07bc82542750ee236d04394e3ef))
+
+
+### Maintenance
+
+* speedup tests using Bun with Node compatible tests & other improvements ([592489a](https://github.com/xseman/lzma1/commit/592489aab23007d517aed20ce6ce4385abe03901))
+* update copyright year and owner ([296ee0b](https://github.com/xseman/lzma1/commit/296ee0bbf991feac453d4e108b2a9f8b90ea7179))
+
 ## [0.0.6](https://github.com/xseman/lzma1/compare/v0.0.5...v0.0.6) (2025-03-29)
 
 
