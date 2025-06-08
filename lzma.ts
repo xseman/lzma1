@@ -6,17 +6,35 @@ interface Mode {
 	modeIndex: number;
 }
 
-interface BitTree {
-	NumBitLevels: number;
-	Models: number[];
-}
+/**
+ * RelativeIndexable is a generic interface for array-like structures
+ * that can be indexed with a number
+ */
+type RelativeIndexable<T> = {
+	[key: number]: T;
+	length: number;
+};
 
+/**
+ * Represents a data stream with buffer, position and count
+ */
 interface BaseStream {
 	buf: RelativeIndexable<number> | Uint8Array | ArrayBuffer | number[];
 	pos: number;
 	count: number;
 }
 
+/**
+ * Represents a buffer with a count of used elements
+ */
+interface BufferWithCount {
+	buf: number[];
+	count: number;
+}
+
+/**
+ * Base window implementation with stream and positioning information
+ */
 interface BaseWindow {
 	_streamPos: number;
 	_pos: number;
@@ -24,20 +42,32 @@ interface BaseWindow {
 	_stream: BaseStream;
 }
 
-interface BaseRangeCoder {
-	Stream: BaseStream;
+/**
+ * Output window with a defined window size
+ */
+interface OutWindow extends BaseWindow {
+	_windowSize: number;
 }
 
+/**
+ * Base range coder with a stream
+ */
+interface BaseRangeCoder {
+	Stream: BaseStream | BufferWithCount;
+}
+
+/**
+ * Range decoder with code and range values
+ */
 interface RangeDecoder extends BaseRangeCoder {
 	Code: number;
 	Range: number;
+	Stream: BaseStream;
 }
 
-interface BufferWithCount {
-	buf: number[];
-	count: number;
-}
-
+/**
+ * Range encoder with necessary state for encoding
+ */
 interface RangeEncoder extends BaseRangeCoder {
 	Low: [number, number];
 	Range: number;
@@ -47,14 +77,24 @@ interface RangeEncoder extends BaseRangeCoder {
 	Stream: BufferWithCount;
 }
 
-interface OutWindow extends BaseWindow {
-	_windowSize: number;
+/**
+ * Binary tree for probability modeling
+ */
+interface BitTree {
+	NumBitLevels: number;
+	Models: number[];
 }
 
+/**
+ * Base literal decoder/encoder with decoders array
+ */
 interface LiteralDecoderEncoder2 {
 	m_Decoders: number[];
 }
 
+/**
+ * Base class for literal coders
+ */
 interface LiteralCoderBase {
 	m_NumPrevBits: number;
 	m_NumPosBits: number;
@@ -62,9 +102,19 @@ interface LiteralCoderBase {
 	m_Coders: LiteralDecoderEncoder2[];
 }
 
+/**
+ * Literal encoder implementation
+ */
 interface LiteralEncoder extends LiteralCoderBase {}
+
+/**
+ * Literal decoder implementation
+ */
 interface LiteralDecoder extends LiteralCoderBase {}
 
+/**
+ * Base length coder with probability models
+ */
 interface LenCoderBase {
 	m_Choice: number[];
 	m_LowCoder: BitTree[];
@@ -72,6 +122,9 @@ interface LenCoderBase {
 	m_HighCoder: BitTree;
 }
 
+/**
+ * Length encoder with pricing information
+ */
 interface LenEncoder extends Partial<LenCoderBase> {
 	_tableSize: number;
 	_prices: number[];
@@ -82,10 +135,62 @@ interface LenEncoder extends Partial<LenCoderBase> {
 	_highCoder: BitTree;
 }
 
+/**
+ * Length decoder with position states
+ */
 interface LenDecoder extends LenCoderBase {
 	m_NumPosStates: number;
 }
 
+/**
+ * Optimization data structure
+ */
+interface Optimum {
+	State?: number;
+	Prev1IsChar?: number;
+	Prev2?: number;
+	PosPrev2?: number;
+	BackPrev2?: number;
+	Price?: number;
+	PosPrev?: number;
+	BackPrev?: number;
+	Backs0?: number;
+	Backs1?: number;
+	Backs2?: number;
+	Backs3?: number;
+}
+
+/**
+ * Match finder implementation
+ */
+interface MatchFinder {
+	_posLimit: number;
+	_bufferBase: number[];
+	_pos: number;
+	_streamPos: number;
+	_streamEndWasReached: number;
+	_bufferOffset: number;
+	_blockSize: number;
+	_keepSizeBefore: number;
+	_keepSizeAfter: number;
+	_pointerToLastSafePosition: number;
+	_stream: BaseStream;
+	HASH_ARRAY?: boolean;
+	kNumHashDirectBytes?: number;
+	kMinMatchCheck?: number;
+	kFixHashSize?: number;
+	_hashMask?: number;
+	_hashSizeSum?: number;
+	_hash?: number[];
+	_cyclicBufferSize?: number;
+	_son?: number[];
+	_matchMaxLen?: number;
+	_cutValue?: number;
+}
+
+/**
+ * LZMA encoder implementation
+ */
 interface Encoder {
 	_state: number;
 	_previousByte: number;
@@ -141,6 +246,9 @@ interface Encoder {
 	backRes: number;
 }
 
+/**
+ * LZMA decoder implementation
+ */
 interface Decoder {
 	m_PosStateMask: number;
 	m_DictionarySize: number;
@@ -172,67 +280,42 @@ interface Decoder {
 	m_LiteralDecoder: LiteralDecoder;
 }
 
-interface Optimum {
-	State?: number;
-	Prev1IsChar?: number;
-	Prev2?: number;
-	PosPrev2?: number;
-	BackPrev2?: number;
-	Price?: number;
-	PosPrev?: number;
-	BackPrev?: number;
-	Backs0?: number;
-	Backs1?: number;
-	Backs2?: number;
-	Backs3?: number;
-}
-
-interface MatchFinder {
-	_posLimit: number;
-	_bufferBase: number[];
-	_pos: number;
-	_streamPos: number;
-	_streamEndWasReached: number;
-	_bufferOffset: number;
-	_blockSize: number;
-	_keepSizeBefore: number;
-	_keepSizeAfter: number;
-	_pointerToLastSafePosition: number;
-	_stream: BaseStream;
-	HASH_ARRAY?: boolean;
-	kNumHashDirectBytes?: number;
-	kMinMatchCheck?: number;
-	kFixHashSize?: number;
-	_hashMask?: number;
-	_hashSizeSum?: number;
-	_hash?: number[];
-	_cyclicBufferSize?: number;
-	_son?: number[];
-	_matchMaxLen?: number;
-	_cutValue?: number;
-}
-
+/**
+ * Base chunker interface
+ */
 interface ChunkerBase {
 	alive: number;
 	inBytesProcessed: [number, number];
 }
 
+/**
+ * Encoder chunker implementation
+ */
 interface EncoderChunker extends ChunkerBase {
 	encoder: Encoder | null;
 	decoder: null;
 }
 
+/**
+ * Decoder chunker implementation
+ */
 interface DecoderChunker extends ChunkerBase {
 	encoder: null;
 	decoder: Decoder;
 }
 
+/**
+ * Compression context
+ */
 interface CompressionContext {
 	chunker: EncoderChunker;
 	output: BufferWithCount;
 	length_0?: [number, number];
 }
 
+/**
+ * Decompression context
+ */
 interface DecompressionContext {
 	chunker: DecoderChunker;
 	output: BufferWithCount;
@@ -284,6 +367,36 @@ const CRC32_TABLE = [
 	0x54DE5729, 0x23D967BF, 0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94,
 	0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 ];
+
+/**
+ * Converts a number to a signed 8-bit integer using DataView.
+ *
+ * Previously, this was done with bitwise operations (value << 24 >> 24), but
+ * that approach was obscure and hard to understand. Using DataView improves
+ * readability and ensures correct 8-bit conversion.
+ */
+export function toSigned8bit(value: number): number {
+	const buffer = new ArrayBuffer(1);
+	const view = new DataView(buffer);
+	view.setInt8(0, value);
+
+	return view.getInt8(0);
+}
+
+/**
+ * Converts a number to a signed 16-bit integer using DataView.
+ *
+ * Previously, this was done with bitwise operations (value << 16 >> 16), but
+ * that approach was obscure and hard to understand. Using DataView improves
+ * readability and ensures correct 16-bit conversion.
+ */
+export function toSigned16bit(value: number): number {
+	const buffer = new ArrayBuffer(2);
+	const view = new DataView(buffer);
+	view.setInt16(0, value);
+
+	return view.getInt16(0);
+}
 
 export class LZMA {
 	readonly #MAX_UINT32 = 0x100000000; // 2^32
@@ -520,6 +633,7 @@ export class LZMA {
 
 	#create(valueLow: number, valueHigh: number): [number, number] {
 		let diffHigh, diffLow;
+
 		valueHigh %= this.#MAX_UINT64;
 		valueLow %= this.#MAX_UINT64;
 		diffHigh = valueHigh % this.#MAX_UINT32;
@@ -664,7 +778,7 @@ export class LZMA {
 	}
 
 	#write(buffer: BufferWithCount, b: number): void {
-		buffer.buf[buffer.count++] = b & 0xFF;
+		buffer.buf[buffer.count++] = toSigned8bit(b);
 	}
 
 	#write_0(
@@ -820,7 +934,7 @@ export class LZMA {
 			if (r == -1) {
 				throw new Error("truncated input");
 			}
-			properties[i] = r & 0xFF;
+			properties[i] = toSigned8bit(r);
 		}
 
 		if (!this.#SetDecoderProperties(properties)) {
@@ -1331,9 +1445,7 @@ export class LZMA {
 			temp;
 
 		do {
-			if (
-				matchFinder._pos + matchFinder._matchMaxLen <= matchFinder._streamPos
-			) {
+			if (matchFinder._pos + matchFinder._matchMaxLen <= matchFinder._streamPos) {
 				lenLimit = matchFinder._matchMaxLen;
 			} else {
 				lenLimit = matchFinder._streamPos - matchFinder._pos;
@@ -1342,9 +1454,11 @@ export class LZMA {
 					continue;
 				}
 			}
+
 			matchMinPos = matchFinder._pos > matchFinder._cyclicBufferSize
 				? matchFinder._pos - matchFinder._cyclicBufferSize
 				: 0;
+
 			cur = matchFinder._bufferOffset + matchFinder._pos;
 
 			if (matchFinder.HASH_ARRAY) {
@@ -1382,9 +1496,7 @@ export class LZMA {
 
 				len = len0 < len1 ? len0 : len1;
 
-				if (
-					matchFinder._bufferBase[pby1 + len] == matchFinder._bufferBase[cur + len]
-				) {
+				if (matchFinder._bufferBase[pby1 + len] == matchFinder._bufferBase[cur + len]) {
 					while ((len += 1) != lenLimit) {
 						if (
 							matchFinder._bufferBase[pby1 + len] != matchFinder._bufferBase[cur + len]
@@ -1400,9 +1512,7 @@ export class LZMA {
 					}
 				}
 
-				if (
-					(matchFinder._bufferBase[pby1 + len] & 0xFF) < (matchFinder._bufferBase[cur + len] & 0xFF)
-				) {
+				if ((matchFinder._bufferBase[pby1 + len] & 0xFF) < (matchFinder._bufferBase[cur + len] & 0xFF)) {
 					matchFinder._son[ptr1] = curMatch;
 					ptr1 = cyclicPos + 1;
 					curMatch = matchFinder._son[ptr1];
@@ -1471,6 +1581,7 @@ export class LZMA {
 		if (this.#decoder.m_OutWindow._pos >= this.#decoder.m_OutWindow._windowSize) {
 			this.#decoder.m_OutWindow._pos = 0;
 		}
+
 		this.#decoder.m_OutWindow._streamPos = this.#decoder.m_OutWindow._pos;
 	}
 
@@ -1481,6 +1592,7 @@ export class LZMA {
 		if (pos < 0) {
 			pos += outputWindow._windowSize;
 		}
+
 		return outputWindow._buffer[pos];
 	}
 
@@ -1911,7 +2023,7 @@ export class LZMA {
 			symbol = symbol << 1 | this.#decodeBit(decoder.m_Decoders, symbol);
 		} while (symbol < 0x100);
 
-		return symbol & 0xFF;
+		return toSigned8bit(symbol);
 	}
 
 	#DecodeWithMatchByte(
@@ -1936,7 +2048,7 @@ export class LZMA {
 			}
 		} while (symbol < 0x100);
 
-		return symbol & 0xFF;
+		return toSigned8bit(symbol);
 	}
 
 	#createLiteralDecoderEncoder2(): LiteralDecoderEncoder2 {
@@ -3652,7 +3764,7 @@ export class LZMA {
 
 		for (let i = NumBitLevels; i != 0; i -= 1) {
 			bit = symbol & 1;
-			symbol >>> 1;
+			symbol >>>= 1;
 			price += this.#probPrices[((Models[startIndex + m] - bit ^ -bit) & 0x7FF) >>> 2];
 			m = m << 1 | bit;
 		}
@@ -3671,7 +3783,7 @@ export class LZMA {
 
 		if ((rangeDecoder.Code ^ this.#MIN_INT32) < (newBound ^ this.#MIN_INT32)) {
 			rangeDecoder.Range = newBound;
-			probs[index] = prob + (0x800 - prob >>> 5) << 0x10 >> 0x10;
+			probs[index] = toSigned16bit(prob + (0x800 - prob >>> 5));
 			if (!(rangeDecoder.Range & this.#bitMaskForRange)) {
 				rangeDecoder.Code = rangeDecoder.Code << 0x08 | this.#read(rangeDecoder.Stream);
 				rangeDecoder.Range <<= 0x08;
@@ -3681,7 +3793,7 @@ export class LZMA {
 		} else {
 			rangeDecoder.Range -= newBound;
 			rangeDecoder.Code -= newBound;
-			probs[index] = prob - (prob >>> 5) << 0x10 >> 0x10;
+			probs[index] = toSigned16bit(prob - (prob >>> 5));
 			if (!(rangeDecoder.Range & this.#bitMaskForRange)) {
 				rangeDecoder.Code = rangeDecoder.Code << 0x08 | this.#read(rangeDecoder.Stream);
 				rangeDecoder.Range <<= 0x08;
@@ -3738,14 +3850,14 @@ export class LZMA {
 
 		if (!symbol) {
 			rangeEncoder.Range = newBound;
-			probs[index] = prob + (0x800 - prob >>> 5) << 0x10 >> 0x10;
+			probs[index] = toSigned16bit(prob + (0x800 - prob >>> 5));
 		} else {
 			rangeEncoder.Low = this.#add(
 				rangeEncoder.Low,
 				this.#and(this.#fromInt(newBound), [this.#_MAX_UINT32, 0]),
 			);
 			rangeEncoder.Range -= newBound;
-			probs[index] = prob - (prob >>> 5) << 0x10 >> 0x10;
+			probs[index] = toSigned16bit(prob - (prob >>> 5));
 		}
 
 		if (!(rangeEncoder.Range & this.#bitMaskForRange)) {
@@ -3796,7 +3908,7 @@ export class LZMA {
 		const rangeEncoder = this.#compressor.chunker.encoder._rangeEncoder;
 
 		const LowHi = this.#lowBits_0(this.#shru(rangeEncoder.Low, 0x20));
-		if (LowHi != 0 || this.#compare(rangeEncoder.Low, [0xFF000000, 0]) < 0) {
+		if (LowHi !== 0 || this.#compare(rangeEncoder.Low, [0xFF000000, 0]) < 0) {
 			rangeEncoder._position = this.#add(
 				rangeEncoder._position,
 				this.#fromInt(rangeEncoder._cacheSize),
@@ -3911,14 +4023,14 @@ export class LZMA {
 		for (let i = 0; i < l; ++i) {
 			ch = chars[i];
 			if (ch >= 1 && ch <= 0x7F) {
-				data[elen++] = ch & 0xFF;
-			} else if (!ch || ch >= 0x80 && ch <= 0x7FF) {
-				data[elen++] = (0xC0 | ch >> 6 & 0x1F) & 0xFF;
-				data[elen++] = (0x80 | ch & 0x3F) & 0xFF;
+				data[elen++] = toSigned8bit(ch);
+			} else if (!ch || (ch >= 0x80 && ch <= 0x7FF)) {
+				data[elen++] = toSigned8bit(0xC0 | (ch >> 6 & 0x1F));
+				data[elen++] = toSigned8bit(0x80 | (ch & 0x3F));
 			} else {
-				data[elen++] = (0xE0 | ch >> 0x0C & 0x0F) & 0xFF;
-				data[elen++] = (0x80 | ch >> 6 & 0x3F) & 0xFF;
-				data[elen++] = (0x80 | ch & 0x3F) & 0xFF;
+				data[elen++] = toSigned8bit(0xE0 | (ch >> 0x0C) & 0x0F);
+				data[elen++] = toSigned8bit(0x80 | ((ch >> 6) & 0x3F));
+				data[elen++] = toSigned8bit(0x80 | (ch & 0x3F));
 			}
 		}
 
