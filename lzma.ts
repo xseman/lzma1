@@ -4093,7 +4093,7 @@ export function compress(
 	mode: keyof LZMA["CompressionModes"] = 5,
 ): Uint8Array {
 	const lzma = new LZMA();
-	return new Int8Array(lzma.compress(data, mode));
+	return new Uint8Array(lzma.compress(data, mode));
 }
 
 /**
@@ -4119,7 +4119,7 @@ export function compressString(
  */
 export function decompress(data: Uint8Array | ArrayBuffer): Uint8Array {
 	const lzma = new LZMA();
-	return new Int8Array(lzma.decompress(data));
+	return new Uint8Array(lzma.decompress(data));
 }
 
 /**

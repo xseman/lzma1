@@ -12,7 +12,7 @@ import {
 } from "./index.js";
 import { LZMA } from "./lzma.js";
 
-function bytesToHexString(byteArray: Int8Array | Uint8Array | number[]): string {
+function bytesToHexString(byteArray: Uint8Array | Uint8Array | number[]): string {
 	return Array
 		.from(byteArray, (byte) => {
 			return ("0" + (byte & 0xFF).toString(16)).slice(-2);
@@ -84,7 +84,7 @@ describe("compress and decompress edge cases", () => {
 	});
 
 	test("binary data", () => {
-		const input = new Int8Array(1_000).map((_, i) => i % 256);
+		const input = new Uint8Array(1_000).map((_, i) => i % 256);
 		const compressed = compress(input, 1);
 		const decompressed = decompress(compressed);
 
@@ -165,7 +165,7 @@ describe("buffer handling", () => {
 		const compressed = compress(inputArray);
 		const decompressed = decompress(compressed);
 
-		assert.ok(decompressed instanceof Int8Array);
+		assert.ok(decompressed instanceof Uint8Array);
 
 		// Convert to string for comparison
 		const decoder = new TextDecoder();
@@ -179,7 +179,7 @@ describe("buffer handling", () => {
 		const compressed = compress(buffer);
 		const decompressed = decompress(compressed);
 
-		assert.ok(decompressed instanceof Int8Array);
+		assert.ok(decompressed instanceof Uint8Array);
 
 		// Convert to string for comparison
 		const decoder = new TextDecoder();
@@ -266,7 +266,7 @@ describe("edge case scenarios", () => {
 		} else {
 			assert.equal(decompressed.length, input.length);
 			for (let i = 0; i < input.length; i++) {
-				assert.equal(decompressed[i], input[i] < 128 ? input[i] : input[i] - 256);
+				assert.equal(decompressed[i], input[i]);
 			}
 		}
 	});
@@ -282,11 +282,8 @@ describe("edge case scenarios", () => {
 		const compressed = compress(input);
 		const decompressed = decompress(compressed);
 
-		// Int8Array will store values from -128 to 127, so values above 127
-		// will be represented as negative numbers (two's complement)
 		for (let i = 0; i < 256; i++) {
-			const expected = i < 128 ? i : i - 256;
-			assert.equal(decompressed[i], expected);
+			assert.equal(decompressed[i], i);
 		}
 	});
 });
