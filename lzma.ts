@@ -3933,7 +3933,7 @@ export class LZMA {
 		];
 	}
 
-	#decode(utf: number[]): string | number[] {
+	#decodeString(utf: number[]): string {
 		let j = 0, x, y, z, l = utf.length, buf = [], charCodes = [];
 
 		for (let i = 0; i < l; ++i, ++j) {
@@ -3996,15 +3996,10 @@ export class LZMA {
 		return buf.join("");
 	}
 
-	encode(inputString: string | Uint8Array): number[] | Uint8Array {
+	encodeString(inputString: string): number[]  {
 		let ch, chars = [], elen = 0, l = inputString.length;
 
-		// Be able to handle binary arrays and buffers.
-		if (typeof inputString === "object") {
-			return inputString;
-		} else {
-			this.#getChars(inputString, 0, l, chars, 0);
-		}
+	  this.#getChars(inputString, 0, l, chars, 0);
 
 		// Add extra spaces in the array to break up the unicode symbols.
 		for (let i = 0; i < l; ++i) {
@@ -4038,61 +4033,102 @@ export class LZMA {
 	}
 
 	public compress(
-		data: string | Uint8Array | ArrayBuffer,
+		data: Uint8Array | ArrayBuffer,
 		mode: keyof typeof this.CompressionModes = 5,
-	): Int8Array {
-		const encodedData = this.encode(data);
+	): number[] {
 		const compressionMode = this.CompressionModes[mode];
 
 		this.#byteArrayCompressor(
-			encodedData,
+			data,
 			compressionMode,
 		);
 
 		while (this.#processChunkEncode());
 
 		const compressedByteArray = this.#toByteArray(this.#compressor.output);
-		return new Int8Array(compressedByteArray);
+		return compressedByteArray;
+	}
+
+  public compressString(
+		data: string,
+		mode: keyof typeof this.CompressionModes = 5,
+	): number[] {
+		const encodedData = this.encodeString(data);
+		return compress(encodedData, mode);
 	}
 
 	public decompress(
 		bytearray: Uint8Array | ArrayBuffer,
-	): Int8Array | string {
+	): number[] {
 		this.#byteArrayDecompressor(bytearray);
 
 		while (this.#processChunkDecode());
 
 		const decodedByteArray = this.#toByteArray(this.#decompressor.output);
-		const decoded = this.#decode(decodedByteArray);
+		return decodedByteArray;
+	}
 
-		return decoded instanceof Array
-			? new Int8Array(decoded)
-			: decoded;
+	public decompressString(
+		bytearray: Uint8Array | ArrayBuffer,
+	): string {
+		this.#byteArrayDecompressor(bytearray);
+
+		while (this.#processChunkDecode());
+
+		const decodedByteArray = this.#toByteArray(this.#decompressor.output);
+		const decoded = this.#decodeString(decodedByteArray);
+		return decoded;
 	}
 }
 
 /**
  * Compresses data using LZMA algorithm
  *
- * @param data Data to compress - can be string, Uint8Array or ArrayBuffer
+ * @param data Data to compress - can be Uint8Array or ArrayBuffer
  * @param mode Compression mode (1-9), defaults to 5
- * @returns Compressed data as Int8Array
+ * @returns Compressed data as a byte array
  */
 export function compress(
-	data: string | Uint8Array | ArrayBuffer,
+	data: Uint8Array | ArrayBuffer,
 	mode: keyof LZMA["CompressionModes"] = 5,
-): Int8Array {
+): Uint8Array {
 	const lzma = new LZMA();
-	return lzma.compress(data, mode);
+	return new Uint8Array(lzma.compress(data, mode));
+}
+
+/**
+ * Compresses data using LZMA algorithm
+ *
+ * @param data String to compress
+ * @param mode Compression mode (1-9), defaults to 5
+ * @returns Compressed data as byte array
+ */
+export function compressString(
+	data: string,
+	mode: keyof LZMA["CompressionModes"] = 5,
+): Uint8Array {
+	const lzma = new LZMA();
+	return lzma.compressString(data, mode);
 }
 
 /**
  * Decompresses LZMA compressed data
  *
  * @param data Compressed data as Uint8Array or ArrayBuffer
- * @returns Decompressed data as string if input was string, or Int8Array if input was binary
+ * @returns Decompressed data
  */
-export function decompress(data: Uint8Array | ArrayBuffer): string | Int8Array {
+export function decompress(data: Uint8Array | ArrayBuffer): Uint8Array {
 	const lzma = new LZMA();
-	return lzma.decompress(data);
+	return new Uint8Array(lzma.decompress(data));
+}
+
+/**
+ * Decompresses LZMA compressed data
+ *
+ * @param data Compressed data as Uint8Array or ArrayBuffer
+ * @returns Decompressed data as string
+ */
+export function decompressString(data: Uint8Array | ArrayBuffer): string {
+	const lzma = new LZMA();
+	return lzma.decompressString(data);
 }
