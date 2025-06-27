@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.0](https://github.com/xseman/lzma1/compare/v0.0.7...v0.1.0) (2025-06-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* Improve API design to be more conventional/performant ([#17](https://github.com/xseman/lzma1/issues/17))
+
+### Maintenance
+
+* Improve API design to be more conventional/performant ([#17](https://github.com/xseman/lzma1/issues/17)) ([2c78ee8](https://github.com/xseman/lzma1/commit/2c78ee84834d0b8418210246dec6c3d4a60cfc75))
+* release cleanup ([#20](https://github.com/xseman/lzma1/issues/20)) ([8e1dab1](https://github.com/xseman/lzma1/commit/8e1dab14ee84eec7b975f621caf26b6a7b47d9e7))
+
 ## [0.0.7](https://github.com/xseman/lzma1/compare/v0.0.6...v0.0.7) (2025-06-08)
 
 
