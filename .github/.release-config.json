@@ -7,7 +7,8 @@
 			"include-component-in-tag": false,
 			"pull-request-title-pattern": "v${version}",
 			"pull-request-header": "🚢 Package release",
-			"pull-request-footer": ""
+			"pull-request-footer": "",
+			"bump-minor-pre-major": true
 		}
 	},
 	"changelog-sections": [

@@ -8,7 +8,7 @@ import {
 	compress,
 	compressString,
 	decompress,
-	decompressString
+	decompressString,
 } from "./index.js";
 import { LZMA } from "./lzma.js";
 
