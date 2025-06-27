@@ -2,7 +2,7 @@
 	"name": "lzma1",
 	"type": "module",
 	"version": "0.1.0",
-	"license": "Apache-2.0",
+	"license": "MIT",
 	"author": "Filip Seman <filip.seman@pm.me>",
 	"description": "A JavaScript implementation of the Lempel-Ziv-Markov (LZMA) chain compression algorithm",
 	"funding": "https://github.com/sponsors/xseman",
