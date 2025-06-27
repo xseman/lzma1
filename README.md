@@ -42,30 +42,50 @@ npm install lzma1
 
 ```html
 <script type="module">
-	import { compress, decompress } from "https://esm.sh/lzma1@latest";
+	import {
+		compress,
+		decompress,
+		compressString,
+		decompressString
+	} from "https://esm.sh/lzma1@latest";
 </script>
 ```
 
 ## Quick start
 
-The library provides two main functions: `compress` and `decompress`:
+The library provides four main functions for compression and decompression:
 
 ```ts
-compress(data: string | Uint8Array, mode?: Mode): Int8Array
-decompress(data: Uint8Array | ArrayBuffer): string | Int8Array
+// For binary data
+compress(data: Uint8Array | ArrayBuffer, mode?: 1-9): Uint8Array
+decompress(data: Uint8Array | ArrayBuffer): Uint8Array
+
+// For string data
+compressString(data: string, mode?: 1-9): Uint8Array
+decompressString(data: Uint8Array | ArrayBuffer): string
+```
+
+You can also import the `LZMA` class directly for more advanced usage:
+
+```ts
+import { LZMA } from "lzma1";
+
+const lzma = new LZMA();
+const compressed = lzma.compressString("Hello World!", 5);
+const decompressed = lzma.decompressString(compressed);
 ```
 
 ### Compressing a string
 
 ```js
 import {
-	compress,
-	decompress,
+	compressString,
+	decompressString,
 } from "lzma1";
 
 const data = "Hello World!";
-const compressed = compress(data, 1); // Using compression level 1 (fastest)
-const decompressed = decompress(compressed);
+const compressed = compressString(data, 1); // Using compression level 1 (fastest)
+const decompressed = decompressString(compressed);
 
 // data === decompressed
 ```
@@ -84,7 +104,7 @@ const compressed = compress(binaryData, 5); // Default compression level
 
 // Decompress back to binary
 const decompressed = decompress(compressed);
-// decompressed will be an Int8Array
+// decompressed will be a Uint8Array
 ```
 
 ### HTML example
@@ -94,44 +114,27 @@ A simple browser example:
 ```html
 <!DOCTYPE html>
 <html>
-<body>
-    <textarea id="input">Hello World!</textarea><br>
-    <button id="run">Compress & Decompress</button>>
-    <div id="result"></div>
+	<body>
+		<textarea id="input">Hello World!</textarea><br />
+		<button id="run">Compress & Decompress</button>
+		<div id="result"></div>
 
-    <script type="module">
-        import { compress, decompress } from "https://esm.sh/lzma1@latest";
+		<script type="module">
+			import { compressString, decompressString } from "https://esm.sh/lzma1@latest";
 
-        document.getElementById("run").onclick = () => {
-            const text = document.getElementById("input").value;
-            const compressed = compress(text);
-            const decompressed = decompress(compressed);
+			document.getElementById("run").onclick = () => {
+				const text = document.getElementById("input").value;
+				const compressed = compressString(text);
+				const decompressed = decompressString(compressed);
 
-            document.getElementById("result").innerHTML =
-                `Original: ${text.length} bytes<br>` +
-                `Compressed: ${compressed.length} bytes<br>` +
-                `Result: ${decompressed}`;
-        };
-    </script>
-</body>
+				document.getElementById("result").innerHTML =
+					`Original: ${text.length} bytes<br>` +
+					`Compressed: ${compressed.length} bytes<br>` +
+					`Result: ${decompressed}`;
+			};
+		</script>
+	</body>
 </html>
-```
-
-### Advanced usage
-
-You can control the compression level (1-9) to balance between speed and compression ratio:
-
-```js
-import { compress } from "lzma1";
-
-// Fastest compression (level 1)
-const fastCompressed = compress(data, 1);
-
-// Balanced compression (level 5)
-const balancedCompressed = compress(data, 5);
-
-// Maximum compression (level 9)
-const maxCompressed = compress(data, 9);
 ```
 
 ## How it works
@@ -142,7 +145,8 @@ commonly used in the 7z archive format.
 
 ### LZMA header
 
-The LZMA compressed data begins with a header that contains information needed for decompression:
+The LZMA compressed data begins with a header that contains information needed
+for decompression:
 
 ![lzma](./docs/lzma.svg)
 
