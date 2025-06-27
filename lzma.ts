@@ -3996,10 +3996,10 @@ export class LZMA {
 		return buf.join("");
 	}
 
-	encodeString(inputString: string): number[]  {
+	encodeString(inputString: string): number[] {
 		let ch, chars = [], elen = 0, l = inputString.length;
 
-	  this.#getChars(inputString, 0, l, chars, 0);
+		this.#getChars(inputString, 0, l, chars, 0);
 
 		// Add extra spaces in the array to break up the unicode symbols.
 		for (let i = 0; i < l; ++i) {
@@ -4049,7 +4049,7 @@ export class LZMA {
 		return compressedByteArray;
 	}
 
-  public compressString(
+	public compressString(
 		data: string,
 		mode: keyof typeof this.CompressionModes = 5,
 	): number[] {

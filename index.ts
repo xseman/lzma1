@@ -5,4 +5,3 @@
  */
 
 export { compress, compressString, decompress, decompressString, LZMA } from "./lzma.js";
-
