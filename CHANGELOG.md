@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/xseman/lzma1/compare/v0.1.0...v0.1.1) (2025-06-27)
+
+
+### Documentation
+
+* update README ([f0b09bd](https://github.com/xseman/lzma1/commit/f0b09bdaf2675831d51e181c3952c9ce68b3e3da))
+
+
+### Maintenance
+
+* license change Apache-2.0 to MIT ([7f3719b](https://github.com/xseman/lzma1/commit/7f3719b768d8a11343b06736ebf27349481b4c11))
+
 ## [0.1.0](https://github.com/xseman/lzma1/compare/v0.0.7...v0.1.0) (2025-06-27)
 
 
