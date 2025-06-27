@@ -10,7 +10,8 @@
 			"pull-request-footer": "",
 			"prerelease": true,
 			"prerelease-type": "next",
-			"versioning": "prerelease"
+			"versioning": "prerelease",
+			"bump-minor-pre-major": true
 		}
 	},
 	"changelog-sections": [
