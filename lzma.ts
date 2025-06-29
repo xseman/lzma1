@@ -2738,7 +2738,7 @@ export class LZMA {
 			if (encoder._optimum[cur].prev1IsChar) {
 				posPrev -= 0x01;
 				if (encoder._optimum[cur].prev2) {
-					state = encoder._optimum[encoder._optimum[cur].posPrev2].State;
+					state = encoder._optimum[encoder._optimum[cur].posPrev2].state;
 					if (encoder._optimum[cur].backPrev2 < 0x04) {
 						state = (state < 0x07) ? 0x08 : 0x0B;
 					} else {
