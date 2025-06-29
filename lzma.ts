@@ -2745,11 +2745,11 @@ export class LZMA {
 						state = (state < 0x07) ? 0x07 : 0x0A;
 					}
 				} else {
-					state = encoder._optimum[posPrev].State;
+					state = encoder._optimum[posPrev].state;
 				}
 				state = this.StateUpdateChar(state);
 			} else {
-				state = encoder._optimum[posPrev].State;
+				state = encoder._optimum[posPrev].state;
 			}
 
 			if (posPrev == cur - 1) {
@@ -2778,31 +2778,31 @@ export class LZMA {
 
 				if (pos < 4) {
 					if (!pos) {
-						encoder.reps[0] = opt.Backs0;
-						encoder.reps[1] = opt.Backs1;
-						encoder.reps[2] = opt.Backs2;
-						encoder.reps[3] = opt.Backs3;
+						encoder.reps[0] = opt.backs0;
+						encoder.reps[1] = opt.backs1;
+						encoder.reps[2] = opt.backs2;
+						encoder.reps[3] = opt.backs3;
 					} else if (pos == 1) {
-						encoder.reps[0] = opt.Backs1;
-						encoder.reps[1] = opt.Backs0;
-						encoder.reps[2] = opt.Backs2;
-						encoder.reps[3] = opt.Backs3;
+						encoder.reps[0] = opt.backs1;
+						encoder.reps[1] = opt.backs0;
+						encoder.reps[2] = opt.backs2;
+						encoder.reps[3] = opt.backs3;
 					} else if (pos == 2) {
-						encoder.reps[0] = opt.Backs2;
-						encoder.reps[1] = opt.Backs0;
-						encoder.reps[2] = opt.Backs1;
-						encoder.reps[3] = opt.Backs3;
+						encoder.reps[0] = opt.backs2;
+						encoder.reps[1] = opt.backs0;
+						encoder.reps[2] = opt.backs1;
+						encoder.reps[3] = opt.backs3;
 					} else {
-						encoder.reps[0] = opt.Backs3;
-						encoder.reps[1] = opt.Backs0;
-						encoder.reps[2] = opt.Backs1;
-						encoder.reps[3] = opt.Backs2;
+						encoder.reps[0] = opt.backs3;
+						encoder.reps[1] = opt.backs0;
+						encoder.reps[2] = opt.backs1;
+						encoder.reps[3] = opt.backs2;
 					}
 				} else {
 					encoder.reps[0] = pos - 4;
-					encoder.reps[1] = opt.Backs0;
-					encoder.reps[2] = opt.Backs1;
-					encoder.reps[3] = opt.Backs2;
+					encoder.reps[1] = opt.backs0;
+					encoder.reps[2] = opt.backs1;
+					encoder.reps[3] = opt.backs2;
 				}
 			}
 
