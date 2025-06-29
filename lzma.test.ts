@@ -131,8 +131,8 @@ describe("LZMA class direct usage", () => {
 		const input = "Test string for all modes";
 
 		// Test all compression modes (1-9)
-		for (let mode = 1; mode <= 9; mode++) {
-			const compressed = compressString(input, mode as any);
+		for (let mode = 1 as const; mode <= 9; mode++) {
+			const compressed = compressString(input, mode);
 			const decompressed = decompressString(compressed);
 			assert.equal(decompressed, input, `Failed with mode ${mode}`);
 		}
