@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/xseman/lzma1/compare/v0.1.1...v0.1.2) (2025-06-30)
+
+
+### Maintenance
+
+* remove [@ts-nocheck](https://github.com/ts-nocheck), fix type errors other improvements ([#22](https://github.com/xseman/lzma1/issues/22)) ([8c15430](https://github.com/xseman/lzma1/commit/8c15430878b65a41531c74f1f592f7212aa210a1))
+
 ## [0.1.1](https://github.com/xseman/lzma1/compare/v0.1.0...v0.1.1) (2025-06-27)
 
 
