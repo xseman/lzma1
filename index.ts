@@ -8,6 +8,7 @@ export { LZMA } from "./lzma.js";
 import { LZMA } from "./lzma.js";
 
 export * from "./bit-tree.js";
+export * from "./encoder-decoder.js";
 export * from "./io-utils.js";
 export * from "./lzma-core.js";
 export * from "./match-finder.js";

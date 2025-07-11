@@ -1,8 +1,8 @@
+import { toSigned8bit } from "./literal-utils.js";
 import type {
 	BaseStream,
 	BufferWithCount,
 } from "./lzma.js";
-import { toSigned8bit } from "./lzma.js";
 
 /**
  * Reads a single byte from an input stream
