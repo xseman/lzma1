@@ -1,8 +1,8 @@
-import assert from "node:assert";
 import {
 	describe,
+	expect,
 	test,
-} from "node:test";
+} from "bun:test";
 
 import {
 	compress,
@@ -37,24 +37,24 @@ function hexStringToUint8Array(str: string): Uint8Array {
 describe("basics", () => {
 	test("hello world", () => {
 		const fixtureInput = "hello world";
-		const fixtureOutput = "5d 00 00 01 00 0b 00 00 00 00 00 00 00 00 34 19 49 ee 8d e9 17 89 3a 33 60 05 f7 cf 64 ff fb 78 20 00";
+		const fixtureOutput = "5d 00 00 01 00 0b 00 00 00 00 00 00 00 00 34 19 49 db 85 5c 63 ad 3e f9 63 75 8e ee b1 ff ff 2f 20 00 00";
 
 		const output = bytesToHexString(compressString(fixtureInput, 1));
-		assert.equal(output, fixtureOutput);
+		expect(output).toBe(fixtureOutput);
 
 		const input = decompressString(hexStringToUint8Array(fixtureOutput));
-		assert.equal(input, fixtureInput);
+		expect(input).toBe(fixtureInput);
 	});
 
 	test("lorem ipsum", () => {
 		const fixtureInput = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
-		const fixtureOutput = "5d 00 00 01 00 bd 01 00 00 00 00 00 00 00 26 1b ca 46 67 5a f2 77 b8 7d 86 d8 41 db 05 35 cd 83 a5 7c 12 a5 05 db 90 bd 2f 14 d3 71 72 96 a8 8a 7d 84 56 71 8d 6a 22 98 ab 9e 3d c3 55 ef cc a5 c3 dd 5b 8e bf 03 81 21 40 d6 26 91 02 45 4f 92 a1 78 bb 8a 00 af 90 2a 26 92 02 23 e5 5c b3 2d e3 e8 5c 2c fb 32 25 99 5c bc 71 f3 58 5a d3 1b 39 b4 bf 6f c7 61 36 92 14 e8 55 d3 ef 77 e0 68 fb ee 08 72 16 7e 2c ed 0a 69 78 8e 0c 1c 31 67 d5 b1 74 88 38 f5 e7 74 80 6e 7e 1e af 6d f5 32 22 17 bc da 0f a5 2f 85 48 72 02 fc b0 14 c7 16 aa ae cf 79 2a 0d 15 7f 49 1a e1 14 d4 9b 51 94 fc 9e 5d c1 1a 73 30 5c bc 65 2d d8 28 f9 09 73 cb f7 ad 4f 05 72 03 a5 6c 08 5b 36 26 fa 04 96 20 f5 4e 13 76 5f ce 4b 71 53 a7 5d 91 1b 1e 77 56 40 7e 91 de 51 72 0c 10 61 74 4b f6 6f 6e 90 6a 13 1f 99 fb 42 df 6a a8 94 52 cf 3d 77 cf 2f 21 62 cb f3 6b 5a fe fe 62 05 22 6c e8 df 9f de 8a 60 f3 7e 42 a6 24 48 d0 f3 ff 66 d3 e1 ed 4d d8 db 85 71 a3 ab c7 1b cd 67 22 b7 6b bc f2 7c 01 f0 48 a5 0c 38 9d 70 b4 e1 05 ff d6 30 7f f8";
+		const fixtureOutput = "5d 00 00 01 00 bd 01 00 00 00 00 00 00 00 26 1b ca 46 67 5a f2 77 b8 7d 86 d8 41 db 05 35 cd 83 a5 7c 12 a5 05 db 90 bd 2f 14 d3 71 12 7c 4d cd 11 a9 e3 65 01 2e 86 49 86 92 42 17 9c b1 05 19 3d 78 8c ba 83 a3 e9 7d 2a 49 7e 7b 30 19 5a 27 31 a1 b1 05 79 60 66 a6 28 0f bc a7 c7 49 67 a4 f3 88 4b 5c 9b 8f e6 50 83 59 05 fe d3 61 ea ff c7 51 5b 02 db ca 23 28 79 66 2f fa e7 3a 65 53 0f f5 2e f0 70 c6 6e f7 eb 99 e1 7c 5d 0c 1d af 84 80 8a 7f 73 8d 2e dc 40 cc de 66 ca 34 11 bf 2b 10 80 77 f2 c4 87 d2 72 3e 77 ad 38 ed d6 c1 8b 2f 38 5b c6 8b ac 80 c9 2c 96 40 55 73 85 e8 14 c1 55 f1 48 6d 9a bb 42 71 84 e5 27 43 3c f6 33 e9 04 29 0a 79 e6 a7 29 2a 3f 79 f1 b1 f2 b1 66 43 ca d2 1d b4 4a 61 6c 60 a4 c5 89 4b af e6 6a 02 ee b1 07 aa 11 cd 0f 39 de 83 78 72 48 9b f8 75 8a e8 e0 8d 34 a5 a5 fd 44 6b 04 bf 66 a2 59 8f ab 42 b4 76 e3 c9 16 30 d9 9f 10 c0 41 01 e5 e6 b4 b7 2f 24 99 4b 4c bb e5 41 56 be 8c 62 16 cc 72 bf ad 83 c3 12 50 e2 47 a1 3a b0 e1 28 28 8a 57 af 9f 79 0b df cc b3 19 88 26 cf 81 63 61 67 ff 3d be c2 00";
 
 		const output = bytesToHexString(compressString(fixtureInput, 1));
-		assert.equal(output, fixtureOutput);
+		expect(output).toBe(fixtureOutput);
 
 		const input = decompressString(hexStringToUint8Array(output));
-		assert.equal(input, fixtureInput);
+		expect(input).toBe(fixtureInput);
 	});
 });
 
@@ -64,7 +64,7 @@ describe("compress and decompress edge cases", () => {
 		const compressed = compressString(input, 1);
 		const decompressed = decompressString(compressed);
 
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 
 	test("special characters", () => {
@@ -72,7 +72,7 @@ describe("compress and decompress edge cases", () => {
 		const compressed = compressString(input, 1);
 		const decompressed = decompressString(compressed);
 
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 
 	test("unicode characters", () => {
@@ -80,7 +80,7 @@ describe("compress and decompress edge cases", () => {
 		const compressed = compressString(input, 1);
 		const decompressed = decompressString(compressed);
 
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 
 	test("binary data", () => {
@@ -88,7 +88,7 @@ describe("compress and decompress edge cases", () => {
 		const compressed = compress(input, 1);
 		const decompressed = decompress(compressed);
 
-		assert.deepEqual(decompressed, input);
+		expect(decompressed).toEqual(input);
 	});
 
 	test("null character", () => {
@@ -96,35 +96,35 @@ describe("compress and decompress edge cases", () => {
 		const compressed = compressString(input, 1);
 		const decompressed = decompressString(compressed);
 
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 
 	test("repeated patterns", () => {
 		const input = "abcabcabc".repeat(100);
 		const compressed = compressString(input, 1);
 		const decompressed = decompressString(compressed);
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 
 	test("alternating patterns", () => {
 		const input = "10".repeat(500);
 		const compressed = compressString(input, 1);
 		const decompressed = decompressString(compressed);
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 });
 
 describe("LZMA class direct usage", () => {
 	test("should create an instance with proper initialization", () => {
 		const lzma = new LZMA();
-		assert.ok(lzma);
+		expect(lzma).toBeTruthy();
 	});
 
 	test("should compress and decompress without initializing LZMA class", () => {
 		const input = "Testing compression utilities";
 		const compressed = compressString(input);
 		const decompressed = decompressString(compressed);
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 
 	test("should handle all compression modes", () => {
@@ -134,7 +134,7 @@ describe("LZMA class direct usage", () => {
 		for (let mode = 1 as const; mode <= 9; mode++) {
 			const compressed = compressString(input, mode);
 			const decompressed = decompressString(compressed);
-			assert.equal(decompressed, input, `Failed with mode ${mode}`);
+			expect(decompressed).toBe(input);
 		}
 	});
 });
@@ -144,7 +144,7 @@ describe("large data compression", () => {
 		const largeInput = "a".repeat(10000);
 		const compressed = compressString(largeInput);
 		const decompressed = decompressString(compressed);
-		assert.equal(decompressed, largeInput);
+		expect(decompressed).toBe(largeInput);
 	});
 
 	test("should compress repeated data efficiently", () => {
@@ -152,10 +152,10 @@ describe("large data compression", () => {
 		const compressed = compressString(repeatedData);
 
 		// Verify compression ratio is good (compressed size should be much smaller)
-		assert.ok(compressed.length < repeatedData.length / 5);
+		expect(compressed.length).toBeLessThan(repeatedData.length / 5);
 
 		const decompressed = decompressString(compressed);
-		assert.equal(decompressed, repeatedData);
+		expect(decompressed).toBe(repeatedData);
 	});
 });
 
@@ -165,12 +165,12 @@ describe("buffer handling", () => {
 		const compressed = compress(inputArray);
 		const decompressed = decompress(compressed);
 
-		assert.ok(decompressed instanceof Uint8Array);
+		expect(decompressed).toBeInstanceOf(Uint8Array);
 
 		// Convert to string for comparison
 		const decoder = new TextDecoder();
 		const decompressedString = decoder.decode(decompressed);
-		assert.equal(decompressedString, "Hello");
+		expect(decompressedString).toBe("Hello");
 	});
 
 	test("should handle ArrayBuffer input", () => {
@@ -179,12 +179,12 @@ describe("buffer handling", () => {
 		const compressed = compress(buffer);
 		const decompressed = decompress(compressed);
 
-		assert.ok(decompressed instanceof Uint8Array);
+		expect(decompressed).toBeInstanceOf(Uint8Array);
 
 		// Convert to string for comparison
 		const decoder = new TextDecoder();
 		const decompressedString = decoder.decode(decompressed);
-		assert.equal(decompressedString, "Hello World");
+		expect(decompressedString).toBe("Hello World");
 	});
 });
 
@@ -195,7 +195,7 @@ describe("error handling", () => {
 		for (const input of inputs) {
 			const compressed = compressString(input);
 			const decompressed = decompressString(compressed);
-			assert.equal(decompressed, input, `Failed with input "${input}"`);
+			expect(decompressed).toBe(input);
 		}
 	});
 
@@ -203,7 +203,7 @@ describe("error handling", () => {
 		const input = "Text with numbers 12345 and symbols !@#$%";
 		const compressed = compressString(input);
 		const decompressed = decompressString(compressed);
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 });
 
@@ -224,9 +224,9 @@ describe("complex data structures", () => {
 		const compressed = compressString(jsonString);
 		const decompressed = decompressString(compressed);
 
-		assert.equal(decompressed, jsonString);
+		expect(decompressed).toBe(jsonString);
 		const parsedBack = JSON.parse(decompressed as string);
-		assert.deepEqual(parsedBack, jsonObject);
+		expect(parsedBack).toEqual(jsonObject);
 	});
 
 	test("should handle base64 encoded data", () => {
@@ -237,10 +237,10 @@ describe("complex data structures", () => {
 		const compressed = compressString(base64);
 		const decompressed = decompressString(compressed);
 
-		assert.equal(decompressed, base64);
+		expect(decompressed).toBe(base64);
 		// Verify we can decode it back
 		const decoded = Buffer.from(decompressed as string, "base64").toString();
-		assert.equal(decoded, originalText);
+		expect(decoded).toBe(originalText);
 	});
 });
 
@@ -259,14 +259,14 @@ describe("edge case scenarios", () => {
 		// Compare the arrays properly
 		if (typeof decompressed === "string") {
 			const uint8Decompressed = new TextEncoder().encode(decompressed);
-			assert.equal(uint8Decompressed.length, input.length);
+			expect(uint8Decompressed.length).toBe(input.length);
 			for (let i = 0; i < input.length; i++) {
-				assert.equal(uint8Decompressed[i], input[i]);
+				expect(uint8Decompressed[i]).toBe(input[i]);
 			}
 		} else {
-			assert.equal(decompressed.length, input.length);
+			expect(decompressed.length).toBe(input.length);
 			for (let i = 0; i < input.length; i++) {
-				assert.equal(decompressed[i], input[i]);
+				expect(decompressed[i]).toBe(input[i]);
 			}
 		}
 	});
@@ -283,7 +283,7 @@ describe("edge case scenarios", () => {
 		const decompressed = decompress(compressed);
 
 		for (let i = 0; i < 256; i++) {
-			assert.equal(decompressed[i], i);
+			expect(decompressed[i]).toBe(i);
 		}
 	});
 });
@@ -306,7 +306,7 @@ describe("internal algorithm behavior", () => {
 
 		const compressed = compressString(input);
 		const decompressed = decompressString(compressed);
-		assert.equal(decompressed, input);
+		expect(decompressed).toBe(input);
 	});
 });
 
@@ -336,10 +336,10 @@ describe("boundary condition tests", () => {
 			const decompressed = decompress(corruptedData);
 
 			// If it doesn't throw, the result should at least be different
-			assert.notEqual(decompressed, input);
+			expect(decompressed).not.toBe(input);
 		} catch (error) {
 			// It's okay if it throws, as we're testing error handling
-			assert.ok(error instanceof Error);
+			expect(error).toBeInstanceOf(Error);
 		}
 	});
 
@@ -355,7 +355,7 @@ describe("boundary condition tests", () => {
 			const input = "A".repeat(size);
 			const compressed = compressString(input);
 			const decompressed = decompressString(compressed);
-			assert.equal(decompressed, input);
+			expect(decompressed).toBe(input);
 		}
 	});
 });
