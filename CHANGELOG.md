@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/xseman/lzma1/compare/v0.1.1...v0.1.2) (2025-07-24)
+
+
+### Bug Fixes
+
+* regression-since-v0.0.4 ([#27](https://github.com/xseman/lzma1/issues/27)) ([b628b2e](https://github.com/xseman/lzma1/commit/b628b2e70875138b0b3f4212cf82a42f6929308b))
+
+
+### Maintenance
+
+* remove [@ts-nocheck](https://github.com/ts-nocheck), fix type errors other improvements ([#22](https://github.com/xseman/lzma1/issues/22)) ([8c15430](https://github.com/xseman/lzma1/commit/8c15430878b65a41531c74f1f592f7212aa210a1))
+* remove [@ts-nocheck](https://github.com/ts-nocheck), fix type errors other improvements ([#24](https://github.com/xseman/lzma1/issues/24)) ([df13347](https://github.com/xseman/lzma1/commit/df133470620978ee794f3df1fc0afa664d225182))
+
 ## [0.1.1](https://github.com/xseman/lzma1/compare/v0.1.0...v0.1.1) (2025-06-27)
 
 
