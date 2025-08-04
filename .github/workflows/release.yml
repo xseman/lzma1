@@ -41,7 +41,7 @@ jobs:
               if: ${{ steps.release.outputs.release_created || github.event.inputs.tag}}
               with:
                   cache: npm
-                  node-version: 22
+                  node-version: 24
                   registry-url: "https://registry.npmjs.org"
 
             - if: ${{ steps.release.outputs.release_created || github.event.inputs.tag }}
