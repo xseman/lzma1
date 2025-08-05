@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/xseman/lzma1/compare/v0.1.2...v0.1.3) (2025-08-05)
+
+
+### Maintenance
+
+* update node version to 24 ([bd087b3](https://github.com/xseman/lzma1/commit/bd087b33cf22da1c6167d3a6750dba3fcc30ab86))
+
 ## [0.1.2](https://github.com/xseman/lzma1/compare/v0.1.1...v0.1.2) (2025-07-24)
 
 
