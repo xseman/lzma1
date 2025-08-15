@@ -22,8 +22,8 @@
 		"fmt": "dprint fmt",
 		"fmt:check": "dprint check",
 		"typecheck": "tsc --noEmit",
-		"test": "bun test --coverage lzma.test.ts",
-		"test:watch": "bun test --watch lzma.test.ts"
+		"test": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov ./src/lzma.test.ts",
+		"test:watch": "bun test --watch ./src/lzma.test.ts"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.2.18",
