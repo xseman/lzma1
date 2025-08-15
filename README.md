@@ -1,9 +1,16 @@
-# lzma1
+<div align="center">
 
-This is a [fork][fork-link] of [Nathan Rugg's][fork-author] LZMA-JS package.
+<h1>lzma1</h1>
+
+This is a [fork][fork-link] of [Nathan Rugg's][fork-author] LZMA-JS package and
+inspiration of [Java][7zip-sdk] and Googles [Go][go-sdk] implementations.
+
+</div>
 
 [fork-link]: https://github.com/LZMA-JS/LZMA-JS
 [fork-author]: https://github.com/nmrugg
+[7zip-sdk]: https://www.7-zip.org/sdk.html
+[go-sdk]: https://code.google.com/p/lzma
 
 ## Why
 
@@ -156,7 +163,6 @@ More [information][header_link] about the LZMA header structure.
 
 ## Related
 
-- [7-Zip SDK](https://www.7-zip.org/sdk.html)
 - [lzma-purejs](https://github.com/cscott/lzma-purejs)
 - [lzmajs](https://github.com/glinscott/lzmajs)
 - [lzma-purejs fork](https://github.com/mauron85/lzma-purejs/tree/master)

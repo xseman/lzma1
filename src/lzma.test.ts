@@ -325,3 +325,30 @@ describe("boundary condition tests", () => {
 		}
 	});
 });
+
+describe("Internal algorithm stress tests", () => {
+	test("large repetitive data to trigger MoveBlock", () => {
+		// Create data that will trigger internal buffer management
+		// including the MoveBlock method when buffer boundaries are hit
+		const largeSize = 1024 * 128; // 128KB
+		const pattern = "ABCD".repeat(32); // 128 byte pattern
+		const input = pattern.repeat(Math.ceil(largeSize / pattern.length));
+
+		const compressed = compressString(input);
+		const decompressed = decompressString(compressed);
+		expect(decompressed).toEqual(input);
+	});
+
+	test("compression at different levels to exercise all paths", () => {
+		const input = "This is a test string that will be compressed at different levels to ensure all code paths are exercised.".repeat(100);
+
+		// Test compression levels 1-9 to ensure all compression paths are hit
+		const levels = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+
+		for (const level of levels) {
+			const compressed = compressString(input, level);
+			const decompressed = decompressString(compressed);
+			expect(decompressed).toEqual(input);
+		}
+	});
+});

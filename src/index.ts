@@ -4,8 +4,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-import { LZMA } from "./lzma.js";
+import {
+	type CompressionMode,
+	LZMA,
+} from "./lzma.js";
+
 export { LZMA } from "./lzma.js";
+export { CRC32_TABLE } from "./utils.js";
 
 /**
  * Compresses data using LZMA algorithm
@@ -16,10 +21,14 @@ export { LZMA } from "./lzma.js";
  */
 export function compress(
 	data: Uint8Array | ArrayBuffer,
-	mode: keyof LZMA["CompressionModes"] = 5,
+	mode: CompressionMode = 5,
 ): Uint8Array {
-	const lzma = new LZMA();
-	return new Uint8Array(lzma.compress(data, mode));
+	// Convert ArrayBuffer to Uint8Array if needed
+	const input = data instanceof ArrayBuffer
+		? new Uint8Array(data)
+		: data;
+	const result = new LZMA().compress(input, mode);
+	return new Uint8Array(result);
 }
 
 /**
@@ -31,10 +40,10 @@ export function compress(
  */
 export function compressString(
 	data: string,
-	mode: keyof LZMA["CompressionModes"] = 5,
+	mode: CompressionMode = 5,
 ): Uint8Array {
-	const lzma = new LZMA();
-	return new Uint8Array(lzma.compressString(data, mode));
+	const compressedData = new LZMA().compressString(data, mode);
+	return new Uint8Array(compressedData);
 }
 
 /**
@@ -44,8 +53,11 @@ export function compressString(
  * @returns Decompressed data
  */
 export function decompress(data: Uint8Array | ArrayBuffer): Uint8Array {
-	const lzma = new LZMA();
-	return new Uint8Array(lzma.decompress(data));
+	const input = data instanceof ArrayBuffer
+		? new Uint8Array(data)
+		: data;
+	const decompressedData = new LZMA().decompress(input);
+	return new Uint8Array(decompressedData);
 }
 
 /**
@@ -55,6 +67,5 @@ export function decompress(data: Uint8Array | ArrayBuffer): Uint8Array {
  * @returns Decompressed data as string
  */
 export function decompressString(data: Uint8Array | ArrayBuffer): string {
-	const lzma = new LZMA();
-	return lzma.decompressString(data);
+	return new LZMA().decompressString(data);
 }
