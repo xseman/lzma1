@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/xseman/lzma1/compare/v0.1.2...v0.2.0) (2025-08-15)
+
+
+### Features
+
+* Add LZMA range encoding and decoding implementation ([#29](https://github.com/xseman/lzma1/issues/29)) ([399705f](https://github.com/xseman/lzma1/commit/399705f77359472a4b2f6cf5935cb63b34f287f5))
+
+
+### Maintenance
+
+* update node version to 24 ([bd087b3](https://github.com/xseman/lzma1/commit/bd087b33cf22da1c6167d3a6750dba3fcc30ab86))
+
 ## [0.1.2](https://github.com/xseman/lzma1/compare/v0.1.1...v0.1.2) (2025-07-24)
 
 
