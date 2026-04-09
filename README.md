@@ -27,7 +27,7 @@ to read and maintain.
 - Supports both string and Uint8Array data
 - No dependencies on runtime-specific APIs
 - Pure JavaScript implementation with TypeScript types
-- Isomorfic Browser & Runtime-independent implementation
+- Isomorphic browser- and runtime-independent implementation
 
 ## Installation
 
