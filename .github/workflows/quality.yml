@@ -1,17 +1,38 @@
-name: quality checks
+name: Quality
 
 on:
     pull_request:
         branches:
             - master
+        paths:
+            - "src/**"
+            - "package.json"
+            - "tsconfig.json"
+            - "dprint.json"
+            - "bunfig.toml"
+            - ".github/.release-config.json"
+            - ".github/.release-manifest.json"
+            - ".github/workflows/quality.yml"
+            - ".github/workflows/release.yml"
     push:
         branches:
             - master
         paths:
-            - src/**.ts
-            - package.json
-            - tsconfig.json
-            - .github/workflows/**.yml
+            - "src/**"
+            - "package.json"
+            - "tsconfig.json"
+            - "dprint.json"
+            - "bunfig.toml"
+            - ".github/.release-config.json"
+            - ".github/.release-manifest.json"
+            - ".github/workflows/quality.yml"
+            - ".github/workflows/release.yml"
+    workflow_dispatch:
+        inputs:
+            pr_number:
+                description: "PR number to run coverage for"
+                required: false
+                type: string
 
 permissions:
     contents: read
@@ -21,9 +42,14 @@ permissions:
 jobs:
     test:
         runs-on: ubuntu-latest
+        concurrency:
+            group: lzma1-coverage-comment-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.ref }}
+            cancel-in-progress: false
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v6
             - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
 
             - name: install
               run: bun install
@@ -34,19 +60,25 @@ jobs:
             - name: test
               run: bun run test
 
-            - name: upload coverage artifact
-              if: github.event_name == 'pull_request'
-              uses: actions/upload-artifact@v4
+            - name: Coverage report
+              if: (github.event_name == 'pull_request' && github.actor != 'release-please[bot]') || github.event_name == 'workflow_dispatch'
+              uses: xseman/coverage@v0.4.0
               with:
-                  name: coverage
-                  path: coverage/lcov.info
-                  if-no-files-found: warn
+                  pull-request-number: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+                  update-comment-marker: "<!-- coverage-reporter-lzma1 -->"
+                  coverage-artifact-paths: |
+                      bun:coverage/lcov.info
 
     fmt:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - uses: oven-sh/setup-bun@v2
-            - run: |
-                  bun install
-                  bun fmt:check
+              with:
+                  bun-version: latest
+
+            - name: install
+              run: bun install
+
+            - name: format check
+              run: bun run fmt:check

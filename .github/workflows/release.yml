@@ -1,4 +1,4 @@
-name: release-please
+name: Release Please
 
 on:
     push:
@@ -6,51 +6,69 @@ on:
             - master
     workflow_dispatch:
         inputs:
-            tag:
-                description: release git tag to npm manually
-                required: false
-                type: string
-            release_next:
-                description: release pre-release version
-                required: true
+            npm_release:
+                description: "Publish npm package"
                 type: boolean
+                default: false
+            npm_tag:
+                description: "Tag or ref to publish from (e.g., v0.1.0)"
+                type: string
+                required: false
 
 permissions:
     contents: write
+    issues: write
     pull-requests: write
-    id-token: write
 
 jobs:
-    release:
+    release-please:
+        name: Release Please
         runs-on: ubuntu-latest
+        outputs:
+            release_created: ${{ steps.release.outputs.release_created }}
+            tag_name: ${{ steps.release.outputs.tag_name }}
+            version: ${{ steps.release.outputs.version }}
         steps:
             - uses: googleapis/release-please-action@v4
-              if: ${{ !github.event.inputs.tag }}
               id: release
               with:
+                  config-file: .github/.release-config.json
                   manifest-file: .github/.release-manifest.json
-                  config-file: ${{ github.event.inputs.release_next == 'true' && '.github/.release-config.next.json' || '.github/.release-config.json' }}
-                  token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+                  token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
 
-            - uses: actions/checkout@v5
-              if: ${{ steps.release.outputs.release_created || github.event.inputs.tag }}
-              with:
-                  ref: ${{ github.event.inputs.tag || 'master' }}
+    publish:
+        name: Publish To npm
+        needs: release-please
+        if: ${{ (github.event_name == 'push' && needs.release-please.outputs.release_created) || (github.event_name == 'workflow_dispatch' && inputs.npm_release == true) }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            - uses: actions/checkout@v6
+              if: ${{ github.event_name == 'push' || inputs.npm_tag == '' }}
 
-            - uses: actions/setup-node@v4
-              if: ${{ steps.release.outputs.release_created || github.event.inputs.tag}}
+            - uses: actions/checkout@v6
+              if: ${{ github.event_name == 'workflow_dispatch' && inputs.npm_tag != '' }}
               with:
-                  cache: npm
+                  ref: ${{ inputs.npm_tag }}
+
+            - uses: actions/setup-node@v6
+              with:
                   node-version: 24
                   registry-url: "https://registry.npmjs.org"
 
-            - if: ${{ steps.release.outputs.release_created || github.event.inputs.tag }}
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            - name: Build package
+              run: bun run build
+
+            - name: Publish package
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-              run: |
-                  npm install
-                  node --run build
-                  npm publish \
-                    --provenance \
-                    --access public \
-                    --tag ${{ github.event.inputs.release_next == 'true' && 'next' || 'latest' }}
+              run: npm publish --provenance --access public
