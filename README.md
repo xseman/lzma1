@@ -25,9 +25,9 @@ to read and maintain.
 
 - Encode and decode LZMA streams
 - Supports both string and Uint8Array data
-- Supports both browser and Node.js environments
-- Pure JavaScript implementation with TypeScript types
 - No dependencies on runtime-specific APIs
+- Pure JavaScript implementation with TypeScript types
+- Isomorfic Browser & Runtime-independent implementation
 
 ## Installation
 
