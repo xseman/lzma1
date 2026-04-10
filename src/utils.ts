@@ -24,11 +24,6 @@ export interface BasicRangeDecoder {
 	decodeBit(probs: number[], index: number): number;
 }
 
-// Constants for 64-bit arithmetic
-const MAX_UINT32 = 0x100000000;
-const MAX_INT32 = 0x7FFFFFFF;
-const MIN_INT32 = -0x80000000;
-
 // Additional LZMA constants
 export const INFINITY_PRICE = 0xFFFFFFF;
 export const _MAX_UINT32 = 0xFFFFFFFF;
@@ -49,13 +44,6 @@ export const POS_DECODERS_SIZE = 114;
 export const LITERAL_DECODER_SIZE = 0x300; // 768
 export const DEFAULT_WINDOW_SIZE = 0x1000; // 4096
 export const CHOICE_ARRAY_SIZE = 2;
-
-// Special 64-bit number constants
-export const N1_LONG_LIT: [number, number] = [0xFFFFFFFF, -MAX_UINT32];
-export const MIN_VALUE: [number, number] = [0, -0x8000000000000000];
-export const P0_LONG_LIT: [number, number] = [0, 0];
-export const P1_LONG_LIT: [number, number] = [1, 0];
-export const ZERO_64: [number, number] = [0, 0];
 
 /**
  * CRC32 lookup table for hash calculations
@@ -177,127 +165,6 @@ export function arraycopy(
  */
 export function getBitPrice(probability: number, bit: number): number {
 	return PROB_PRICES[((probability - bit ^ -bit) & 2047) >>> 2];
-}
-
-/**
- * Create a 64-bit number from low and high parts
- */
-export function create64(valueLow: number, valueHigh: number): [number, number] {
-	let diffHigh, diffLow;
-
-	valueHigh %= 1.8446744073709552E19;
-	valueLow %= 1.8446744073709552E19;
-	diffHigh = valueHigh % MAX_UINT32;
-	diffLow = Math.floor(valueLow / MAX_UINT32) * MAX_UINT32;
-	valueHigh = valueHigh - diffHigh + diffLow;
-	valueLow = valueLow - diffLow + diffHigh;
-
-	while (valueLow < 0) {
-		valueLow += MAX_UINT32;
-		valueHigh -= MAX_UINT32;
-	}
-
-	while (valueLow > 0xFFFFFFFF) {
-		valueLow -= MAX_UINT32;
-		valueHigh += MAX_UINT32;
-	}
-	valueHigh = valueHigh % 1.8446744073709552E19;
-
-	while (valueHigh > 9223372032559808512) {
-		valueHigh -= 1.8446744073709552E19;
-	}
-
-	while (valueHigh < -9223372036854775808) {
-		valueHigh += 1.8446744073709552E19;
-	}
-
-	return [valueLow, valueHigh];
-}
-
-/**
- * Add two 64-bit numbers
- */
-export function add64(a: [number, number], b: [number, number]): [number, number] {
-	return create64(a[0] + b[0], a[1] + b[1]);
-}
-
-/**
- * Subtract two 64-bit numbers
- */
-export function sub64(a: [number, number], b: [number, number]): [number, number] {
-	return create64(a[0] - b[0], a[1] - b[1]);
-}
-
-/**
- * Compare two 64-bit numbers
- */
-export function compare64(a: [number, number], b: [number, number]): 0 | 1 | -1 {
-	if (a[0] == b[0] && a[1] == b[1]) {
-		return 0;
-	}
-	const nega = a[1] < 0;
-	const negb = b[1] < 0;
-
-	if (nega && !negb) {
-		return -1;
-	}
-
-	if (!nega && negb) {
-		return 1;
-	}
-
-	if (sub64(a, b)[1] < 0) {
-		return -1;
-	}
-
-	return 1;
-}
-
-/**
- * Extract low bits from 64-bit number
- */
-export function lowBits64(a: [number, number]): number {
-	if (a[0] >= 0x80000000) {
-		return ~~Math.max(
-			Math.min(a[0] - MAX_UINT32, MAX_INT32),
-			MIN_INT32,
-		);
-	}
-
-	return ~~Math.max(
-		Math.min(a[0], MAX_INT32),
-		MIN_INT32,
-	);
-}
-
-/**
- * Create 64-bit number from integer
- */
-export function fromInt64(value: number): [number, number] {
-	if (value >= 0) {
-		return [value, 0];
-	} else {
-		return [value + MAX_UINT32, -MAX_UINT32];
-	}
-}
-
-/**
- * Right shift 64-bit number
- */
-export function shr64(a: [number, number], n: number): [number, number] {
-	n &= 0x3F;
-	if (n <= 0x1E) {
-		const shiftFact = 1 << n;
-		return create64(
-			Math.floor(a[0] / shiftFact),
-			a[1] / shiftFact,
-		);
-	}
-	const shiftFact = (1 << 0x1E) * (1 << (n - 0x1E));
-	return create64(
-		Math.floor(a[0] / shiftFact),
-		a[1] / shiftFact,
-	);
 }
 
 /**
