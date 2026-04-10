@@ -2,7 +2,6 @@ import type { InputBuffer } from "./streams.js";
 import {
 	CRC32_TABLE,
 	DICTIONARY_SIZE_THRESHOLD,
-	initArray,
 } from "./utils.js";
 
 /**
@@ -14,7 +13,7 @@ import {
 export class BinTreeMatchFinder {
 	// Input window fields
 	_posLimit: number = 0;
-	_bufferBase: number[] = [];
+	_bufferBase: Uint8Array = new Uint8Array(0);
 	_pos: number = 0;
 	_streamPos: number = 0;
 	_streamEndWasReached: number = 0;
@@ -32,10 +31,10 @@ export class BinTreeMatchFinder {
 	kFixHashSize: number = 66560;
 	_hashMask: number = 0;
 	_hashSizeSum: number = 0;
-	_hash: number[] = [];
+	_hash: Int32Array = new Int32Array(0);
 	_cyclicBufferSize: number = 0;
 	_cyclicBufferPos: number = 0;
-	_son: number[] = [];
+	_son: Int32Array = new Int32Array(0);
 	_matchMaxLen: number = 0;
 	_cutValue: number = 0xff;
 
@@ -79,10 +78,7 @@ export class BinTreeMatchFinder {
 		}
 
 		const numBytes = this._bufferOffset + this._streamPos - offset;
-
-		for (let i = 0; i < numBytes; ++i) {
-			this._bufferBase[i] = this._bufferBase[offset + i];
-		}
+		this._bufferBase.copyWithin(0, offset, offset + numBytes);
 
 		this._bufferOffset -= offset;
 	}
@@ -161,10 +157,8 @@ export class BinTreeMatchFinder {
 		this._keepSizeAfter = keepSizeAfter;
 		const blockSize = keepSizeBefore + keepSizeAfter + keepSizeReserv;
 
-		if (
-			this._bufferBase == null || this._blockSize != blockSize
-		) {
-			this._bufferBase = initArray(blockSize);
+		if (this._blockSize != blockSize) {
+			this._bufferBase = new Uint8Array(blockSize);
 			this._blockSize = blockSize;
 		}
 
@@ -194,7 +188,7 @@ export class BinTreeMatchFinder {
 			const cyclicBufferSize = dictionarySize + 1;
 			if (this._cyclicBufferSize !== cyclicBufferSize) {
 				this._cyclicBufferSize = cyclicBufferSize;
-				this._son = initArray(cyclicBufferSize * 2);
+				this._son = new Int32Array(cyclicBufferSize * 2);
 			}
 
 			// Compute hash size
@@ -220,12 +214,12 @@ export class BinTreeMatchFinder {
 
 				if (finalHashSizeSum !== this._hashSizeSum) {
 					this._hashSizeSum = finalHashSizeSum;
-					this._hash = initArray(finalHashSizeSum);
+					this._hash = new Int32Array(finalHashSizeSum);
 				}
 			} else {
 				if (hs !== this._hashSizeSum) {
 					this._hashSizeSum = hs;
-					this._hash = initArray(hs);
+					this._hash = new Int32Array(hs);
 				}
 			}
 		}
@@ -277,13 +271,13 @@ export class BinTreeMatchFinder {
 		hash3Value = 0;
 
 		if (this.HASH_ARRAY) {
-			temp = CRC32_TABLE[this._bufferBase[cur] & 0xFF] ^ (this._bufferBase[cur + 1] & 0xFF);
+			temp = CRC32_TABLE[this._bufferBase[cur]] ^ this._bufferBase[cur + 1];
 			hash2Value = temp & 0x3FF;
-			temp ^= (this._bufferBase[cur + 2] & 0xFF) << 0x08;
+			temp ^= this._bufferBase[cur + 2] << 0x08;
 			hash3Value = temp & 0xFFFF;
-			hashValue = (temp ^ (CRC32_TABLE[this._bufferBase[cur + 3] & 0xFF] << 5)) & this._hashMask;
+			hashValue = (temp ^ (CRC32_TABLE[this._bufferBase[cur + 3]] << 5)) & this._hashMask;
 		} else {
-			hashValue = (this._bufferBase[cur] & 0xFF) ^ ((this._bufferBase[cur + 1] & 0xFF) << 0x08);
+			hashValue = this._bufferBase[cur] ^ (this._bufferBase[cur + 1] << 0x08);
 		}
 
 		curMatch = this._hash[this.kFixHashSize + hashValue] || 0;
@@ -374,7 +368,7 @@ export class BinTreeMatchFinder {
 			}
 
 			if (
-				(this._bufferBase[pby1 + len] & 0xFF) < (this._bufferBase[cur + len] & 0xFF)
+				this._bufferBase[pby1 + len] < this._bufferBase[cur + len]
 			) {
 				this._son[ptr1] = curMatch;
 				ptr1 = cyclicPos + 1;
@@ -429,15 +423,15 @@ export class BinTreeMatchFinder {
 			cur = this._bufferOffset + this._pos;
 
 			if (this.HASH_ARRAY) {
-				temp = CRC32_TABLE[this._bufferBase[cur] & 0xFF] ^ (this._bufferBase[cur + 1] & 0xFF);
+				temp = CRC32_TABLE[this._bufferBase[cur]] ^ this._bufferBase[cur + 1];
 				hash2Value = temp & 0x3FF;
 				this._hash[hash2Value] = this._pos;
-				temp ^= (this._bufferBase[cur + 2] & 0xFF) << 0x08;
+				temp ^= this._bufferBase[cur + 2] << 0x08;
 				hash3Value = temp & 0xFFFF;
 				this._hash[0x400 + hash3Value] = this._pos;
-				hashValue = (temp ^ (CRC32_TABLE[this._bufferBase[cur + 3] & 0xFF] << 5)) & this._hashMask;
+				hashValue = (temp ^ (CRC32_TABLE[this._bufferBase[cur + 3]] << 5)) & this._hashMask;
 			} else {
-				hashValue = (this._bufferBase[cur] & 0xFF) ^ ((this._bufferBase[cur + 1] & 0xFF) << 0x08);
+				hashValue = this._bufferBase[cur] ^ (this._bufferBase[cur + 1] << 0x08);
 			}
 
 			curMatch = this._hash[this.kFixHashSize + hashValue];
@@ -479,7 +473,7 @@ export class BinTreeMatchFinder {
 					}
 				}
 
-				if ((this._bufferBase[pby1 + len] & 0xFF) < (this._bufferBase[cur + len] & 0xFF)) {
+				if (this._bufferBase[pby1 + len] < this._bufferBase[cur + len]) {
 					this._son[ptr1] = curMatch;
 					ptr1 = cyclicPos + 1;
 					curMatch = this._son[ptr1];
@@ -526,9 +520,9 @@ export class BinTreeMatchFinder {
 	/**
 	 * This is only called after reading one whole gigabyte.
 	 */
-	normalizeLinks(items: number[], numItems: number, subValue: number): void {
-		for (let i = 0, value; i < numItems; ++i) {
-			value = items[i] || 0;
+	normalizeLinks(items: Int32Array, numItems: number, subValue: number): void {
+		for (let i = 0; i < numItems; ++i) {
+			let value = items[i];
 			if (value <= subValue) {
 				value = 0;
 			} else {

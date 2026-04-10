@@ -33,7 +33,7 @@ export class RangeDecoder {
 
 		if ((this.code ^ -0x80000000) < (newBound ^ -0x80000000)) {
 			this.rrange = newBound;
-			probs[index] = prob + (2048 - prob >>> 5) << 16 >> 16;
+			probs[index] = prob + ((2048 - prob) >>> 5);
 			if (!(this.rrange & -0x1000000)) {
 				this.code = this.code << 8 | this.readFromStream();
 				this.rrange <<= 8;
@@ -42,7 +42,7 @@ export class RangeDecoder {
 		} else {
 			this.rrange -= newBound;
 			this.code -= newBound;
-			probs[index] = prob - (prob >>> 5) << 16 >> 16;
+			probs[index] = prob - (prob >>> 5);
 			if (!(this.rrange & -0x1000000)) {
 				this.code = this.code << 8 | this.readFromStream();
 				this.rrange <<= 8;

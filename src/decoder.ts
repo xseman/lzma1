@@ -243,7 +243,7 @@ export class Decoder {
 		// Initialize output window
 		if (dictSize > 0) {
 			this.outWindow.windowSize = Math.max(dictSize, 4096);
-			this.outWindow.buffer = initArray(this.outWindow.windowSize);
+			this.outWindow.buffer = new Uint8Array(this.outWindow.windowSize);
 		}
 
 		// Initialize literal decoder coders
@@ -568,7 +568,7 @@ export class Decoder {
 		return 0;
 	}
 
-	writeToOutput(buffer: OutputBuffer, data: number[], offset: number, length: number): void {
+	writeToOutput(buffer: OutputBuffer, data: Uint8Array, offset: number, length: number): void {
 		buffer.writeBytes(data, offset, length);
 	}
 

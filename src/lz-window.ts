@@ -1,7 +1,7 @@
 import type { OutputBuffer } from "./streams.js";
 
 export class LzOutWindow {
-	buffer: number[] | null = null;
+	buffer: Uint8Array | null = null;
 	pos: number = 0;
 	streamPos: number = 0;
 	stream: OutputBuffer | null = null;
@@ -9,13 +9,13 @@ export class LzOutWindow {
 
 	// Private Go-style properties
 	private w: OutputBuffer | null = null;
-	private buf: number[] = [];
+	private buf: Uint8Array;
 
 	constructor(writer: OutputBuffer | null = null, windowSize: number = 4096) {
 		this.w = writer;
 		this.stream = writer;
 		this.windowSize = windowSize;
-		this.buf = new Array(windowSize);
+		this.buf = new Uint8Array(windowSize);
 		this.buffer = this.buf;
 		this.pos = 0;
 		this.streamPos = 0;
@@ -74,8 +74,7 @@ export class LzOutWindow {
 	 */
 	flush(): void {
 		if (this.w && this.buffer && this.pos > 0) {
-			const dataToWrite = this.buffer.slice(0, this.pos);
-			this.w.write(dataToWrite);
+			this.w.writeBytes(this.buffer, 0, this.pos);
 			this.pos = 0;
 		}
 	}

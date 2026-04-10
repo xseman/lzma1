@@ -561,11 +561,11 @@ export class Encoder implements LenRangeEncoder {
 
 		if (!symbol) {
 			rangeEncoder.rrange = newBound;
-			probs[index] = prob + (2048 - prob >>> 5) << 16 >> 16;
+			probs[index] = prob + ((2048 - prob) >>> 5);
 		} else {
 			rangeEncoder.low += BigInt(newBound >>> 0);
 			rangeEncoder.rrange -= newBound;
-			probs[index] = prob - (prob >>> 5) << 16 >> 16;
+			probs[index] = prob - (prob >>> 5);
 		}
 
 		if (!(rangeEncoder.rrange & -0x1000000)) {

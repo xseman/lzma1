@@ -46,7 +46,8 @@ export class LZMA {
 
 		this.#encoder.compress(input, output, MODES[mode]);
 
-		return new Int8Array(output.toArray());
+		const result = output.toArray();
+		return new Int8Array(result.buffer, result.byteOffset, result.byteLength);
 	}
 
 	public compressString(
@@ -56,7 +57,7 @@ export class LZMA {
 		return this.compress(new Uint8Array(this.#encodeString(data)), mode);
 	}
 
-	public decompress(bytearray: Uint8Array | ArrayBuffer): number[] {
+	public decompress(bytearray: Uint8Array | ArrayBuffer): Uint8Array {
 		const inputData = bytearray instanceof ArrayBuffer ? new Uint8Array(bytearray) : bytearray;
 		const output = new OutputBuffer(Math.max(32, inputData.length * 2));
 		const input = new InputBuffer(inputData);
@@ -102,8 +103,8 @@ export class LZMA {
 		return data;
 	}
 
-	#decodeUTF8(utf: number[]): string | number[] {
-		let j = 0, x, y, z, l = utf.length, buf = [], charCodes = [];
+	#decodeUTF8(utf: Uint8Array): string | Uint8Array {
+		let j = 0, x, y, z, l = utf.length, buf: string[] = [], charCodes: number[] = [];
 
 		for (let i = 0; i < l; ++i, ++j) {
 			x = utf[i] & 0xFF;

@@ -198,7 +198,12 @@ export function getLenToPosState(len: number): number {
 /**
  * Update state after character encoding/decoding
  */
+const STATE_UPDATE_CHAR_TABLE = [0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 4, 5];
+
 export function stateUpdateChar(index: number): number {
+	if (index >= 0 && index < STATE_UPDATE_CHAR_TABLE.length) {
+		return STATE_UPDATE_CHAR_TABLE[index];
+	}
 	if (index < 4) {
 		return 0;
 	}

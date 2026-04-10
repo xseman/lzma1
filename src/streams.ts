@@ -16,12 +16,11 @@ export class InputBuffer {
 		return this.buf[this.pos++] & 0xFF;
 	}
 
-	readBytes(dest: number[], off: number, len: number): number {
+	readBytes(dest: Uint8Array, off: number, len: number): number {
 		if (this.pos >= this.count) return -1;
 		len = Math.min(len, this.count - this.pos);
-		for (let i = 0; i < len; i++) {
-			dest[off + i] = this.buf[this.pos++];
-		}
+		dest.set(this.buf.subarray(this.pos, this.pos + len), off);
+		this.pos += len;
 		return len;
 	}
 
@@ -31,49 +30,44 @@ export class InputBuffer {
 }
 
 /**
- * Growable output buffer backed by a number array.
+ * Growable output buffer backed by a Uint8Array.
  */
 export class OutputBuffer {
-	buf: number[];
+	buf: Uint8Array;
 	count: number = 0;
 
 	constructor(capacity: number = 32) {
-		this.buf = new Array(capacity);
+		this.buf = new Uint8Array(capacity);
+	}
+
+	private grow(requiredSize: number): void {
+		const newSize = Math.max(this.buf.length * 2, requiredSize);
+		const newBuf = new Uint8Array(newSize);
+		newBuf.set(this.buf.subarray(0, this.count));
+		this.buf = newBuf;
 	}
 
 	writeByte(b: number): void {
 		if (this.count >= this.buf.length) {
-			const newSize = Math.max(this.buf.length * 2, this.count + 1);
-			const newBuf = new Array(newSize);
-			for (let i = 0; i < this.count; i++) {
-				newBuf[i] = this.buf[i];
-			}
-			this.buf = newBuf;
+			this.grow(this.count + 1);
 		}
 		this.buf[this.count++] = b;
 	}
 
-	writeBytes(src: number[], off: number, len: number): void {
+	writeBytes(src: Uint8Array, off: number, len: number): void {
 		const requiredSize = this.count + len;
 		if (requiredSize > this.buf.length) {
-			const newSize = Math.max(this.buf.length * 2, requiredSize);
-			const newBuf = new Array(newSize);
-			for (let i = 0; i < this.count; i++) {
-				newBuf[i] = this.buf[i];
-			}
-			this.buf = newBuf;
+			this.grow(requiredSize);
 		}
-		for (let i = 0; i < len; i++) {
-			this.buf[this.count + i] = src[off + i];
-		}
+		this.buf.set(src.subarray(off, off + len), this.count);
 		this.count += len;
 	}
 
-	write(buf: number[]): void {
+	write(buf: Uint8Array): void {
 		this.writeBytes(buf, 0, buf.length);
 	}
 
-	toArray(): number[] {
+	toArray(): Uint8Array {
 		return this.buf.slice(0, this.count);
 	}
 }
