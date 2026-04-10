@@ -2219,4 +2219,20 @@ export class Encoder implements LenRangeEncoder {
 
 		this.nowPos64 = P0_LONG_LIT;
 	}
+
+	compress(
+		input: InputBuffer,
+		output: OutputBuffer,
+		mode: { searchDepth: number; filterStrength: number; modeIndex: number },
+	): void {
+		this.initCompression(input, output, fromInt64(input.count), mode);
+
+		do {
+			this.codeOneBlock();
+			if (this.finished[0]) {
+				this.releaseStreams();
+				break;
+			}
+		} while (true);
+	}
 }

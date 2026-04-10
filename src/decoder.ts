@@ -1,4 +1,3 @@
-import { DecoderChunker } from "./chunker.js";
 import { LzOutWindow } from "./lz-window.js";
 import { RangeDecoder } from "./range-decoder.js";
 import type {
@@ -83,12 +82,6 @@ export class Decoder {
 		return this.literalDecoder;
 	}
 
-	// Chunker properties for compatibility
-	decoder: Decoder;
-	encoder: null = null;
-	alive: number = 0;
-	inBytesProcessed: [number, number] = [0, 0];
-
 	constructor() {
 		// Initialize range decoder
 		this.rangeDecoder = new RangeDecoder();
@@ -125,15 +118,12 @@ export class Decoder {
 
 		// Initialize position alignment decoder
 		this.posAlignDecoder = createBitTree(4);
-
-		// Initialize self-reference for chunker compatibility
-		this.decoder = this;
 	}
 
 	/**
-	 * Read LZMA header, configure decoder, and prepare for chunk-based decompression.
+	 * Read LZMA header, configure decoder, and prepare for decompression.
 	 */
-	initDecompression(input: InputBuffer, output: OutputBuffer): DecoderChunker {
+	initDecompression(input: InputBuffer, output: OutputBuffer): void {
 		// Read 5-byte header properties
 		const properties: number[] = [];
 		for (let i = 0; i < 5; ++i) {
@@ -188,12 +178,29 @@ export class Decoder {
 		this.outSize = outSize;
 		this.nowPos64 = P0_LONG_LIT;
 		this.prevByte = 0;
+	}
 
-		// Create and return decoder chunker
-		const decoderChunker = new DecoderChunker(this);
-		decoderChunker.alive = 1;
+	/**
+	 * Full decompression: read header, decode all chunks, flush and cleanup.
+	 */
+	decompress(input: InputBuffer, output: OutputBuffer): void {
+		this.initDecompression(input, output);
 
-		return decoderChunker;
+		while (true) {
+			const result = this.codeOneChunk();
+			if (result === -1) {
+				throw new Error("Corrupted input");
+			}
+
+			const isOutputComplete = (compare64(this.outSize, P0_LONG_LIT) >= 0)
+				&& (compare64(this.nowPos64, this.outSize) >= 0);
+
+			if (result || isOutputComplete) {
+				this.flush();
+				this.cleanup();
+				return;
+			}
+		}
 	}
 
 	createLenDecoder(): LenDecoder {
@@ -567,56 +574,6 @@ export class Decoder {
 		}
 
 		return 0;
-	}
-
-	// Setup decoder for chunk processing
-	setupForDecoding(inStream: InputBuffer, outSize: [number, number], outputBuffer: OutputBuffer): void {
-		this.rangeDecoder.setStream(inStream);
-		this.outSize = outSize;
-		this.outWindowReleaseStream();
-		this.outWindow.stream = outputBuffer;
-
-		this.init();
-		this.state = 0;
-		this.rep0 = 0;
-		this.rep1 = 0;
-		this.rep2 = 0;
-		this.rep3 = 0;
-		this.outSize = outSize;
-		this.nowPos64 = [0, 0];
-		this.prevByte = 0;
-
-		this.decoder = this;
-		this.encoder = null;
-		this.alive = 1;
-	}
-
-	// Process chunk and return alive status
-	processChunk(): number {
-		if (!this.alive) {
-			throw new Error("Bad state");
-		}
-
-		if (this.encoder) {
-			throw new Error("No encoding");
-		}
-
-		const result = this.codeOneChunk();
-		if (result === -1) {
-			throw new Error("Corrupted input");
-		}
-
-		const isOutputComplete = (compare64(this.outSize, [0, 0]) >= 0)
-			&& (compare64(this.nowPos64, this.outSize) >= 0);
-
-		if (result || isOutputComplete) {
-			this.flush();
-			this.outWindowReleaseStream();
-			this.rangeDecoder.setStream(null);
-			this.alive = 0;
-		}
-
-		return this.alive;
 	}
 
 	writeToOutput(buffer: OutputBuffer, data: number[], offset: number, length: number): void {
