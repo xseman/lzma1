@@ -9,7 +9,7 @@ import {
 	LZMA,
 } from "./lzma.js";
 
-export { LZMA } from "./lzma.js";
+export type { CompressionMode } from "./lzma.js";
 export { CRC32_TABLE } from "./utils.js";
 
 /**
