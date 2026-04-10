@@ -1,6 +1,12 @@
-import { describe, test } from "bun:test";
+import {
+	describe,
+	test,
+} from "bun:test";
 
-import { compress, decompress } from "./index.js";
+import {
+	compress,
+	decompress,
+} from "./index.js";
 
 // --- Data generators ---
 
@@ -24,8 +30,7 @@ function generateRandom(size: number): Uint8Array {
 }
 
 function generateLoremIpsum(size: number): Uint8Array {
-	const lorem =
-		"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. ";
+	const lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. ";
 	const encoder = new TextEncoder();
 	const pattern = encoder.encode(lorem);
 	const buf = new Uint8Array(size);
@@ -159,7 +164,7 @@ const SIZES = [
 	{ label: "100KB", size: 100 * 1024 },
 ];
 
-const PATTERNS: { label: string; gen: (size: number) => Uint8Array }[] = [
+const PATTERNS: { label: string; gen: (size: number) => Uint8Array; }[] = [
 	{ label: "repetitive", gen: generateRepetitive },
 	{ label: "random", gen: generateRandom },
 	{ label: "lorem", gen: generateLoremIpsum },
