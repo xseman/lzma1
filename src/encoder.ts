@@ -899,40 +899,6 @@ export class Encoder implements LenRangeEncoder {
 	}
 
 	/**
-	 * Create match finder and encoder structures (replaces #Create_2)
-	 */
-	createMatchFinderAndStructures(): void {
-		// Create match finder if needed
-		if (!this._matchFinder) {
-			const binTree = new BinTreeMatchFinder();
-			let numHashBytes = 4;
-
-			if (!this._matchFinderType) {
-				numHashBytes = 2;
-			}
-
-			binTree.setType(numHashBytes);
-			this._matchFinder = binTree;
-		}
-
-		// Create literal encoder if needed
-		this.createLiteralEncoder();
-
-		// Check if we need to recreate structures
-		if (
-			this._dictionarySize == this._dictionarySizePrev
-			&& this._numFastBytesPrev == this._numFastBytes
-		) {
-			return;
-		}
-
-		// This would call equivalent of #Create_3(0x1000, 0x0112) logic
-		// For now, we'll handle the basic setup
-		this._dictionarySizePrev = this._dictionarySize;
-		this._numFastBytesPrev = this._numFastBytes;
-	}
-
-	/**
 	 * Get literal encoder subcoder (utility method)
 	 */
 	getSubCoderUtility(pos: number, prevByte: number): LiteralDecoderEncoder2 {
@@ -2093,7 +2059,6 @@ export class Encoder implements LenRangeEncoder {
 			throw new Error("invalid length " + len);
 		}
 
-		this.createOptimumStructures();
 		this.initialize();
 		this.configure(mode);
 

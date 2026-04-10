@@ -505,8 +505,8 @@ export class BinTreeMatchFinder {
 		if (this._pos == DICTIONARY_SIZE_THRESHOLD) {
 			const subValue = this._pos - this._cyclicBufferSize;
 
-			this.normalizeLinks(this._cyclicBufferSize * 2, subValue);
-			this.normalizeLinks(this._hashSizeSum, subValue);
+			this.normalizeLinks(this._son, this._cyclicBufferSize * 2, subValue);
+			this.normalizeLinks(this._hash, this._hashSizeSum, subValue);
 
 			this.reduceOffsets(subValue);
 		}
@@ -526,9 +526,7 @@ export class BinTreeMatchFinder {
 	/**
 	 * This is only called after reading one whole gigabyte.
 	 */
-	normalizeLinks(numItems: number, subValue: number): void {
-		const items = this._son;
-
+	normalizeLinks(items: number[], numItems: number, subValue: number): void {
 		for (let i = 0, value; i < numItems; ++i) {
 			value = items[i] || 0;
 			if (value <= subValue) {

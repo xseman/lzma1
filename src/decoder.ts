@@ -181,7 +181,7 @@ export class Decoder {
 		while (true) {
 			const result = this.codeOneChunk();
 			if (result === -1) {
-				throw new Error("Corrupted input");
+				throw new Error("corrupted input");
 			}
 
 			const isOutputComplete = (this.outSize >= 0n)
