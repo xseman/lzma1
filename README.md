@@ -155,7 +155,14 @@ commonly used in the 7z archive format.
 The LZMA compressed data begins with a header that contains information needed
 for decompression:
 
-![lzma](./docs/lzma.svg)
+```mermaid
+packet-beta
+  0-7: "lc (literal context)"
+  8-11: "lp (literal pos)"
+  12-15: "pb (position bits)"
+  16-47: "Dictionary Size (32-bit, LE)"
+  48-111: "Uncompressed Size (64-bit, LE)"
+```
 
 More [information][header_link] about the LZMA header structure.
 
