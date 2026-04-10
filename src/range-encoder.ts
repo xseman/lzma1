@@ -39,11 +39,11 @@ export class RangeEncoder {
 
 		if (bit === 0) {
 			this.rrange = newBound;
-			probs[index] = prob + ((2048 - prob) >>> 5) << 16 >> 16;
+			probs[index] = prob + ((2048 - prob) >>> 5);
 		} else {
 			this.low += BigInt(newBound);
 			this.rrange -= newBound;
-			probs[index] = prob - (prob >>> 5) << 16 >> 16;
+			probs[index] = prob - (prob >>> 5);
 		}
 
 		if (!(this.rrange & -0x1000000)) {
