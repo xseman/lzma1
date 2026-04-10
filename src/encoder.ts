@@ -3,6 +3,7 @@ import {
 	type RangeEncoder as LenRangeEncoder,
 } from "./len-coder.js";
 import { LitCoder } from "./lit-coder.js";
+import { BinTreeMatchFinder } from "./match-finder.js";
 import type { InputBuffer, OutputBuffer } from "./streams.js";
 import type { LiteralDecoderEncoder2 } from "./utils.js";
 import {
@@ -54,32 +55,6 @@ function getBitTreePrice(bitTree: BitTree, symbol: number): number {
 	}
 
 	return price;
-}
-
-export interface MatchFinder {
-	_posLimit: number;
-	_bufferBase: number[];
-	_pos: number;
-	_streamPos: number;
-	_streamEndWasReached: number;
-	_bufferOffset: number;
-	_blockSize: number;
-	_keepSizeBefore: number;
-	_keepSizeAfter: number;
-	_pointerToLastSafePosition: number;
-	_stream: InputBuffer | null;
-	HASH_ARRAY: boolean;
-	kNumHashDirectBytes: number;
-	kMinMatchCheck: number;
-	kFixHashSize: number;
-	_hashMask: number;
-	_hashSizeSum: number;
-	_hash: number[];
-	_cyclicBufferSize: number;
-	_cyclicBufferPos: number;
-	_son: number[];
-	_matchMaxLen: number;
-	_cutValue: number;
 }
 
 export interface Optimum {
@@ -297,7 +272,7 @@ export class Encoder implements LenRangeEncoder {
 
 	// Dictionary and match finding
 	_dictionarySize: number = 0;
-	_matchFinder: MatchFinder | null = null;
+	_matchFinder: BinTreeMatchFinder | null = null;
 	_dictionarySizePrev: number = 0;
 	_numFastBytes: number = 0;
 
@@ -1004,42 +979,14 @@ export class Encoder implements LenRangeEncoder {
 	createMatchFinderAndStructures(): void {
 		// Create match finder if needed
 		if (!this._matchFinder) {
-			const binTree = {} as MatchFinder;
+			const binTree = new BinTreeMatchFinder();
 			let numHashBytes = 4;
 
 			if (!this._matchFinderType) {
 				numHashBytes = 2;
 			}
 
-			// Set match finder type (replaces #SetType)
-			binTree.HASH_ARRAY = numHashBytes > 2;
-			if (binTree.HASH_ARRAY) {
-				binTree.kNumHashDirectBytes = 0;
-				binTree.kMinMatchCheck = 4;
-				binTree.kFixHashSize = 66560;
-			} else {
-				binTree.kNumHashDirectBytes = 2;
-				binTree.kMinMatchCheck = 3;
-				binTree.kFixHashSize = 0;
-			}
-
-			// Initialize other match finder properties
-			binTree._cyclicBufferSize = 0;
-			binTree._cyclicBufferPos = 0;
-			binTree._streamPos = 0;
-			binTree._cutValue = 0xff;
-			binTree._matchMaxLen = 0;
-			binTree._streamEndWasReached = 0;
-			binTree._pos = 0;
-			binTree._posLimit = 0;
-			binTree._son = [];
-			binTree._hash = [];
-			binTree._bufferBase = [];
-			binTree._blockSize = 0;
-			binTree._keepSizeAfter = 0;
-			binTree._keepSizeBefore = 0;
-			binTree._pointerToLastSafePosition = 0;
-
+			binTree.setType(numHashBytes);
 			this._matchFinder = binTree;
 		}
 

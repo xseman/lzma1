@@ -5,18 +5,9 @@ import {
 import { Decoder } from "./decoder.js";
 import {
 	Encoder,
-	type MatchFinder,
 	type Optimum,
 } from "./encoder.js";
-import { LzInWindow } from "./lz-in-window.js";
-import {
-	computeHashSize,
-	computeWindowReservSize,
-	ensureCyclicBuffer,
-	isDictionarySizeBelowThreshold,
-	setCutValue,
-	setMatchMaxLen,
-} from "./match-finder-config.js";
+import { BinTreeMatchFinder } from "./match-finder.js";
 import {
 	InputBuffer,
 	OutputBuffer,
@@ -26,15 +17,12 @@ import {
 	add64,
 	type BitTree,
 	compare64,
-	CRC32_TABLE,
 	createBitTree,
-	DICTIONARY_SIZE_THRESHOLD,
 	fromInt64,
 	G_FAST_POS,
 	getBitPrice,
 	getLenToPosState,
 	INFINITY_PRICE,
-	initArray,
 	type LiteralDecoderEncoder2,
 	lowBits64,
 	N1_LONG_LIT,
@@ -139,7 +127,6 @@ export const MODES = {
 export class LZMA {
 	#encoder: Encoder;
 	#decoder: Decoder;
-	#lzInWindow: LzInWindow | null = null;
 
 	#compressor: CompressionContext;
 	#decompressor: DecompressionContext;
@@ -332,419 +319,6 @@ export class LZMA {
 		this.#initDecompression(inputBuffer);
 	}
 
-	#Create_4(
-		keepSizeBefore: number,
-		keepSizeAfter: number,
-		keepSizeReserv: number,
-	): void {
-		let blockSize;
-		this.#encoder._matchFinder!._keepSizeBefore = keepSizeBefore;
-		this.#encoder._matchFinder!._keepSizeAfter = keepSizeAfter;
-		blockSize = keepSizeBefore + keepSizeAfter + keepSizeReserv;
-
-		if (
-			this.#encoder._matchFinder!._bufferBase == null || this.#encoder._matchFinder!._blockSize != blockSize
-		) {
-			this.#encoder._matchFinder!._bufferBase = initArray(blockSize);
-			this.#encoder._matchFinder!._blockSize = blockSize;
-		}
-
-		this.#encoder._matchFinder!._pointerToLastSafePosition = this.#encoder._matchFinder!._blockSize - keepSizeAfter;
-	}
-
-	#MovePos_1(): void {
-		const matchFinder = this.#compressor.chunker.encoder!._matchFinder!;
-		let pointerToPostion;
-
-		matchFinder._pos += 1;
-
-		if (matchFinder._pos > matchFinder._posLimit) {
-			pointerToPostion = matchFinder._bufferOffset + matchFinder._pos;
-
-			if (pointerToPostion > matchFinder._pointerToLastSafePosition) {
-				this.#lzInWindow!.moveBlock();
-			}
-
-			this.#lzInWindow!.readBlock();
-		}
-	}
-
-	#Create_3(
-		keepAddBufferBefore: number,
-		keepAddBufferAfter: number,
-	): void {
-		const dictionarySize = this.#encoder._dictionarySize;
-		const numFastBytes = this.#encoder._numFastBytes;
-
-		if (isDictionarySizeBelowThreshold(dictionarySize)) {
-			this.#encoder._matchFinder!._cutValue = setCutValue(numFastBytes);
-			const windowReservSize = computeWindowReservSize(
-				dictionarySize,
-				keepAddBufferBefore,
-				numFastBytes,
-				keepAddBufferAfter,
-			);
-
-			this.#Create_4(
-				dictionarySize + keepAddBufferBefore,
-				numFastBytes + keepAddBufferAfter,
-				windowReservSize,
-			);
-
-			this.#encoder._matchFinder!._matchMaxLen = setMatchMaxLen(numFastBytes);
-
-			ensureCyclicBuffer(this.#encoder._matchFinder!, dictionarySize);
-
-			const { hashMask, hashSizeSum } = computeHashSize(
-				dictionarySize,
-				this.#encoder._matchFinder!.HASH_ARRAY,
-			);
-
-			if (this.#encoder._matchFinder!.HASH_ARRAY) {
-				this.#encoder._matchFinder!._hashMask = hashMask;
-				const finalHashSizeSum = hashSizeSum + this.#encoder._matchFinder!.kFixHashSize;
-
-				if (finalHashSizeSum !== this.#encoder._matchFinder!._hashSizeSum) {
-					this.#encoder._matchFinder!._hashSizeSum = finalHashSizeSum;
-					this.#encoder._matchFinder!._hash = initArray(finalHashSizeSum);
-				}
-			} else {
-				if (hashSizeSum !== this.#encoder._matchFinder!._hashSizeSum) {
-					this.#encoder._matchFinder!._hashSizeSum = hashSizeSum;
-					this.#encoder._matchFinder!._hash = initArray(hashSizeSum);
-				}
-			}
-		}
-	}
-
-	#GetMatches(): number {
-		let count,
-			cur,
-			curMatch,
-			curMatch2,
-			curMatch3,
-			cyclicPos,
-			delta,
-			hash2Value,
-			hash3Value,
-			hashValue,
-			len,
-			len0,
-			len1,
-			lenLimit,
-			matchMinPos,
-			maxLen,
-			offset,
-			pby1,
-			ptr0,
-			ptr1,
-			temp;
-
-		const matchFinder = this.#compressor.chunker.encoder!._matchFinder!;
-		const distances = this.#compressor.chunker.encoder!._matchDistances;
-
-		if (matchFinder._pos + matchFinder._matchMaxLen <= matchFinder._streamPos) {
-			lenLimit = matchFinder._matchMaxLen;
-		} else {
-			lenLimit = matchFinder._streamPos - matchFinder._pos;
-			if (lenLimit < matchFinder.kMinMatchCheck) {
-				this.#MovePos_0();
-				return 0;
-			}
-		}
-
-		offset = 0;
-		matchMinPos = matchFinder._pos > matchFinder._cyclicBufferSize
-			? matchFinder._pos - matchFinder._cyclicBufferSize
-			: 0;
-
-		cur = matchFinder._bufferOffset + matchFinder._pos;
-		maxLen = 1;
-		hash2Value = 0;
-		hash3Value = 0;
-
-		if (matchFinder.HASH_ARRAY) {
-			temp = CRC32_TABLE[matchFinder._bufferBase[cur] & 0xFF] ^ (matchFinder._bufferBase[cur + 1] & 0xFF);
-			hash2Value = temp & 0x3FF;
-			temp ^= (matchFinder._bufferBase[cur + 2] & 0xFF) << 0x08;
-			hash3Value = temp & 0xFFFF;
-			hashValue = (temp ^ (CRC32_TABLE[matchFinder._bufferBase[cur + 3] & 0xFF] << 5)) & matchFinder._hashMask;
-		} else {
-			hashValue = (matchFinder._bufferBase[cur] & 0xFF) ^ ((matchFinder._bufferBase[cur + 1] & 0xFF) << 0x08);
-		}
-
-		curMatch = matchFinder._hash[matchFinder.kFixHashSize + hashValue] || 0;
-		if (matchFinder.HASH_ARRAY) {
-			curMatch2 = matchFinder._hash[hash2Value] || 0;
-			curMatch3 = matchFinder._hash[0x400 + hash3Value] || 0;
-			matchFinder._hash[hash2Value] = matchFinder._pos;
-			matchFinder._hash[0x400 + hash3Value] = matchFinder._pos;
-
-			if (curMatch2 > matchMinPos) {
-				if (matchFinder._bufferBase[matchFinder._bufferOffset + curMatch2] == matchFinder._bufferBase[cur]) {
-					distances[offset++] = maxLen = 2;
-					distances[offset++] = matchFinder._pos - curMatch2 - 1;
-				}
-			}
-
-			if (curMatch3 > matchMinPos) {
-				if (matchFinder._bufferBase[matchFinder._bufferOffset + curMatch3] == matchFinder._bufferBase[cur]) {
-					if (curMatch3 == curMatch2) {
-						offset -= 2;
-					}
-					distances[offset++] = maxLen = 3;
-					distances[offset++] = matchFinder._pos - curMatch3 - 1;
-					curMatch2 = curMatch3;
-				}
-			}
-
-			if (offset != 0 && curMatch2 == curMatch) {
-				offset -= 2;
-				maxLen = 1;
-			}
-		}
-
-		matchFinder._hash[matchFinder.kFixHashSize + hashValue] = matchFinder._pos;
-		ptr0 = (matchFinder._cyclicBufferPos << 1) + 1;
-		ptr1 = matchFinder._cyclicBufferPos << 1;
-		len0 = len1 = matchFinder.kNumHashDirectBytes;
-
-		if (matchFinder.kNumHashDirectBytes != 0) {
-			if (curMatch > matchMinPos) {
-				if (
-					matchFinder._bufferBase[
-						matchFinder._bufferOffset + curMatch + matchFinder.kNumHashDirectBytes
-					] != matchFinder._bufferBase[cur + matchFinder.kNumHashDirectBytes]
-				) {
-					distances[offset++] = maxLen = matchFinder.kNumHashDirectBytes;
-					distances[offset++] = matchFinder._pos - curMatch - 1;
-				}
-			}
-		}
-		count = matchFinder._cutValue;
-
-		while (1) {
-			if (curMatch <= matchMinPos || count == 0) {
-				count -= 1;
-				matchFinder._son[ptr0] = matchFinder._son[ptr1] = 0;
-				break;
-			}
-			delta = matchFinder._pos - curMatch;
-
-			cyclicPos = (delta <= matchFinder._cyclicBufferPos
-				? matchFinder._cyclicBufferPos - delta
-				: matchFinder._cyclicBufferPos - delta + matchFinder._cyclicBufferSize) << 1;
-
-			pby1 = matchFinder._bufferOffset + curMatch;
-			len = len0 < len1 ? len0 : len1;
-
-			if (
-				matchFinder._bufferBase[pby1 + len] == matchFinder._bufferBase[cur + len]
-			) {
-				while ((len += 1) != lenLimit) {
-					if (
-						matchFinder._bufferBase[pby1 + len] != matchFinder._bufferBase[cur + len]
-					) {
-						break;
-					}
-				}
-
-				if (maxLen < len) {
-					distances[offset++] = maxLen = len;
-					distances[offset++] = delta - 1;
-					if (len == lenLimit) {
-						matchFinder._son[ptr1] = matchFinder._son[cyclicPos];
-						matchFinder._son[ptr0] = matchFinder._son[cyclicPos + 1];
-						break;
-					}
-				}
-			}
-
-			if (
-				(matchFinder._bufferBase[pby1 + len] & 0xFF) < (matchFinder._bufferBase[cur + len] & 0xFF)
-			) {
-				matchFinder._son[ptr1] = curMatch;
-				ptr1 = cyclicPos + 1;
-				curMatch = matchFinder._son[ptr1];
-				len1 = len;
-			} else {
-				matchFinder._son[ptr0] = curMatch;
-				ptr0 = cyclicPos;
-				curMatch = matchFinder._son[ptr0];
-				len0 = len;
-			}
-		}
-
-		this.#MovePos_0();
-		return offset;
-	}
-
-	#Init_5(): void {
-		this.#compressor.chunker.encoder!._matchFinder!._bufferOffset = 0;
-		this.#compressor.chunker.encoder!._matchFinder!._pos = 0;
-		this.#compressor.chunker.encoder!._matchFinder!._streamPos = 0;
-		this.#compressor.chunker.encoder!._matchFinder!._streamEndWasReached = 0;
-		this.#lzInWindow!.readBlock();
-
-		this.#compressor.chunker.encoder!._matchFinder!._cyclicBufferPos = 0;
-		this.#lzInWindow!.reduceOffsets(-1);
-	}
-
-	#MovePos_0(): void {
-		let subValue;
-		const matchFinder = this.#compressor.chunker.encoder!._matchFinder!;
-
-		if ((matchFinder._cyclicBufferPos += 1) >= matchFinder._cyclicBufferSize) {
-			matchFinder._cyclicBufferPos = 0;
-		}
-
-		this.#MovePos_1();
-
-		if (matchFinder._pos == DICTIONARY_SIZE_THRESHOLD) {
-			subValue = matchFinder._pos - matchFinder._cyclicBufferSize;
-
-			this.#NormalizeLinks(matchFinder._cyclicBufferSize * 2, subValue);
-			this.#NormalizeLinks(matchFinder._hashSizeSum, subValue);
-
-			this.#lzInWindow!.reduceOffsets(subValue);
-		}
-	}
-
-	/**
-	 * This is only called after reading one whole gigabyte.
-	 */
-	#NormalizeLinks(numItems: number, subValue: number): void {
-		const items = this.#compressor.chunker.encoder!._matchFinder!._son;
-
-		for (let i = 0, value; i < numItems; ++i) {
-			value = items[i] || 0;
-			if (value <= subValue) {
-				value = 0;
-			} else {
-				value -= subValue;
-			}
-			items[i] = value;
-		}
-	}
-
-	#SetType(binTree: MatchFinder, numHashBytes: number): void {
-		binTree.HASH_ARRAY = numHashBytes > 2;
-
-		if (binTree.HASH_ARRAY) {
-			binTree.kNumHashDirectBytes = 0;
-			binTree.kMinMatchCheck = 4;
-			binTree.kFixHashSize = 66560;
-		} else {
-			binTree.kNumHashDirectBytes = 2;
-			binTree.kMinMatchCheck = 3;
-			binTree.kFixHashSize = 0;
-		}
-	}
-
-	#Skip(num: number): void {
-		const matchFinder = this.#compressor.chunker.encoder!._matchFinder!;
-
-		let count,
-			cur,
-			curMatch,
-			cyclicPos,
-			delta,
-			hash2Value,
-			hash3Value,
-			hashValue,
-			len,
-			len0,
-			len1,
-			lenLimit,
-			matchMinPos,
-			pby1,
-			ptr0,
-			ptr1,
-			temp;
-
-		do {
-			if (matchFinder._pos + matchFinder._matchMaxLen <= matchFinder._streamPos) {
-				lenLimit = matchFinder._matchMaxLen;
-			} else {
-				lenLimit = matchFinder._streamPos - matchFinder._pos;
-				if (lenLimit < matchFinder.kMinMatchCheck) {
-					this.#MovePos_0();
-					continue;
-				}
-			}
-
-			matchMinPos = matchFinder._pos > matchFinder._cyclicBufferSize
-				? matchFinder._pos - matchFinder._cyclicBufferSize
-				: 0;
-
-			cur = matchFinder._bufferOffset + matchFinder._pos;
-
-			if (matchFinder.HASH_ARRAY) {
-				temp = CRC32_TABLE[matchFinder._bufferBase[cur] & 0xFF] ^ (matchFinder._bufferBase[cur + 1] & 0xFF);
-				hash2Value = temp & 0x3FF;
-				matchFinder._hash[hash2Value] = matchFinder._pos;
-				temp ^= (matchFinder._bufferBase[cur + 2] & 0xFF) << 0x08;
-				hash3Value = temp & 0xFFFF;
-				matchFinder._hash[0x400 + hash3Value] = matchFinder._pos;
-				hashValue = (temp ^ (CRC32_TABLE[matchFinder._bufferBase[cur + 3] & 0xFF] << 5)) & matchFinder._hashMask;
-			} else {
-				hashValue = (matchFinder._bufferBase[cur] & 0xFF) ^ ((matchFinder._bufferBase[cur + 1] & 0xFF) << 0x08);
-			}
-
-			curMatch = matchFinder._hash[matchFinder.kFixHashSize + hashValue];
-			matchFinder._hash[matchFinder.kFixHashSize + hashValue] = matchFinder._pos;
-			ptr0 = (matchFinder._cyclicBufferPos << 1) + 1;
-			ptr1 = matchFinder._cyclicBufferPos << 1;
-			len0 = len1 = matchFinder.kNumHashDirectBytes;
-			count = matchFinder._cutValue;
-
-			while (1) {
-				if (curMatch <= matchMinPos || count == 0) {
-					count -= 1;
-					matchFinder._son[ptr0] = matchFinder._son[ptr1] = 0;
-					break;
-				}
-				delta = matchFinder._pos - curMatch;
-
-				cyclicPos = (delta <= matchFinder._cyclicBufferPos
-					? matchFinder._cyclicBufferPos - delta
-					: matchFinder._cyclicBufferPos - delta + matchFinder._cyclicBufferSize) << 1;
-
-				pby1 = matchFinder._bufferOffset + curMatch;
-
-				len = len0 < len1 ? len0 : len1;
-
-				if (matchFinder._bufferBase[pby1 + len] == matchFinder._bufferBase[cur + len]) {
-					while ((len += 1) != lenLimit) {
-						if (
-							matchFinder._bufferBase[pby1 + len] != matchFinder._bufferBase[cur + len]
-						) {
-							break;
-						}
-					}
-
-					if (len == lenLimit) {
-						matchFinder._son[ptr1] = matchFinder._son[cyclicPos];
-						matchFinder._son[ptr0] = matchFinder._son[cyclicPos + 1];
-						break;
-					}
-				}
-
-				if ((matchFinder._bufferBase[pby1 + len] & 0xFF) < (matchFinder._bufferBase[cur + len] & 0xFF)) {
-					matchFinder._son[ptr1] = curMatch;
-					ptr1 = cyclicPos + 1;
-					curMatch = matchFinder._son[ptr1];
-					len1 = len;
-				} else {
-					matchFinder._son[ptr0] = curMatch;
-					ptr0 = cyclicPos;
-					curMatch = matchFinder._son[ptr0];
-					len0 = len;
-				}
-			}
-			this.#MovePos_0();
-		} while ((num -= 1) != 0);
-	}
 
 	#CodeInChunks(inStream: InputBuffer, outSize: [number, number]): DecoderChunker {
 		this.#decoder.rangeDecoder.stream = inStream;
@@ -831,7 +405,7 @@ export class LZMA {
 
 		if (this.#compressor.chunker.encoder!._inStream) {
 			this.#compressor.chunker.encoder!._matchFinder!._stream = this.#compressor.chunker.encoder!._inStream;
-			this.#Init_5();
+			this.#encoder._matchFinder!.init();
 			this.#compressor.chunker.encoder!._needReleaseMFStream = 1;
 			this.#compressor.chunker.encoder!._inStream = null;
 		}
@@ -843,7 +417,7 @@ export class LZMA {
 		this.#compressor.chunker.encoder!._finished = 1;
 
 		if (compare64(this.#compressor.chunker.encoder!.nowPos64, P0_LONG_LIT) === 0) {
-			if (!this.#lzInWindow!.getNumAvailableBytes()) {
+			if (!this.#encoder._matchFinder!.getNumAvailableBytes()) {
 				this.#Flush(lowBits64(this.#compressor.chunker.encoder!.nowPos64));
 				return;
 			}
@@ -858,7 +432,7 @@ export class LZMA {
 			);
 
 			this.#compressor.chunker.encoder!._state = stateUpdateChar(this.#compressor.chunker.encoder!._state);
-			curByte = this.#lzInWindow!.getIndexByte(
+			curByte = this.#encoder._matchFinder!.getIndexByte(
 				-this.#compressor.chunker.encoder!._additionalOffset,
 			);
 
@@ -878,7 +452,7 @@ export class LZMA {
 			);
 		}
 
-		if (!this.#lzInWindow!.getNumAvailableBytes()) {
+		if (!this.#encoder._matchFinder!.getNumAvailableBytes()) {
 			this.#Flush(lowBits64(this.#compressor.chunker.encoder!.nowPos64));
 			return;
 		}
@@ -896,7 +470,7 @@ export class LZMA {
 					0,
 				);
 
-				curByte = this.#lzInWindow!.getIndexByte(
+				curByte = this.#encoder._matchFinder!.getIndexByte(
 					-this.#compressor.chunker.encoder!._additionalOffset,
 				);
 
@@ -908,7 +482,7 @@ export class LZMA {
 				if (this.#compressor.chunker.encoder!._state < 7) {
 					this.#compressor.chunker.encoder!.encodeLiteral(subCoder, curByte);
 				} else {
-					matchByte = this.#lzInWindow!.getIndexByte(
+					matchByte = this.#encoder._matchFinder!.getIndexByte(
 						-this.#compressor.chunker.encoder!._repDistances[0]
 							- 1
 							- this.#compressor.chunker.encoder!._additionalOffset,
@@ -1051,7 +625,7 @@ export class LZMA {
 					encoder2._matchPriceCount += 0x01;
 				}
 
-				this.#compressor.chunker.encoder!._previousByte = this.#lzInWindow!.getIndexByte(
+				this.#compressor.chunker.encoder!._previousByte = this.#encoder._matchFinder!.getIndexByte(
 					len - 1 - this.#compressor.chunker.encoder!._additionalOffset,
 				);
 			}
@@ -1074,7 +648,7 @@ export class LZMA {
 				this.#compressor.chunker.encoder!.processedInSize[0] = this.#compressor.chunker.encoder!.nowPos64;
 				this.#compressor.chunker.encoder!.processedOutSize[0] = this.#GetProcessedSizeAdd();
 
-				if (!this.#lzInWindow!.getNumAvailableBytes()) {
+				if (!this.#encoder._matchFinder!.getNumAvailableBytes()) {
 					this.#Flush(lowBits64(this.#compressor.chunker.encoder!.nowPos64));
 
 					return;
@@ -1096,20 +670,16 @@ export class LZMA {
 	}
 
 	#Create_2(): void {
-		let binTree: MatchFinder, numHashBytes;
-
 		if (!this.#encoder._matchFinder) {
-			binTree = {} as MatchFinder;
-			numHashBytes = 4;
+			const binTree = new BinTreeMatchFinder();
+			let numHashBytes = 4;
 
 			if (!this.#encoder._matchFinderType) {
 				numHashBytes = 2;
 			}
 
-			this.#SetType(binTree, numHashBytes);
+			binTree.setType(numHashBytes);
 			this.#encoder._matchFinder = binTree;
-
-			this.#lzInWindow = new LzInWindow(binTree);
 		}
 		this.#encoder.createLiteralEncoder();
 
@@ -1120,7 +690,12 @@ export class LZMA {
 			return;
 		}
 
-		this.#Create_3(0x1000, 0x0112);
+		this.#encoder._matchFinder!.create(
+			this.#encoder._dictionarySize,
+			this.#encoder._numFastBytes,
+			0x1000,
+			0x0112,
+		);
 
 		this.#encoder._dictionarySizePrev = this.#encoder._dictionarySize;
 		this.#encoder._numFastBytesPrev = this.#encoder._numFastBytes;
@@ -1223,7 +798,7 @@ export class LZMA {
 		}
 
 		numDistancePairs = encoder!._numDistancePairs;
-		numAvailableBytes = this.#lzInWindow!.getNumAvailableBytes() + 1;
+		numAvailableBytes = this.#encoder._matchFinder!.getNumAvailableBytes() + 1;
 
 		if (numAvailableBytes < 2) {
 			encoder!.backRes = -1;
@@ -1237,7 +812,7 @@ export class LZMA {
 		repMaxIndex = 0;
 		for (let i = 0; i < 4; ++i) {
 			encoder!.reps[i] = encoder!._repDistances[i];
-			encoder!.repLens[i] = this.#lzInWindow!.getMatchLen(-1, encoder!.reps[i], 0x0111);
+			encoder!.repLens[i] = this.#encoder._matchFinder!.getMatchLen(-1, encoder!.reps[i], 0x0111);
 
 			if (encoder!.repLens[i] > encoder!.repLens[repMaxIndex]) {
 				repMaxIndex = i;
@@ -1259,8 +834,8 @@ export class LZMA {
 			return lenMain;
 		}
 
-		currentByte = this.#lzInWindow!.getIndexByte(-1);
-		matchByte = this.#lzInWindow!.getIndexByte(-encoder!._repDistances[0] - 1 - 1);
+		currentByte = this.#encoder._matchFinder!.getIndexByte(-1);
+		matchByte = this.#encoder._matchFinder!.getIndexByte(-encoder!._repDistances[0] - 1 - 1);
 
 		if (lenMain < 2 && currentByte != matchByte && encoder!.repLens[repMaxIndex] < 2) {
 			encoder!.backRes = -1;
@@ -1474,14 +1049,14 @@ export class LZMA {
 			encoder._optimum[cur].backs3 = encoder.reps[3];
 			curPrice = encoder!._optimum[cur].price;
 
-			currentByte = this.#lzInWindow!.getIndexByte(-0x01);
-			matchByte = this.#lzInWindow!.getIndexByte(-encoder!.reps[0] - 1 - 1);
+			currentByte = this.#encoder._matchFinder!.getIndexByte(-0x01);
+			matchByte = this.#encoder._matchFinder!.getIndexByte(-encoder!.reps[0] - 1 - 1);
 
 			posState = position & encoder!._posStateMask;
 			curAnd1Price = curPrice!
 				+ PROB_PRICES[(encoder!._isMatch[(state! << 0x04) + posState]) >>> 2]
 				+ this.#RangeCoder_Encoder_GetPrice_0(
-					this.#LZMA_Encoder_GetSubCoder(position, this.#lzInWindow!.getIndexByte(-2)),
+					this.#LZMA_Encoder_GetSubCoder(position, this.#encoder._matchFinder!.getIndexByte(-2)),
 					state! >= 7,
 					matchByte,
 					currentByte,
@@ -1517,7 +1092,7 @@ export class LZMA {
 				}
 			}
 
-			numAvailableBytesFull = this.#lzInWindow!.getNumAvailableBytes() + 1;
+			numAvailableBytesFull = this.#encoder._matchFinder!.getNumAvailableBytes() + 1;
 			numAvailableBytesFull = 0xFFF - cur < numAvailableBytesFull
 				? 0xFFF - cur
 				: numAvailableBytesFull;
@@ -1534,7 +1109,7 @@ export class LZMA {
 
 			if (!nextIsChar && matchByte != currentByte) {
 				t = Math.min(numAvailableBytesFull - 1, encoder!._numFastBytes);
-				lenTest2 = this.#lzInWindow!.getMatchLen(0, encoder!.reps[0], t);
+				lenTest2 = this.#encoder._matchFinder!.getMatchLen(0, encoder!.reps[0], t);
 
 				if (lenTest2 >= 2) {
 					state2 = stateUpdateChar(state);
@@ -1572,7 +1147,7 @@ export class LZMA {
 			startLen = 0x02;
 
 			for (repIndex = 0; repIndex < 4; ++repIndex) {
-				lenTest = this.#lzInWindow!.getMatchLen(
+				lenTest = this.#encoder._matchFinder!.getMatchLen(
 					-0x01,
 					encoder!.reps[repIndex],
 					numAvailableBytes,
@@ -1619,7 +1194,7 @@ export class LZMA {
 						numAvailableBytesFull - 1 - lenTest,
 						encoder!._numFastBytes,
 					);
-					lenTest2 = this.#lzInWindow!.getMatchLen(
+					lenTest2 = this.#encoder._matchFinder!.getMatchLen(
 						lenTest,
 						encoder!.reps[repIndex],
 						t,
@@ -1632,10 +1207,10 @@ export class LZMA {
 							+ (price_1 = encoder!._repMatchLenEncoder!.getPrice(lenTest - 2, posState), price_1 + this.#GetPureRepPrice(repIndex, state, posState))
 							+ PROB_PRICES[(encoder!._isMatch[(state2 << 4) + posStateNext]) >>> 2]
 							+ this.#RangeCoder_Encoder_GetPrice_0(
-								this.#LZMA_Encoder_GetSubCoder(position + lenTest, this.#lzInWindow!.getIndexByte(lenTest - 1 - 1)),
+								this.#LZMA_Encoder_GetSubCoder(position + lenTest, this.#encoder._matchFinder!.getIndexByte(lenTest - 1 - 1)),
 								true,
-								this.#lzInWindow!.getIndexByte(lenTest - 1 - (encoder!.reps[repIndex] + 1)),
-								this.#lzInWindow!.getIndexByte(lenTest - 1),
+								this.#encoder._matchFinder!.getIndexByte(lenTest - 1 - (encoder!.reps[repIndex] + 1)),
+								this.#encoder._matchFinder!.getIndexByte(lenTest - 1),
 							);
 
 						state2 = stateUpdateChar(state2);
@@ -1711,7 +1286,7 @@ export class LZMA {
 								numAvailableBytesFull - 1 - lenTest,
 								encoder!._numFastBytes,
 							);
-							lenTest2 = this.#lzInWindow!.getMatchLen(
+							lenTest2 = this.#encoder._matchFinder!.getMatchLen(
 								lenTest,
 								curBack,
 								t,
@@ -1726,11 +1301,11 @@ export class LZMA {
 									+ this.#RangeCoder_Encoder_GetPrice_0(
 										this.#LZMA_Encoder_GetSubCoder(
 											position + lenTest,
-											this.#lzInWindow!.getIndexByte(lenTest - 1 - 1),
+											this.#encoder._matchFinder!.getIndexByte(lenTest - 1 - 1),
 										),
 										true,
-										this.#lzInWindow!.getIndexByte(lenTest - (curBack + 1) - 1),
-										this.#lzInWindow!.getIndexByte(lenTest - 1),
+										this.#encoder._matchFinder!.getIndexByte(lenTest - (curBack + 1) - 1),
+										this.#encoder._matchFinder!.getIndexByte(lenTest - 1),
 									);
 
 								state2 = stateUpdateChar(state2);
@@ -1835,7 +1410,7 @@ export class LZMA {
 
 	#MovePos(num: number): void {
 		if (num > 0) {
-			this.#Skip(num);
+			this.#encoder._matchFinder!.skip(num);
 			this.#compressor.chunker.encoder!._additionalOffset += num;
 		}
 	}
@@ -1843,13 +1418,13 @@ export class LZMA {
 	#ReadMatchDistances(): number {
 		let lenRes = 0;
 		const encoder = this.#compressor.chunker.encoder!;
-		encoder!._numDistancePairs = this.#GetMatches();
+		encoder!._numDistancePairs = this.#encoder._matchFinder!.getMatches(this.#compressor.chunker.encoder!._matchDistances);
 
 		if (encoder!._numDistancePairs > 0) {
 			lenRes = encoder!._matchDistances[encoder!._numDistancePairs - 2];
 
 			if (lenRes == encoder!._numFastBytes) {
-				lenRes += this.#lzInWindow!.getMatchLen(lenRes - 1, encoder!._matchDistances[encoder!._numDistancePairs - 1], 0x0111 - lenRes);
+				lenRes += this.#encoder._matchFinder!.getMatchLen(lenRes - 1, encoder!._matchDistances[encoder!._numDistancePairs - 1], 0x0111 - lenRes);
 			}
 		}
 
