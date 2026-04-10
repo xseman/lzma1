@@ -20,7 +20,8 @@ import {
 	stateUpdateChar,
 } from "./utils.js";
 
-// Import types from main LZMA module for compatibility
+// Decoder-specific interfaces (not shared with encoder-side LenEncoder/LitCoder
+// which have private fields and different method signatures)
 interface LenDecoder {
 	choice: number[];
 	lowCoder: BitTree[];

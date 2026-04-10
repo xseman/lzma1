@@ -19,7 +19,7 @@ import {
 	stateUpdateChar,
 } from "./utils.js";
 
-const bitTreePriceCache = new Map<string, number>();
+const bitTreePriceCache = new Map<number, number>();
 
 /**
  * Calculate price for direct bit encoding
@@ -32,7 +32,7 @@ function getDirectBitsPrice(numBits: number): number {
  * Get price for bit tree encoding with caching
  */
 function getBitTreePrice(bitTree: BitTree, symbol: number): number {
-	const cacheKey = `${bitTree.numBitLevels}-${symbol}`;
+	const cacheKey = (bitTree.numBitLevels << 16) | symbol;
 
 	if (bitTreePriceCache.has(cacheKey)) {
 		return bitTreePriceCache.get(cacheKey)!;
@@ -338,7 +338,7 @@ export class Encoder implements LenRangeEncoder {
 	processedInSize: bigint[] = [0n];
 	processedOutSize: bigint[] = [0n];
 	finished: number[] = [0];
-	properties: number[] = initArray(5);
+	properties = new Uint8Array(5);
 	tempPrices: number[] = initArray(0x80); // 128
 
 	// Match finding properties
@@ -720,14 +720,14 @@ export class Encoder implements LenRangeEncoder {
 	shiftLow(): void {
 		const rangeEncoder = this._rangeEncoder;
 
-		const LowHi = Number((rangeEncoder.low >> 32n) & 0xFFFFFFFFn);
+		const lowHi = Number((rangeEncoder.low >> 32n) & 0xFFFFFFFFn);
 		const lowLow = Number(rangeEncoder.low & 0xFFFFFFFFn);
-		if (LowHi != 0 || lowLow < 0xFF000000) {
+		if (lowHi != 0 || lowLow < 0xFF000000) {
 			rangeEncoder.position += BigInt(rangeEncoder.cacheSize);
 
 			let temp = rangeEncoder.cache;
 			do {
-				this.writeToStream(rangeEncoder.stream, temp + LowHi);
+				this.writeToStream(rangeEncoder.stream, temp + lowHi);
 				temp = 255;
 			} while ((rangeEncoder.cacheSize -= 1) != 0);
 
@@ -788,7 +788,7 @@ export class Encoder implements LenRangeEncoder {
 			st = lenToPosState << 6;
 
 			for (posSlot = 0; posSlot < this._distTableSize; posSlot += 1) {
-				this._posSlotPrices[st + posSlot] = this.rangeCoder_Encoder_GetPrice_1(bitTreeEncoder, posSlot);
+				this._posSlotPrices[st + posSlot] = this.getEncoderBitTreePrice(bitTreeEncoder, posSlot);
 			}
 
 			for (posSlot = 14; posSlot < this._distTableSize; posSlot += 1) {
@@ -843,17 +843,17 @@ export class Encoder implements LenRangeEncoder {
 	 * Get reverse price for array of models
 	 */
 	reverseGetPriceArray(
-		Models: number[],
+		models: number[],
 		startIndex: number,
-		NumBitLevels: number,
+		numBitLevels: number,
 		symbol: number,
 	): number {
 		let bit, m = 1, price = 0;
 
-		for (let i = NumBitLevels; i != 0; i -= 1) {
+		for (let i = numBitLevels; i != 0; i -= 1) {
 			bit = symbol & 1;
 			symbol >>>= 1;
-			price += PROB_PRICES[((Models[startIndex + m] - bit ^ -bit) & 2047) >>> 2];
+			price += PROB_PRICES[((models[startIndex + m] - bit ^ -bit) & 2047) >>> 2];
 			m = m << 1 | bit;
 		}
 
@@ -863,14 +863,14 @@ export class Encoder implements LenRangeEncoder {
 	/**
 	 * Get price for probability model (optimized)
 	 */
-	getPrice(Prob: number, symbol: number): number {
-		return getBitPrice(Prob, symbol);
+	getPrice(prob: number, symbol: number): number {
+		return getBitPrice(prob, symbol);
 	}
 
 	/**
-	 * Get price for bit tree encoder (optimized)
+	 * Get price for bit tree encoder
 	 */
-	rangeCoder_Encoder_GetPrice_1(encoder: BitTree, symbol: number): number {
+	getEncoderBitTreePrice(encoder: BitTree, symbol: number): number {
 		return getBitTreePrice(encoder, symbol);
 	}
 
@@ -2065,8 +2065,6 @@ export class Encoder implements LenRangeEncoder {
 	}
 
 	writeHeaderProperties(output: OutputBuffer): void {
-		const HEADER_SIZE = 0x5;
-
 		this.properties[0] = (
 			(this._posStateBits * 5 + this._numLiteralPosStateBits) * 9 + this._numLiteralContextBits
 		) & 0xFF;
@@ -2077,7 +2075,9 @@ export class Encoder implements LenRangeEncoder {
 			) & 0xFF;
 		}
 
-		output.writeBytes(this.properties, 0, HEADER_SIZE);
+		for (let i = 0; i < 5; i++) {
+			output.writeByte(this.properties[i]);
+		}
 	}
 
 	initCompression(
