@@ -1,5 +1,4 @@
 import { MatchFinder } from "./encoder.js";
-import { arraycopy } from "./utils.js";
 
 /**
  * LzInWindow - Input Window helper for LZMA encoding
@@ -150,23 +149,6 @@ export class LzInWindow {
 		const stream = this.matchFinder._stream!;
 		const buffer = this.matchFinder._bufferBase;
 
-		if (stream.pos >= stream.count) {
-			return -1;
-		}
-
-		let srcBuf: number[];
-		if (stream.buf instanceof Uint8Array) {
-			srcBuf = Array.from(stream.buf as Uint8Array);
-		} else if (stream.buf instanceof ArrayBuffer) {
-			srcBuf = Array.from(new Uint8Array(stream.buf as ArrayBuffer));
-		} else {
-			srcBuf = stream.buf as number[];
-		}
-
-		len = Math.min(len, stream.count - stream.pos);
-		arraycopy(srcBuf, stream.pos, buffer, off, len);
-		stream.pos += len;
-
-		return len;
+		return stream.readBytes(buffer, off, len);
 	}
 }

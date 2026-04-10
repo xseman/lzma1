@@ -1,8 +1,8 @@
 import { LzOutWindow } from "./lz-window.js";
 import { RangeDecoder } from "./range-decoder.js";
 import type {
-	BaseStream,
-	BufferWithCount,
+	InputBuffer,
+	OutputBuffer,
 } from "./streams.js";
 import {
 	add64,
@@ -499,7 +499,7 @@ export class Decoder {
 	}
 
 	// Setup decoder for chunk processing
-	setupForDecoding(inStream: BaseStream, outSize: [number, number], outputBuffer: BufferWithCount): void {
+	setupForDecoding(inStream: InputBuffer, outSize: [number, number], outputBuffer: OutputBuffer): void {
 		this.rangeDecoder.setStream(inStream);
 		this.outSize = outSize;
 		this.outWindowReleaseStream();
@@ -548,29 +548,8 @@ export class Decoder {
 		return this.alive;
 	}
 
-	writeToOutput(buffer: BufferWithCount, data: number[], offset: number, length: number): void {
-		// Ensure buffer has enough capacity
-		const requiredSize = buffer.count + length;
-
-		if (requiredSize > buffer.buf.length) {
-			const newSize = Math.max(buffer.buf.length * 2, requiredSize);
-			const newBuf = new Array(newSize);
-			for (let i = 0; i < buffer.count; i++) {
-				newBuf[i] = buffer.buf[i];
-			}
-			buffer.buf = newBuf;
-		}
-
-		// Copy data
-		for (let i = 0; i < length; i++) {
-			buffer.buf[buffer.count + i] = data[offset + i];
-		}
-		buffer.count += length;
-	}
-
-	private isBufferWithCount(x: unknown): x is BufferWithCount {
-		const s = x as Partial<BufferWithCount> & { write?: unknown; };
-		return !!s && Array.isArray(s.buf) && typeof s.count === "number" && typeof s.write === "function";
+	writeToOutput(buffer: OutputBuffer, data: number[], offset: number, length: number): void {
+		buffer.writeBytes(data, offset, length);
 	}
 
 	flush(): void {
@@ -581,22 +560,11 @@ export class Decoder {
 		}
 
 		if (this.outWindow.stream && this.outWindow.buffer) {
-			const outputBuffer = this.outWindow.stream;
-			if (this.isBufferWithCount(outputBuffer)) {
-				this.writeToOutput(
-					outputBuffer,
-					this.outWindow.buffer,
-					this.outWindow.streamPos,
-					size,
-				);
-			} else if (typeof outputBuffer.write === "function") {
-				// Fallback: write directly if it's a plain Writer
-				const slice = this.outWindow.buffer.slice(
-					this.outWindow.streamPos,
-					this.outWindow.streamPos + size,
-				);
-				outputBuffer.write(slice);
-			}
+			this.outWindow.stream.writeBytes(
+				this.outWindow.buffer,
+				this.outWindow.streamPos,
+				size,
+			);
 		}
 
 		if (this.outWindow.pos >= this.outWindow.windowSize) {

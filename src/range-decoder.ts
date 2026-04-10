@@ -1,14 +1,14 @@
-import type { BaseStream } from "./streams.js";
+import type { InputBuffer } from "./streams.js";
 
 export class RangeDecoder {
-	public stream: BaseStream | null = null;
+	public stream: InputBuffer | null = null;
 	public code: number = 0;
 	public rrange: number = 0;
 
 	/**
 	 * Set input stream for decoding
 	 */
-	setStream(stream: BaseStream | null): void {
+	setStream(stream: InputBuffer | null): void {
 		this.stream = stream;
 	}
 
@@ -93,20 +93,6 @@ export class RangeDecoder {
 		if (!this.stream) {
 			return 0;
 		}
-
-		if (this.stream.pos >= this.stream.count) {
-			return -1;
-		}
-
-		let value: number;
-		if (this.stream.buf instanceof ArrayBuffer) {
-			value = new Uint8Array(this.stream.buf)[this.stream.pos++];
-		} else if (this.stream.buf instanceof Uint8Array) {
-			value = this.stream.buf[this.stream.pos++];
-		} else {
-			value = (this.stream.buf as any)[this.stream.pos++];
-		}
-
-		return value & 0xFF;
+		return this.stream.readByte();
 	}
 }

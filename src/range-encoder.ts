@@ -1,4 +1,4 @@
-import type { BufferWithCount } from "./streams.js";
+import type { OutputBuffer } from "./streams.js";
 import {
 	add64,
 	fromInt64,
@@ -6,7 +6,7 @@ import {
 } from "./utils.js";
 
 export class RangeEncoder {
-	private stream: BufferWithCount | null = null;
+	private stream: OutputBuffer | null = null;
 	private low: [number, number] = [0, 0];
 	private rrange: number = 0;
 	private cache: number = 0;
@@ -20,7 +20,7 @@ export class RangeEncoder {
 	/**
 	 * Set output stream for encoding
 	 */
-	setStream(stream: BufferWithCount | null): void {
+	setStream(stream: OutputBuffer | null): void {
 		this.stream = stream;
 	}
 
@@ -136,17 +136,6 @@ export class RangeEncoder {
 		if (!this.stream) {
 			return;
 		}
-
-		// Ensure buffer has enough capacity
-		if (this.stream.count >= this.stream.buf.length) {
-			const newSize = Math.max(this.stream.buf.length * 2, this.stream.count + 1);
-			const newBuf = new Array(newSize);
-			for (let i = 0; i < this.stream.count; i++) {
-				newBuf[i] = this.stream.buf[i];
-			}
-			this.stream.buf = newBuf;
-		}
-
-		this.stream.buf[this.stream.count++] = value & 0xFF;
+		this.stream.writeByte(value & 0xFF);
 	}
 }

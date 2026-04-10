@@ -1,17 +1,17 @@
-import type { Writer } from "./streams.js";
+import type { OutputBuffer } from "./streams.js";
 
 export class LzOutWindow {
 	buffer: number[] | null = null;
 	pos: number = 0;
 	streamPos: number = 0;
-	stream: Writer | null = null;
+	stream: OutputBuffer | null = null;
 	windowSize: number = 0;
 
 	// Private Go-style properties
-	private w: Writer | null = null;
+	private w: OutputBuffer | null = null;
 	private buf: number[] = [];
 
-	constructor(writer: Writer | null = null, windowSize: number = 4096) {
+	constructor(writer: OutputBuffer | null = null, windowSize: number = 4096) {
 		this.w = writer;
 		this.stream = writer;
 		this.windowSize = windowSize;

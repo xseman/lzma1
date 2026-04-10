@@ -3,7 +3,7 @@ import {
 	type RangeEncoder as LenRangeEncoder,
 } from "./len-coder.js";
 import { LitCoder } from "./lit-coder.js";
-import type { BaseStream } from "./streams.js";
+import type { InputBuffer, OutputBuffer } from "./streams.js";
 import type { LiteralDecoderEncoder2 } from "./utils.js";
 import {
 	add64,
@@ -67,7 +67,7 @@ export interface MatchFinder {
 	_keepSizeBefore: number;
 	_keepSizeAfter: number;
 	_pointerToLastSafePosition: number;
-	_stream: BaseStream | null;
+	_stream: InputBuffer | null;
 	HASH_ARRAY: boolean;
 	kNumHashDirectBytes: number;
 	kMinMatchCheck: number;
@@ -98,10 +98,7 @@ export interface Optimum {
 }
 
 interface RangeEncoder {
-	stream: {
-		buf: number[];
-		count: number;
-	} | null;
+	stream: OutputBuffer | null;
 	rrange: number;
 	cache: number;
 	low: [number, number];
@@ -312,7 +309,7 @@ export class Encoder implements LenRangeEncoder {
 
 	// Stream and processing state
 	_needReleaseMFStream: number = 0;
-	_inStream: BaseStream | null = null;
+	_inStream: InputBuffer | null = null;
 	_finished: number = 0;
 	nowPos64: [number, number] = [0, 0];
 
@@ -322,10 +319,7 @@ export class Encoder implements LenRangeEncoder {
 
 	// Range encoder
 	_rangeEncoder: RangeEncoder = {
-		stream: {
-			buf: [],
-			count: 0,
-		},
+		stream: null,
 		rrange: 0,
 		cache: 0,
 		low: [0, 0],
@@ -850,20 +844,9 @@ export class Encoder implements LenRangeEncoder {
 	/**
 	 * Write byte to stream
 	 */
-	private writeToStream(stream: { buf: number[]; count: number; } | null, b: number): void {
+	private writeToStream(stream: OutputBuffer | null, b: number): void {
 		if (!stream) return;
-
-		// Ensure buffer has enough capacity
-		if (stream.count >= stream.buf.length) {
-			const newSize = Math.max(stream.buf.length * 2, stream.count + 1);
-			const newBuf = new Array(newSize);
-			for (let i = 0; i < stream.count; i++) {
-				newBuf[i] = stream.buf[i];
-			}
-			stream.buf = newBuf;
-		}
-
-		stream.buf[stream.count++] = b << 24 >> 24;
+		stream.writeByte(b << 24 >> 24);
 	}
 
 	initRangeEncoder(): void {

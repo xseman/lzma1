@@ -17,14 +17,13 @@ import {
 	setCutValue,
 	setMatchMaxLen,
 } from "./match-finder-config.js";
-import type {
-	BaseStream,
-	BufferWithCount,
+import {
+	InputBuffer,
+	OutputBuffer,
 } from "./streams.js";
 import {
 	_MAX_UINT32,
 	add64,
-	arraycopy,
 	type BitTree,
 	compare64,
 	CRC32_TABLE,
@@ -57,7 +56,7 @@ interface Mode {
  * Range coder interface
  */
 interface RangeCoder {
-	stream: BaseStream | BufferWithCount | null;
+	stream: InputBuffer | OutputBuffer | null;
 }
 
 /**
@@ -66,7 +65,7 @@ interface RangeCoder {
 export interface RangeDecoder extends RangeCoder {
 	code: number;
 	rrange: number;
-	stream: BaseStream | null;
+	stream: InputBuffer | null;
 	init?(): void;
 	decodeBit?(probs: number[], index: number): 0 | 1;
 }
@@ -104,7 +103,7 @@ interface Context {
  */
 interface CompressionContext extends Context {
 	chunker: EncoderChunker;
-	output: BufferWithCount;
+	output: OutputBuffer;
 	length_0?: [number, number];
 }
 
@@ -113,7 +112,7 @@ interface CompressionContext extends Context {
  */
 interface DecompressionContext {
 	chunker: DecoderChunker;
-	output: BufferWithCount;
+	output: OutputBuffer;
 }
 
 /**
@@ -158,11 +157,7 @@ export class LZMA {
 
 		return {
 			chunker: encoderChunker,
-			output: {
-				buf: initArray(32),
-				count: 0,
-				write: () => {},
-			},
+			output: new OutputBuffer(32),
 		};
 	}
 
@@ -171,70 +166,12 @@ export class LZMA {
 
 		return {
 			chunker: decoderChunker,
-			output: {
-				buf: initArray(0x20),
-				count: 0,
-				write: () => {},
-			},
+			output: new OutputBuffer(0x20),
 		};
 	}
 
-	#read(inputStream: BaseStream): number {
-		if (inputStream.pos >= inputStream.count) {
-			return -1;
-		}
-
-		let value: number;
-		if (inputStream.buf instanceof ArrayBuffer) {
-			value = new Uint8Array(inputStream.buf)[inputStream.pos++];
-		} else if (inputStream.buf instanceof Uint8Array) {
-			value = inputStream.buf[inputStream.pos++];
-		} else {
-			value = inputStream.buf[inputStream.pos++];
-		}
-
-		return value & 0xFF;
-	}
-
-	#toByteArray(output: CompressionContext["output"] | DecompressionContext["output"]): number[] {
-		const data = output.buf.slice(0, output.count);
-		return data;
-	}
-
-	#write(buffer: BufferWithCount | null, b: number): void {
-		if (!buffer) return;
-
-		if (buffer.count >= buffer.buf.length) {
-			const newSize = Math.max(buffer.buf.length * 2, buffer.count + 1);
-			const newBuf = new Array(newSize);
-			for (let i = 0; i < buffer.count; i++) {
-				newBuf[i] = buffer.buf[i];
-			}
-			buffer.buf = newBuf;
-		}
-
-		buffer.buf[buffer.count++] = b << 24 >> 24;
-	}
-
-	#write_0(
-		buffer: BufferWithCount,
-		buf: number[],
-		off: number,
-		len: number,
-	): void {
-		const requiredSize = buffer.count + len;
-
-		if (requiredSize > buffer.buf.length) {
-			const newSize = Math.max(buffer.buf.length * 2, requiredSize);
-			const newBuf = new Array(newSize);
-			for (let i = 0; i < buffer.count; i++) {
-				newBuf[i] = buffer.buf[i];
-			}
-			buffer.buf = newBuf;
-		}
-
-		arraycopy(buf, off, buffer.buf, buffer.count, len);
-		buffer.count += len;
+	#toByteArray(output: OutputBuffer): number[] {
+		return output.toArray();
 	}
 
 	#getChars(
@@ -255,7 +192,7 @@ export class LZMA {
 	}
 
 	#initCompression(
-		input: BaseStream,
+		input: InputBuffer,
 		len: [number, number],
 		mode: Mode,
 	): void {
@@ -270,9 +207,8 @@ export class LZMA {
 		this.writeHeaderProperties();
 
 		for (let i = 0; i < 64; i += 8) {
-			this.#write(
-				this.#compressor.output,
-				lowBits64(shr64(len, i)) & 0xFF,
+			this.#compressor.output.writeByte(
+				(lowBits64(shr64(len, i)) & 0xFF) << 24 >> 24,
 			);
 		}
 
@@ -304,40 +240,33 @@ export class LZMA {
 	}
 
 	#byteArrayCompressor(data: number[] | Uint8Array | ArrayBuffer, mode: Mode): void {
-		const inputSize = data instanceof ArrayBuffer ? data.byteLength : data.length;
+		const inputData = data instanceof ArrayBuffer
+			? new Uint8Array(data)
+			: data instanceof Uint8Array
+				? data
+				: new Uint8Array(data);
+		const inputSize = inputData.length;
 		const estimatedOutputSize = Math.max(32, Math.ceil(inputSize * 1.2));
 
-		this.#compressor.output = {
-			buf: initArray(estimatedOutputSize),
-			count: 0,
-			write: () => {},
-		};
+		this.#compressor.output = new OutputBuffer(estimatedOutputSize);
 
-		const inputBuffer: BaseStream = {
-			pos: 0,
-			buf: data instanceof ArrayBuffer
-				? new Uint8Array(data)
-				: data,
-			count: data instanceof ArrayBuffer
-				? new Uint8Array(data).length
-				: data.length,
-		};
+		const inputBuffer = new InputBuffer(inputData);
 
 		this.#initCompression(
 			inputBuffer,
-			fromInt64(data instanceof ArrayBuffer ? data.byteLength : data.length),
+			fromInt64(inputSize),
 			mode,
 		);
 	}
 
-	#initDecompression(input: BaseStream): void {
+	#initDecompression(input: InputBuffer): void {
 		let hex_length = "",
 			properties = [],
 			r: number | string,
 			tmp_length: number;
 
 		for (let i = 0; i < 5; ++i) {
-			r = this.#read(input);
+			r = input.readByte();
 			if (r == -1) {
 				throw new Error("truncated input");
 			}
@@ -353,7 +282,7 @@ export class LZMA {
 		}
 
 		for (let i = 0; i < 64; i += 8) {
-			r = this.#read(input);
+			r = input.readByte();
 			if (r == -1) {
 				throw new Error("truncated input");
 			}
@@ -388,22 +317,17 @@ export class LZMA {
 	}
 
 	#byteArrayDecompressor(data: Uint8Array | ArrayBuffer): void {
-		const inputDataSize = data instanceof ArrayBuffer ? data.byteLength : data.length;
+		const inputData = data instanceof ArrayBuffer
+			? new Uint8Array(data)
+			: data;
+		const inputDataSize = inputData.length;
 		const minBufferSize = 0x20; // 32 bytes minimum
 		const estimatedOutputSize = inputDataSize * 2; // Estimate 2x expansion for decompression
 		const initialBufferSize = Math.max(minBufferSize, estimatedOutputSize);
 
-		this.#decompressor.output = {
-			buf: initArray(initialBufferSize),
-			count: 0,
-			write: () => {},
-		};
+		this.#decompressor.output = new OutputBuffer(initialBufferSize);
 
-		const inputBuffer = {
-			buf: data,
-			pos: 0,
-			count: data instanceof ArrayBuffer ? data.byteLength : data.length,
-		};
+		const inputBuffer = new InputBuffer(inputData);
 
 		this.#initDecompression(inputBuffer);
 	}
@@ -822,7 +746,7 @@ export class LZMA {
 		} while ((num -= 1) != 0);
 	}
 
-	#CodeInChunks(inStream: BaseStream, outSize: [number, number]): DecoderChunker {
+	#CodeInChunks(inStream: InputBuffer, outSize: [number, number]): DecoderChunker {
 		this.#decoder.rangeDecoder.stream = inStream;
 		this.#decoder.flush();
 		this.#decoder.outWindow.stream = null;
@@ -1965,8 +1889,7 @@ export class LZMA {
 			) & 0xFF;
 		}
 
-		this.#write_0(
-			this.#compressor.output,
+		this.#compressor.output.writeBytes(
 			this.#encoder.properties,
 			0,
 			HEADER_SIZE,
