@@ -1,17 +1,12 @@
 import type { OutputBuffer } from "./streams.js";
-import {
-	add64,
-	fromInt64,
-	lowBits64,
-} from "./utils.js";
 
 export class RangeEncoder {
 	private stream: OutputBuffer | null = null;
-	private low: [number, number] = [0, 0];
+	private low: bigint = 0n;
 	private rrange: number = 0;
 	private cache: number = 0;
 	private cacheSize: number = 0;
-	private position: [number, number] = [0, 0];
+	private position: bigint = 0n;
 
 	constructor() {
 		// Initialize with default values
@@ -28,8 +23,8 @@ export class RangeEncoder {
 	 * Initialize range encoder
 	 */
 	init(): void {
-		this.position = [0, 0];
-		this.low = [0, 0];
+		this.position = 0n;
+		this.low = 0n;
 		this.rrange = -1;
 		this.cacheSize = 1;
 		this.cache = 0;
@@ -46,7 +41,7 @@ export class RangeEncoder {
 			this.rrange = newBound;
 			probs[index] = prob + ((2048 - prob) >>> 5) << 16 >> 16;
 		} else {
-			this.low = add64(this.low, fromInt64(newBound));
+			this.low += BigInt(newBound);
 			this.rrange -= newBound;
 			probs[index] = prob - (prob >>> 5) << 16 >> 16;
 		}
@@ -64,7 +59,7 @@ export class RangeEncoder {
 		for (let i = numTotalBits - 1; i >= 0; i--) {
 			this.rrange >>>= 1;
 			if (((value >>> i) & 1) === 1) {
-				this.low = add64(this.low, fromInt64(this.rrange));
+				this.low += BigInt(this.rrange);
 			}
 			if (!(this.rrange & -0x1000000)) {
 				this.rrange <<= 8;
@@ -111,10 +106,10 @@ export class RangeEncoder {
 	 * Shift low value and write to stream
 	 */
 	private shiftLow(): void {
-		const lowHi = lowBits64([this.low[1], 0]);
+		const lowHi = Number((this.low >> 32n) & 0xFFFFFFFFn);
 
-		if (lowHi !== 0 || this.low[0] < 0xFF000000) {
-			this.position = add64(this.position, fromInt64(this.cacheSize));
+		if (lowHi !== 0 || Number(this.low & 0xFFFFFFFFn) < 0xFF000000) {
+			this.position += BigInt(this.cacheSize);
 
 			let temp = this.cache;
 			do {
@@ -122,11 +117,11 @@ export class RangeEncoder {
 				temp = 255;
 			} while (--this.cacheSize !== 0);
 
-			this.cache = (this.low[0] >>> 24) & 0xFF;
+			this.cache = (Number(this.low & 0xFFFFFFFFn) >>> 24) & 0xFF;
 		}
 
 		this.cacheSize++;
-		this.low = [(this.low[0] & 0xFFFFFF) << 8, this.low[1]];
+		this.low = BigInt(Number(this.low & 0xFFFFFFFFn) & 0xFFFFFF) << 8n;
 	}
 
 	/**

@@ -7,26 +7,16 @@ import { BinTreeMatchFinder } from "./match-finder.js";
 import type { InputBuffer, OutputBuffer } from "./streams.js";
 import type { LiteralDecoderEncoder2 } from "./utils.js";
 import {
-	add64,
 	type BitTree,
-	compare64,
-	create64,
 	createBitTree,
-	fromInt64,
 	G_FAST_POS,
 	getBitPrice,
 	getLenToPosState,
 	INFINITY_PRICE,
 	initArray,
 	initBitModels,
-	lowBits64,
-	N1_LONG_LIT,
-	P0_LONG_LIT,
-	P1_LONG_LIT,
 	PROB_PRICES,
-	shr64,
 	stateUpdateChar,
-	sub64,
 } from "./utils.js";
 
 const bitTreePriceCache = new Map<string, number>();
@@ -83,9 +73,9 @@ interface RangeEncoder {
 	stream: OutputBuffer | null;
 	rrange: number;
 	cache: number;
-	low: [number, number];
+	low: bigint;
 	cacheSize: number;
-	position: [number, number];
+	position: bigint;
 	encodeBit(probs: number[], index: number, bit: number): void;
 	encodeBitTree(tree: BitTree, symbol: number): void;
 	encodeDirectBits(value: number, bits: number): void;
@@ -98,7 +88,7 @@ class EncoderState {
 	// Core state
 	public state: number = 0;
 	public previousByte: number = 0;
-	public position: [number, number] = [0, 0];
+	public position: bigint = 0n;
 
 	// Repetition distances (LZ77 back-references)
 	public repDistances: [number, number, number, number] = [0, 0, 0, 0];
@@ -293,7 +283,7 @@ export class Encoder implements LenRangeEncoder {
 	_needReleaseMFStream: number = 0;
 	_inStream: InputBuffer | null = null;
 	_finished: number = 0;
-	nowPos64: [number, number] = [0, 0];
+	nowPos64: bigint = 0n;
 
 	// Distance and repetition arrays
 	_repDistances: number[] = initArray(4);
@@ -304,9 +294,9 @@ export class Encoder implements LenRangeEncoder {
 		stream: null,
 		rrange: 0,
 		cache: 0,
-		low: [0, 0],
+		low: 0n,
 		cacheSize: 0,
-		position: [0, 0],
+		position: 0n,
 		encodeBit: () => {},
 		encodeBitTree: () => {},
 		encodeDirectBits: () => {},
@@ -345,8 +335,8 @@ export class Encoder implements LenRangeEncoder {
 	repLens: number[] = initArray(4);
 
 	// Processing counters
-	processedInSize: [number, number][] = [[0, 0]];
-	processedOutSize: [number, number][] = [[0, 0]];
+	processedInSize: bigint[] = [0n];
+	processedOutSize: bigint[] = [0n];
 	finished: number[] = [0];
 	properties: number[] = initArray(5);
 	tempPrices: number[] = initArray(0x80); // 128
@@ -439,11 +429,11 @@ export class Encoder implements LenRangeEncoder {
 	 * Initialize encoder range coder
 	 */
 	initEncoderState(): void {
-		this._rangeEncoder.low = [0, 0];
+		this._rangeEncoder.low = 0n;
 		this._rangeEncoder.rrange = 0xFFFFFFFF;
 		this._rangeEncoder.cacheSize = 1;
 		this._rangeEncoder.cache = 0;
-		this._rangeEncoder.position = [0, 0];
+		this._rangeEncoder.position = 0n;
 	}
 
 	/**
@@ -570,11 +560,7 @@ export class Encoder implements LenRangeEncoder {
 			rangeEncoder.rrange = newBound;
 			probs[index] = prob + (2048 - prob >>> 5) << 16 >> 16;
 		} else {
-			// Need helper methods for 64-bit arithmetic
-			rangeEncoder.low = add64(
-				rangeEncoder.low,
-				this.and64(fromInt64(newBound), [0xFFFFFFFF, 0]),
-			);
+			rangeEncoder.low += BigInt(newBound >>> 0);
 			rangeEncoder.rrange -= newBound;
 			probs[index] = prob - (prob >>> 5) << 16 >> 16;
 		}
@@ -649,7 +635,7 @@ export class Encoder implements LenRangeEncoder {
 		for (let i = numTotalBits - 1; i >= 0; i -= 1) {
 			rangeEncoder.rrange >>>= 1;
 			if ((valueToEncode >>> i & 1) == 1) {
-				rangeEncoder.low = add64(rangeEncoder.low, fromInt64(rangeEncoder.rrange));
+				rangeEncoder.low += BigInt(rangeEncoder.rrange >>> 0);
 			}
 			if (!(rangeEncoder.rrange & -0x1000000)) {
 				rangeEncoder.rrange <<= 8;
@@ -728,87 +714,16 @@ export class Encoder implements LenRangeEncoder {
 		encoder.encodeWithUpdate(symbol, posState, this);
 	}
 
-	private and64(a: [number, number], b: [number, number]): [number, number] {
-		const highBits = ~~Math.max(
-			Math.min(a[1] / 0x100000000, 0x7FFFFFFF),
-			-0x80000000,
-		) & ~~Math.max(
-			Math.min(b[1] / 0x100000000, 0x7FFFFFFF),
-			-0x80000000,
-		);
-
-		const lowBits = lowBits64(a) & lowBits64(b);
-
-		let high = highBits * 0x100000000;
-		let low = lowBits;
-		if (lowBits < 0) {
-			low += 0x100000000;
-		}
-
-		return [low, high];
-	}
-
-	private shru64(a: [number, number], n: number): [number, number] {
-		n &= 0x3F;
-		let shiftFact = this.pwrAsDouble(n);
-		let sr = create64(
-			Math.floor(a[0] / shiftFact),
-			a[1] / shiftFact,
-		);
-		if (a[1] < 0) {
-			sr = add64(sr, this.shl64([2, 0], 0x3F - n));
-		}
-		return sr;
-	}
-
-	private shl64(a: [number, number], n: number): [number, number] {
-		let diff, newHigh, newLow, twoToN;
-		n &= 0x3F;
-
-		if (a[0] == 0 && a[1] == -9223372036854775808) {
-			if (!n) {
-				return a;
-			}
-			return [0, 0];
-		}
-
-		if (a[1] < 0) {
-			throw new Error("Neg");
-		}
-		twoToN = this.pwrAsDouble(n);
-		newHigh = a[1] * twoToN % 1.8446744073709552E19;
-		newLow = a[0] * twoToN;
-		diff = newLow - newLow % 0x100000000;
-		newHigh += diff;
-		newLow -= diff;
-
-		if (newHigh >= 9223372036854775807) {
-			newHigh -= 1.8446744073709552E19;
-		}
-
-		return [newLow, newHigh];
-	}
-
-	private pwrAsDouble(n: number): number {
-		if (n <= 0x1E) {
-			return 1 << n;
-		}
-
-		return this.pwrAsDouble(0x1E) * this.pwrAsDouble(n - 0x1E);
-	}
-
 	/**
 	 * Shift low helper (proper implementation) - public method for external access
 	 */
 	shiftLow(): void {
 		const rangeEncoder = this._rangeEncoder;
 
-		const LowHi = lowBits64(this.shru64(rangeEncoder.low, 32));
-		if (LowHi != 0 || compare64(rangeEncoder.low, [4278190080, 0]) < 0) {
-			rangeEncoder.position = add64(
-				rangeEncoder.position,
-				fromInt64(rangeEncoder.cacheSize),
-			);
+		const LowHi = Number((rangeEncoder.low >> 32n) & 0xFFFFFFFFn);
+		const lowLow = Number(rangeEncoder.low & 0xFFFFFFFFn);
+		if (LowHi != 0 || lowLow < 0xFF000000) {
+			rangeEncoder.position += BigInt(rangeEncoder.cacheSize);
 
 			let temp = rangeEncoder.cache;
 			do {
@@ -816,11 +731,11 @@ export class Encoder implements LenRangeEncoder {
 				temp = 255;
 			} while ((rangeEncoder.cacheSize -= 1) != 0);
 
-			rangeEncoder.cache = lowBits64(rangeEncoder.low) >>> 24;
+			rangeEncoder.cache = (lowLow >>> 24) & 0xFF;
 		}
 
 		rangeEncoder.cacheSize += 1;
-		rangeEncoder.low = this.shl64(this.and64(rangeEncoder.low, [16777215, 0]), 8);
+		rangeEncoder.low = BigInt(lowLow & 0xFFFFFF) << 8n;
 	}
 
 	/**
@@ -832,8 +747,8 @@ export class Encoder implements LenRangeEncoder {
 	}
 
 	initRangeEncoder(): void {
-		this._rangeEncoder.position = [0, 0];
-		this._rangeEncoder.low = [0, 0];
+		this._rangeEncoder.position = 0n;
+		this._rangeEncoder.low = 0n;
 		this._rangeEncoder.rrange = -1;
 		this._rangeEncoder.cacheSize = 1;
 		this._rangeEncoder.cache = 0;
@@ -1056,12 +971,8 @@ export class Encoder implements LenRangeEncoder {
 		this._rangeEncoder.stream = null;
 	}
 
-	private getProcessedSizeAdd(): [number, number] {
-		const processedCacheSize = add64(
-			fromInt64(this._rangeEncoder.cacheSize),
-			this._rangeEncoder.position,
-		);
-		return add64(processedCacheSize, [4, 0]);
+	private getProcessedSizeAdd(): bigint {
+		return BigInt(this._rangeEncoder.cacheSize) + this._rangeEncoder.position + 4n;
 	}
 
 	private getSubCoder(pos: number, prevByte: number): LiteralDecoderEncoder2 {
@@ -1861,8 +1772,8 @@ export class Encoder implements LenRangeEncoder {
 			progressPosValuePrev,
 			subCoder;
 
-		this.processedInSize[0] = P0_LONG_LIT;
-		this.processedOutSize[0] = P0_LONG_LIT;
+		this.processedInSize[0] = 0n;
+		this.processedOutSize[0] = 0n;
 		this.finished[0] = 1;
 		progressPosValuePrev = this.nowPos64;
 
@@ -1879,14 +1790,14 @@ export class Encoder implements LenRangeEncoder {
 
 		this._finished = 1;
 
-		if (compare64(this.nowPos64, P0_LONG_LIT) === 0) {
+		if (this.nowPos64 === 0n) {
 			if (!this._matchFinder!.getNumAvailableBytes()) {
-				this.flushEncoding(lowBits64(this.nowPos64));
+				this.flushEncoding(Number(this.nowPos64 & 0xFFFFFFFFn));
 				return;
 			}
 
 			this.readMatchDistances();
-			posState = lowBits64(this.nowPos64) & this._posStateMask;
+			posState = Number(this.nowPos64 & 0xFFFFFFFFn) & this._posStateMask;
 
 			this.encodeBit(
 				this._isMatch,
@@ -1901,7 +1812,7 @@ export class Encoder implements LenRangeEncoder {
 
 			this.encodeLiteral(
 				this.getSubCoder(
-					lowBits64(this.nowPos64),
+					Number(this.nowPos64 & 0xFFFFFFFFn),
 					this._previousByte,
 				),
 				curByte,
@@ -1909,21 +1820,18 @@ export class Encoder implements LenRangeEncoder {
 
 			this._previousByte = curByte;
 			this._additionalOffset -= 1;
-			this.nowPos64 = add64(
-				this.nowPos64,
-				P1_LONG_LIT,
-			);
+			this.nowPos64 += 1n;
 		}
 
 		if (!this._matchFinder!.getNumAvailableBytes()) {
-			this.flushEncoding(lowBits64(this.nowPos64));
+			this.flushEncoding(Number(this.nowPos64 & 0xFFFFFFFFn));
 			return;
 		}
 
 		while (1) {
-			len = this.getOptimumLength(lowBits64(this.nowPos64));
+			len = this.getOptimumLength(Number(this.nowPos64 & 0xFFFFFFFFn));
 			pos = this.backRes;
-			posState = lowBits64(this.nowPos64) & this._posStateMask;
+			posState = Number(this.nowPos64 & 0xFFFFFFFFn) & this._posStateMask;
 			complexState = (this._state << 4) + posState;
 
 			if (len == 1 && pos == -1) {
@@ -1938,7 +1846,7 @@ export class Encoder implements LenRangeEncoder {
 				);
 
 				subCoder = this.getSubCoder(
-					lowBits64(this.nowPos64),
+					Number(this.nowPos64 & 0xFFFFFFFFn),
 					this._previousByte,
 				);
 
@@ -2092,10 +2000,7 @@ export class Encoder implements LenRangeEncoder {
 			}
 
 			this._additionalOffset -= len;
-			this.nowPos64 = add64(
-				this.nowPos64,
-				fromInt64(len),
-			);
+			this.nowPos64 += BigInt(len);
 
 			if (!this._additionalOffset) {
 				if (this._matchPriceCount >= 0x80) {
@@ -2110,16 +2015,13 @@ export class Encoder implements LenRangeEncoder {
 				this.processedOutSize[0] = this.getProcessedSizeAdd();
 
 				if (!this._matchFinder!.getNumAvailableBytes()) {
-					this.flushEncoding(lowBits64(this.nowPos64));
+					this.flushEncoding(Number(this.nowPos64 & 0xFFFFFFFFn));
 
 					return;
 				}
 
 				if (
-					compare64(
-						sub64(this.nowPos64, progressPosValuePrev),
-						[0x1000, 0],
-					) >= 0
+					(this.nowPos64 - progressPosValuePrev) >= 0x1000n
 				) {
 					this._finished = 0;
 					this.finished[0] = 0;
@@ -2181,10 +2083,10 @@ export class Encoder implements LenRangeEncoder {
 	initCompression(
 		input: InputBuffer,
 		output: OutputBuffer,
-		len: [number, number],
+		len: bigint,
 		mode: { searchDepth: number; filterStrength: number; modeIndex: number },
 	): void {
-		if (compare64(len, N1_LONG_LIT) < 0) {
+		if (len < -1n) {
 			throw new Error("invalid length " + len);
 		}
 
@@ -2196,7 +2098,7 @@ export class Encoder implements LenRangeEncoder {
 
 		for (let i = 0; i < 64; i += 8) {
 			output.writeByte(
-				(lowBits64(shr64(len, i)) & 0xFF) << 24 >> 24,
+				(Number((len >> BigInt(i)) & 0xFFn)) << 24 >> 24,
 			);
 		}
 
@@ -2217,7 +2119,7 @@ export class Encoder implements LenRangeEncoder {
 		this._repMatchLenEncoder!.setTableSize(this._numFastBytes + 1 - 2);
 		this._repMatchLenEncoder!.updateTables(1 << this._posStateBits);
 
-		this.nowPos64 = P0_LONG_LIT;
+		this.nowPos64 = 0n;
 	}
 
 	compress(
@@ -2225,7 +2127,7 @@ export class Encoder implements LenRangeEncoder {
 		output: OutputBuffer,
 		mode: { searchDepth: number; filterStrength: number; modeIndex: number },
 	): void {
-		this.initCompression(input, output, fromInt64(input.count), mode);
+		this.initCompression(input, output, BigInt(input.count), mode);
 
 		do {
 			this.codeOneBlock();

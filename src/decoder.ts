@@ -6,21 +6,15 @@ import type {
 } from "./streams.js";
 import {
 	_MAX_UINT32,
-	add64,
 	type BitTree,
 	CHOICE_ARRAY_SIZE,
-	compare64,
 	createBitTree,
 	DEFAULT_WINDOW_SIZE,
-	fromInt64,
 	getLenToPosState,
 	initArray,
 	initBitModels,
 	LITERAL_DECODER_SIZE,
-	lowBits64,
 	MATCH_DECODERS_SIZE,
-	N1_LONG_LIT,
-	P0_LONG_LIT,
 	POS_DECODERS_SIZE,
 	REP_DECODERS_SIZE,
 	stateUpdateChar,
@@ -54,8 +48,8 @@ export class Decoder {
 	rep2: number = 0;
 	rep3: number = 0;
 	prevByte: number = 0;
-	nowPos64: [number, number] = [0, 0];
-	outSize: [number, number] = [0, 0];
+	nowPos64: bigint = 0n;
+	outSize: bigint = 0n;
 
 	// Decoder configuration
 	posStateMask: number = 0;
@@ -139,26 +133,23 @@ export class Decoder {
 		}
 
 		// Read 8-byte uncompressed length from header
-		let hex_length = "";
-		for (let i = 0; i < 64; i += 8) {
-			let r: number | string = input.readByte();
-			if (r === -1) {
-				throw new Error("truncated input");
+		let outSize: bigint;
+		{
+			let value = 0n;
+			for (let i = 0; i < 8; i++) {
+				const r = input.readByte();
+				if (r === -1) {
+					throw new Error("truncated input");
+				}
+				value += BigInt(r & 0xFF) << BigInt(i * 8);
 			}
-			r = r.toString(0x10);
-			if (r.length === 1) r = "0" + r;
-			hex_length = r + "" + hex_length;
-		}
-
-		let outSize: [number, number];
-		if (/^0+$|^f+$/i.test(hex_length)) {
-			outSize = N1_LONG_LIT;
-		} else {
-			const tmp_length = parseInt(hex_length, 0x10);
-			if (tmp_length > _MAX_UINT32) {
-				outSize = N1_LONG_LIT;
+			// Check for unknown size marker (all 0xFF bytes)
+			if (value === 0xFFFFFFFFFFFFFFFFn) {
+				outSize = -1n;
+			} else if (value > BigInt(_MAX_UINT32)) {
+				outSize = -1n;
 			} else {
-				outSize = fromInt64(tmp_length);
+				outSize = value;
 			}
 		}
 
@@ -176,7 +167,7 @@ export class Decoder {
 		this.rep2 = 0;
 		this.rep3 = 0;
 		this.outSize = outSize;
-		this.nowPos64 = P0_LONG_LIT;
+		this.nowPos64 = 0n;
 		this.prevByte = 0;
 	}
 
@@ -192,8 +183,8 @@ export class Decoder {
 				throw new Error("Corrupted input");
 			}
 
-			const isOutputComplete = (compare64(this.outSize, P0_LONG_LIT) >= 0)
-				&& (compare64(this.nowPos64, this.outSize) >= 0);
+			const isOutputComplete = (this.outSize >= 0n)
+				&& (this.nowPos64 >= this.outSize);
 
 			if (result || isOutputComplete) {
 				this.flush();
@@ -485,10 +476,10 @@ export class Decoder {
 	codeOneChunk(): 0 | 1 | -1 {
 		let decoder2: any, distance: number, len: number, numDirectBits: number, positionSlot: number;
 
-		let posState = lowBits64(this.nowPos64) & this.posStateMask;
+		let posState = Number(this.nowPos64 & 0xFFFFFFFFn) & this.posStateMask;
 
 		if (!this.decodeBit(this.matchDecoders, (this.state << 4) + posState)) {
-			decoder2 = this.getDecoder(lowBits64(this.nowPos64), this.prevByte);
+			decoder2 = this.getDecoder(Number(this.nowPos64 & 0xFFFFFFFFn), this.prevByte);
 
 			if (this.state < 7) {
 				this.prevByte = this.decodeNormalWithRangeDecoder(decoder2);
@@ -498,7 +489,7 @@ export class Decoder {
 
 			this.putByte(this.prevByte);
 			this.state = stateUpdateChar(this.state);
-			this.nowPos64 = add64(this.nowPos64, [1, 0]);
+			this.nowPos64 += 1n;
 		} else {
 			if (this.decodeBit(this.repDecoders, this.state)) {
 				len = 0;
@@ -564,12 +555,12 @@ export class Decoder {
 				}
 			}
 
-			if (compare64([this.rep0, 0], this.nowPos64) >= 0 || this.rep0 >= this.dictSizeCheck) {
+			if (BigInt(this.rep0) >= this.nowPos64 || this.rep0 >= this.dictSizeCheck) {
 				return -1;
 			}
 
 			this.copyBlock(len);
-			this.nowPos64 = add64(this.nowPos64, [len, 0]);
+			this.nowPos64 += BigInt(len);
 			this.prevByte = this.getByte(0);
 		}
 
