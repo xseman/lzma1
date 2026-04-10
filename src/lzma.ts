@@ -9,57 +9,13 @@ import {
 	OutputBuffer,
 } from "./streams.js";
 import {
-	_MAX_UINT32,
-	type BitTree,
 	fromInt64,
-	type LiteralDecoderEncoder2,
-	N1_LONG_LIT,
-	P0_LONG_LIT,
 } from "./utils.js";
 
 interface Mode {
 	searchDepth: number;
 	filterStrength: number;
 	modeIndex: number;
-}
-
-/**
- * Range coder interface
- */
-interface RangeCoder {
-	stream: InputBuffer | OutputBuffer | null;
-}
-
-/**
- * Range decoder
- */
-export interface RangeDecoder extends RangeCoder {
-	code: number;
-	rrange: number;
-	stream: InputBuffer | null;
-	init?(): void;
-	decodeBit?(probs: number[], index: number): 0 | 1;
-}
-
-/**
- * Literal coder interface
- */
-export interface LiteralCoder {
-	coders: LiteralDecoderEncoder2[];
-	numPrevBits: number;
-	numPosBits: number;
-	posMask: number;
-	init?(): void;
-}
-
-/**
- * Length coder
- */
-export interface LenCoder {
-	choice: number[];
-	lowCoder: BitTree[];
-	midCoder: BitTree[];
-	highCoder: BitTree;
 }
 
 /**
@@ -75,7 +31,6 @@ interface Context {
 interface CompressionContext extends Context {
 	chunker: EncoderChunker;
 	output: OutputBuffer;
-	length_0?: [number, number];
 }
 
 /**
@@ -185,63 +140,6 @@ export class LZMA {
 		);
 	}
 
-	#initDecompression(input: InputBuffer): void {
-		let hex_length = "",
-			properties = [],
-			r: number | string,
-			tmp_length: number;
-
-		for (let i = 0; i < 5; ++i) {
-			r = input.readByte();
-			if (r == -1) {
-				throw new Error("truncated input");
-			}
-			properties[i] = r << 24 >> 24;
-		}
-
-		const isDecoderInitialized = !this.#decoder.setDecoderProperties(properties)
-			? 1
-			: 0;
-
-		if (isDecoderInitialized) {
-			throw new Error("corrupted input");
-		}
-
-		for (let i = 0; i < 64; i += 8) {
-			r = input.readByte();
-			if (r == -1) {
-				throw new Error("truncated input");
-			}
-			r = r.toString(0x10);
-			if (r.length == 1) r = "0" + r;
-			hex_length = r + "" + hex_length;
-		}
-
-		/**
-		 * Was the length set in the header (if it was compressed from a stream, the
-		 * length is all f"s).
-		 */
-		if (/^0+$|^f+$/i.test(hex_length)) {
-			this.#compressor.length_0 = N1_LONG_LIT;
-		} else {
-			/**
-			 * NOTE: If there is a problem with the decoder because of the length,
-			 * you can always set the length to -1 (N1_longLit) which means unknown.
-			 */
-			tmp_length = parseInt(hex_length, 0x10);
-			if (tmp_length > _MAX_UINT32) {
-				this.#compressor.length_0 = N1_LONG_LIT;
-			} else {
-				this.#compressor.length_0 = fromInt64(tmp_length);
-			}
-		}
-
-		this.#decompressor.chunker = this.#CodeInChunks(
-			input,
-			this.#compressor.length_0,
-		);
-	}
-
 	#byteArrayDecompressor(data: Uint8Array | ArrayBuffer): void {
 		const inputData = data instanceof ArrayBuffer
 			? new Uint8Array(data)
@@ -255,35 +153,10 @@ export class LZMA {
 
 		const inputBuffer = new InputBuffer(inputData);
 
-		this.#initDecompression(inputBuffer);
-	}
-
-
-	#CodeInChunks(inStream: InputBuffer, outSize: [number, number]): DecoderChunker {
-		this.#decoder.rangeDecoder.stream = inStream;
-		this.#decoder.flush();
-		this.#decoder.outWindow.stream = null;
-		this.#decoder.outWindow.stream = this.#decompressor.output;
-
-		this.#Init_1();
-		this.#decoder.state = 0;
-		this.#decoder.rep0 = 0;
-		this.#decoder.rep1 = 0;
-		this.#decoder.rep2 = 0;
-		this.#decoder.rep3 = 0;
-		this.#decoder.outSize = outSize;
-		this.#decoder.nowPos64 = P0_LONG_LIT;
-		this.#decoder.prevByte = 0;
-
-		// Create and return decoder chunker
-		const decoderChunker = new DecoderChunker(this.#decoder);
-		decoderChunker.alive = 1;
-
-		return decoderChunker;
-	}
-
-	#Init_1(): void {
-		this.#decoder.init();
+		this.#decompressor.chunker = this.#decoder.initDecompression(
+			inputBuffer,
+			this.#decompressor.output,
+		);
 	}
 
 	#decodeString(utf: number[]): string | number[] {

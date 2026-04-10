@@ -1,3 +1,4 @@
+import { DecoderChunker } from "./chunker.js";
 import { LzOutWindow } from "./lz-window.js";
 import { RangeDecoder } from "./range-decoder.js";
 import type {
@@ -5,18 +6,22 @@ import type {
 	OutputBuffer,
 } from "./streams.js";
 import {
+	_MAX_UINT32,
 	add64,
 	type BitTree,
 	CHOICE_ARRAY_SIZE,
 	compare64,
 	createBitTree,
 	DEFAULT_WINDOW_SIZE,
+	fromInt64,
 	getLenToPosState,
 	initArray,
 	initBitModels,
 	LITERAL_DECODER_SIZE,
 	lowBits64,
 	MATCH_DECODERS_SIZE,
+	N1_LONG_LIT,
+	P0_LONG_LIT,
 	POS_DECODERS_SIZE,
 	REP_DECODERS_SIZE,
 	stateUpdateChar,
@@ -123,6 +128,72 @@ export class Decoder {
 
 		// Initialize self-reference for chunker compatibility
 		this.decoder = this;
+	}
+
+	/**
+	 * Read LZMA header, configure decoder, and prepare for chunk-based decompression.
+	 */
+	initDecompression(input: InputBuffer, output: OutputBuffer): DecoderChunker {
+		// Read 5-byte header properties
+		const properties: number[] = [];
+		for (let i = 0; i < 5; ++i) {
+			const r = input.readByte();
+			if (r === -1) {
+				throw new Error("truncated input");
+			}
+			properties[i] = r << 24 >> 24;
+		}
+
+		if (!this.setDecoderProperties(properties)) {
+			throw new Error("corrupted input");
+		}
+
+		// Read 8-byte uncompressed length from header
+		let hex_length = "";
+		for (let i = 0; i < 64; i += 8) {
+			let r: number | string = input.readByte();
+			if (r === -1) {
+				throw new Error("truncated input");
+			}
+			r = r.toString(0x10);
+			if (r.length === 1) r = "0" + r;
+			hex_length = r + "" + hex_length;
+		}
+
+		let outSize: [number, number];
+		if (/^0+$|^f+$/i.test(hex_length)) {
+			outSize = N1_LONG_LIT;
+		} else {
+			const tmp_length = parseInt(hex_length, 0x10);
+			if (tmp_length > _MAX_UINT32) {
+				outSize = N1_LONG_LIT;
+			} else {
+				outSize = fromInt64(tmp_length);
+			}
+		}
+
+		// Set up range decoder and output window
+		this.rangeDecoder.setStream(input);
+		this.flush();
+		this.outWindow.stream = null;
+		this.outWindow.stream = output;
+
+		// Initialize decoder state
+		this.init();
+		this.state = 0;
+		this.rep0 = 0;
+		this.rep1 = 0;
+		this.rep2 = 0;
+		this.rep3 = 0;
+		this.outSize = outSize;
+		this.nowPos64 = P0_LONG_LIT;
+		this.prevByte = 0;
+
+		// Create and return decoder chunker
+		const decoderChunker = new DecoderChunker(this);
+		decoderChunker.alive = 1;
+
+		return decoderChunker;
 	}
 
 	createLenDecoder(): LenDecoder {
