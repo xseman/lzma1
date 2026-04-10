@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.0](https://github.com/xseman/lzma1/compare/v0.2.0...v0.3.0) (2026-04-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* break up god class, extract components, modernize internals ([#32](https://github.com/xseman/lzma1/issues/32))
+
+### Performance Improvements
+
+* convert hot arrays to typed arrays, remove dead ops ([#33](https://github.com/xseman/lzma1/issues/33)) ([a2fcde3](https://github.com/xseman/lzma1/commit/a2fcde3ea7fada4b5654530b92e32c7dd9e73058))
+
+
+### Documentation
+
+* add packet diagram via mermaid ([dcb1a33](https://github.com/xseman/lzma1/commit/dcb1a33003fabe00c7b9f38c23f06b70bac57233))
+
+
+### Maintenance
+
+* break up god class, extract components, modernize internals ([#32](https://github.com/xseman/lzma1/issues/32)) ([ee768bf](https://github.com/xseman/lzma1/commit/ee768bfe8f01f3749fd728afb17e7570416e322e))
+* migrate to `bun.lock`, update dependencies & configs ([#30](https://github.com/xseman/lzma1/issues/30)) ([a304def](https://github.com/xseman/lzma1/commit/a304def1fac2f3878d81a10407b72a4e625347ed))
+
 ## [0.2.0](https://github.com/xseman/lzma1/compare/v0.1.2...v0.2.0) (2025-08-15)
 
 
