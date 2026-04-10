@@ -11,6 +11,7 @@
 		"moduleResolution": "Node16",
 		"target": "ES2022",
 		"lib": ["ES2022"],
+		"types": ["bun", "node"],
 
 		// Other Outputs
 		// "sourceMap": true,
