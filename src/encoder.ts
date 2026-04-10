@@ -16,10 +16,17 @@ import {
 	G_FAST_POS,
 	getBitPrice,
 	getLenToPosState,
+	INFINITY_PRICE,
 	initArray,
 	initBitModels,
 	lowBits64,
+	N1_LONG_LIT,
+	P0_LONG_LIT,
+	P1_LONG_LIT,
 	PROB_PRICES,
+	shr64,
+	stateUpdateChar,
+	sub64,
 } from "./utils.js";
 
 const bitTreePriceCache = new Map<string, number>();
@@ -1023,5 +1030,1193 @@ export class Encoder implements LenRangeEncoder {
 		const coderIndex = posShifted + prevByteBits;
 
 		return this._literalEncoder!.coders[coderIndex];
+	}
+
+	// ── Encoding orchestration methods (moved from LZMA) ──
+
+	private makeAsChar(optimum: Optimum): void {
+		optimum.backPrev = -1;
+		optimum.prev1IsChar = 0;
+	}
+
+	private makeAsShortRep(optimum: Optimum): void {
+		optimum.backPrev = 0;
+		optimum.prev1IsChar = 0;
+	}
+
+	private releaseMFStream(): void {
+		if (this._matchFinder && this._needReleaseMFStream) {
+			this._matchFinder._stream = null;
+			this._needReleaseMFStream = 0;
+		}
+	}
+
+	releaseStreams(): void {
+		this.releaseMFStream();
+		this._rangeEncoder.stream = null;
+	}
+
+	private getProcessedSizeAdd(): [number, number] {
+		const processedCacheSize = add64(
+			fromInt64(this._rangeEncoder.cacheSize),
+			this._rangeEncoder.position,
+		);
+		return add64(processedCacheSize, [4, 0]);
+	}
+
+	private getSubCoder(pos: number, prevByte: number): LiteralDecoderEncoder2 {
+		const subCoder = this._literalEncoder!.getSubCoder(pos, prevByte);
+		return { decoders: subCoder.decoders } as LiteralDecoderEncoder2;
+	}
+
+	private getLiteralPrice(
+		encoder: LiteralDecoderEncoder2,
+		matchMode: boolean,
+		matchByte: number,
+		symbol: number,
+	): number {
+		let bit, context = 1, i = 7, matchBit, price = 0;
+
+		if (matchMode) {
+			for (; i >= 0; --i) {
+				matchBit = (matchByte >> i) & 1;
+				bit = (symbol >> i) & 1;
+				price += getBitPrice(
+					encoder.decoders[((1 + matchBit) << 8) + context],
+					bit,
+				);
+				context = context << 1 | bit;
+
+				if (matchBit != bit) {
+					--i;
+					break;
+				}
+			}
+		}
+
+		for (; i >= 0; --i) {
+			bit = symbol >> i & 1;
+			price += getBitPrice(encoder.decoders[context], bit);
+			context = context << 1 | bit;
+		}
+
+		return price;
+	}
+
+	private getPosLenPrice(
+		pos: number,
+		len: number,
+		posState: number,
+	): number {
+		let price: number, lenToPosState = getLenToPosState(len);
+
+		if (pos < 128) {
+			price = this._distancesPrices[lenToPosState * 128 + pos];
+		} else {
+			const position = (lenToPosState << 6) + this.getPosSlot2(pos);
+			price = this._posSlotPrices[position] + this._alignPrices[pos & 15];
+		}
+
+		return price + this._lenEncoder!.getPrice(len - 2, posState);
+	}
+
+	private getPureRepPrice(
+		repIndex: number,
+		state: number,
+		posState: number,
+	): number {
+		let price;
+
+		if (!repIndex) {
+			price = PROB_PRICES[(this._isRepG0[state]) >>> 2];
+			price += PROB_PRICES[
+				0x800 - this._isRep0Long[(state << 4) + posState] >>> 2
+			];
+		} else {
+			price = PROB_PRICES[(0x800 - this._isRepG0[state]) >>> 2];
+			if (repIndex == 1) {
+				price += PROB_PRICES[(this._isRepG1[state]) >>> 2];
+			} else {
+				price += PROB_PRICES[(0x800 - this._isRepG1[state]) >>> 2];
+				price += getBitPrice(this._isRepG2[state], repIndex - 2);
+			}
+		}
+
+		return price;
+	}
+
+	private getRepLen1Price(posState: number): number {
+		const repG0Price = PROB_PRICES[(this._isRepG0[this._state]) >>> 2];
+		const rep0LongPrice = PROB_PRICES[this._isRep0Long[(this._state << 4) + posState] >>> 2];
+		return repG0Price + rep0LongPrice;
+	}
+
+	private getPosSlot2(pos: number): number {
+		if (pos < 0x20000) {
+			return G_FAST_POS[pos >> 6] + 12;
+		}
+		if (pos < 0x8000000) {
+			return G_FAST_POS[pos >> 16] + 32;
+		}
+		return G_FAST_POS[pos >> 26] + 52;
+	}
+
+	private movePosHelper(num: number): void {
+		if (num > 0) {
+			this._matchFinder!.skip(num);
+			this._additionalOffset += num;
+		}
+	}
+
+	private readMatchDistances(): number {
+		let lenRes = 0;
+		this._numDistancePairs = this._matchFinder!.getMatches(this._matchDistances);
+
+		if (this._numDistancePairs > 0) {
+			lenRes = this._matchDistances[this._numDistancePairs - 2];
+
+			if (lenRes == this._numFastBytes) {
+				lenRes += this._matchFinder!.getMatchLen(
+					lenRes - 1,
+					this._matchDistances[this._numDistancePairs - 1],
+					0x0111 - lenRes,
+				);
+			}
+		}
+
+		this._additionalOffset += 1;
+		return lenRes;
+	}
+
+	private flushEncoding(nowPos: number): void {
+		this.releaseMFStream();
+		this.writeEndMarker(nowPos & this._posStateMask);
+		for (let i = 0; i < 5; ++i) {
+			this.shiftLow();
+		}
+	}
+
+	private backward(cur: number): number {
+		let backCur, backMem, posMem, posPrev;
+
+		this._optimumEndIndex = cur;
+		posMem = this._optimum[cur].posPrev;
+		backMem = this._optimum[cur].backPrev;
+
+		do {
+			if (this._optimum[cur].prev1IsChar) {
+				this.makeAsChar(this._optimum[posMem!]);
+				this._optimum[posMem!].posPrev = posMem! - 1;
+
+				if (this._optimum[cur].prev2) {
+					this._optimum[posMem! - 1].prev1IsChar = 0;
+					this._optimum[posMem! - 1].posPrev = this._optimum[cur].posPrev2;
+					this._optimum[posMem! - 1].backPrev = this._optimum[cur].backPrev2;
+				}
+			}
+
+			posPrev = posMem;
+			backCur = backMem;
+			backMem = this._optimum[posPrev!].backPrev;
+			posMem = this._optimum[posPrev!].posPrev;
+			this._optimum[posPrev!].backPrev = backCur;
+			this._optimum[posPrev!].posPrev = cur;
+			cur = posPrev!;
+		} while (cur > 0);
+
+		this.backRes = this._optimum[0].backPrev!;
+		this._optimumCurrentIndex = this._optimum[0].posPrev!;
+		return this._optimumCurrentIndex;
+	}
+
+	private getOptimumLength(position: number): number {
+		let cur,
+			curAnd1Price,
+			curAndLenCharPrice,
+			curAndLenPrice,
+			curBack,
+			curPrice,
+			currentByte,
+			distance,
+			len,
+			lenEnd,
+			lenMain,
+			lenTest,
+			lenTest2,
+			lenTestTemp,
+			matchByte,
+			matchPrice,
+			newLen,
+			nextIsChar,
+			nextMatchPrice,
+			nextOptimum,
+			nextRepMatchPrice,
+			normalMatchPrice,
+			numAvailableBytes,
+			numAvailableBytesFull,
+			numDistancePairs,
+			offs,
+			offset,
+			opt,
+			optimum,
+			pos,
+			posPrev,
+			posState,
+			posStateNext,
+			price_4,
+			repIndex,
+			repLen,
+			repMatchPrice,
+			repMaxIndex,
+			shortRepPrice,
+			startLen,
+			state,
+			state2,
+			t,
+			price,
+			price_0,
+			price_1,
+			price_2,
+			price_3,
+			lenRes;
+
+		if (this._optimumEndIndex != this._optimumCurrentIndex) {
+			lenRes = this._optimum[this._optimumCurrentIndex].posPrev! - this._optimumCurrentIndex;
+			this.backRes = this._optimum[this._optimumCurrentIndex].backPrev!;
+			this._optimumCurrentIndex = this._optimum[this._optimumCurrentIndex].posPrev!;
+			return lenRes;
+		}
+
+		this._optimumCurrentIndex = this._optimumEndIndex = 0;
+		if (this._longestMatchWasFound) {
+			lenMain = this._longestMatchLength;
+			this._longestMatchWasFound = 0;
+		} else {
+			lenMain = this.readMatchDistances();
+		}
+
+		numDistancePairs = this._numDistancePairs;
+		numAvailableBytes = this._matchFinder!.getNumAvailableBytes() + 1;
+
+		if (numAvailableBytes < 2) {
+			this.backRes = -1;
+			return 1;
+		}
+
+		if (numAvailableBytes > 0x0111) {
+			numAvailableBytes = 0x0111;
+		}
+
+		repMaxIndex = 0;
+		for (let i = 0; i < 4; ++i) {
+			this.reps[i] = this._repDistances[i];
+			this.repLens[i] = this._matchFinder!.getMatchLen(-1, this.reps[i], 0x0111);
+
+			if (this.repLens[i] > this.repLens[repMaxIndex]) {
+				repMaxIndex = i;
+			}
+		}
+
+		if (this.repLens[repMaxIndex] >= this._numFastBytes) {
+			this.backRes = repMaxIndex;
+			lenRes = this.repLens[repMaxIndex];
+			this.movePosHelper(lenRes - 1);
+			return lenRes;
+		}
+
+		if (lenMain >= this._numFastBytes) {
+			this.backRes = this._matchDistances[numDistancePairs - 1] + 4;
+			this.movePosHelper(lenMain - 1);
+			return lenMain;
+		}
+
+		currentByte = this._matchFinder!.getIndexByte(-1);
+		matchByte = this._matchFinder!.getIndexByte(-this._repDistances[0] - 1 - 1);
+
+		if (lenMain < 2 && currentByte != matchByte && this.repLens[repMaxIndex] < 2) {
+			this.backRes = -1;
+			return 1;
+		}
+
+		this._optimum[0].state = this._state;
+		posState = position & this._posStateMask;
+		this._optimum[1].price = PROB_PRICES[
+			(this._isMatch[(this._state << 4) + posState]) >>> 2
+		] + this.getLiteralPrice(
+			this.getSubCoder(position, this._previousByte),
+			this._state >= 7,
+			matchByte,
+			currentByte,
+		);
+
+		this.makeAsChar(this._optimum[1]);
+		matchPrice = PROB_PRICES[
+			(2048 - this._isMatch[(this._state << 4) + posState])
+			>>> 2
+		];
+
+		repMatchPrice = matchPrice + PROB_PRICES[
+			(2048 - this._isRep[this._state]) >>> 2
+		];
+
+		if (matchByte == currentByte) {
+			shortRepPrice = repMatchPrice + this.getRepLen1Price(posState);
+			if (shortRepPrice < this._optimum[1].price!) {
+				this._optimum[1].price = shortRepPrice;
+				this.makeAsShortRep(this._optimum[1]);
+			}
+		}
+
+		lenEnd = lenMain >= this.repLens[repMaxIndex]
+			? lenMain
+			: this.repLens[repMaxIndex];
+
+		if (lenEnd < 2) {
+			this.backRes = this._optimum[1].backPrev!;
+			return 1;
+		}
+
+		this._optimum[1].posPrev = 0;
+		this._optimum[0].backs0 = this.reps[0];
+		this._optimum[0].backs1 = this.reps[1];
+		this._optimum[0].backs2 = this.reps[2];
+		this._optimum[0].backs3 = this.reps[3];
+		len = lenEnd;
+
+		do {
+			this._optimum[len].price = INFINITY_PRICE;
+			len -= 1;
+		} while (len >= 2);
+
+		for (let i = 0; i < 4; ++i) {
+			repLen = this.repLens[i];
+			if (repLen < 2) {
+				continue;
+			}
+			price_4 = repMatchPrice + this.getPureRepPrice(
+				i,
+				this._state,
+				posState,
+			);
+
+			do {
+				curAndLenPrice = price_4 + this._repMatchLenEncoder!.getPrice(
+					repLen - 2,
+					posState,
+				);
+				optimum = this._optimum[repLen];
+				if (curAndLenPrice < optimum.price!) {
+					optimum.price = curAndLenPrice;
+					optimum.posPrev = 0;
+					optimum.backPrev = i;
+					optimum.prev1IsChar = 0;
+				}
+			} while ((repLen -= 1) >= 2);
+		}
+
+		normalMatchPrice = matchPrice
+			+ PROB_PRICES[(this._isRep[this._state]) >>> 2];
+
+		len = this.repLens[0] >= 2 ? this.repLens[0] + 1 : 2;
+
+		if (len <= lenMain) {
+			offs = 0;
+			while (len > this._matchDistances[offs]) {
+				offs += 2;
+			}
+
+			for (;; len += 1) {
+				distance = this._matchDistances[offs + 1];
+				curAndLenPrice = normalMatchPrice + this.getPosLenPrice(distance, len, posState);
+				optimum = this._optimum[len];
+
+				if (curAndLenPrice < optimum.price!) {
+					optimum.price = curAndLenPrice;
+					optimum.posPrev = 0;
+					optimum.backPrev = distance + 4;
+					optimum.prev1IsChar = 0;
+				}
+
+				if (len == this._matchDistances[offs]) {
+					offs += 2;
+					if (offs == numDistancePairs) {
+						break;
+					}
+				}
+			}
+		}
+		cur = 0;
+
+		while (1) {
+			++cur;
+			if (cur == lenEnd) {
+				return this.backward(cur);
+			}
+			newLen = this.readMatchDistances();
+			numDistancePairs = this._numDistancePairs;
+
+			if (newLen >= this._numFastBytes) {
+				this._longestMatchLength = newLen;
+				this._longestMatchWasFound = 0x01;
+
+				return this.backward(cur);
+			}
+			position += 0x01;
+			posPrev = this._optimum[cur].posPrev;
+
+			if (this._optimum[cur].prev1IsChar) {
+				posPrev! -= 0x01;
+				if (this._optimum[cur].prev2) {
+					state = this._optimum[this._optimum[cur].posPrev2!].state;
+					if (this._optimum[cur].backPrev2! < 0x04) {
+						state = (state! < 0x07) ? 0x08 : 0x0B;
+					} else {
+						state = (state! < 0x07) ? 0x07 : 0x0A;
+					}
+				} else {
+					state = this._optimum[posPrev!].state;
+				}
+				state = stateUpdateChar(state!);
+			} else {
+				state = this._optimum[posPrev!].state;
+			}
+
+			if (posPrev! == cur - 1) {
+				if (!this._optimum[cur].backPrev) {
+					state = state! < 7 ? 9 : 11;
+				} else {
+					state = stateUpdateChar(state!);
+				}
+			} else {
+				if (
+					this._optimum[cur].prev1IsChar
+					&& this._optimum[cur].prev2
+				) {
+					posPrev = this._optimum[cur].posPrev2;
+					pos = this._optimum[cur].backPrev2;
+					state = state! < 0x07 ? 0x08 : 0x0B;
+				} else {
+					pos = this._optimum[cur].backPrev;
+					if (pos! < 4) {
+						state = state! < 0x07 ? 0x08 : 0x0B;
+					} else {
+						state = state! < 0x07 ? 0x07 : 0x0A;
+					}
+				}
+				opt = this._optimum[posPrev!];
+
+				if (pos! < 4) {
+					if (!pos) {
+						this.reps[0] = opt.backs0!;
+						this.reps[1] = opt.backs1!;
+						this.reps[2] = opt.backs2!;
+						this.reps[3] = opt.backs3!;
+					} else if (pos == 1) {
+						this.reps[0] = opt.backs1!;
+						this.reps[1] = opt.backs0!;
+						this.reps[2] = opt.backs2!;
+						this.reps[3] = opt.backs3!;
+					} else if (pos == 2) {
+						this.reps[0] = opt.backs2!;
+						this.reps[1] = opt.backs0!;
+						this.reps[2] = opt.backs1!;
+						this.reps[3] = opt.backs3!;
+					} else {
+						this.reps[0] = opt.backs3!;
+						this.reps[1] = opt.backs0!;
+						this.reps[2] = opt.backs1!;
+						this.reps[3] = opt.backs2!;
+					}
+				} else {
+					this.reps[0] = pos! - 4;
+					this.reps[1] = opt.backs0!;
+					this.reps[2] = opt.backs1!;
+					this.reps[3] = opt.backs2!;
+				}
+			}
+
+			this._optimum[cur].state = state;
+			this._optimum[cur].backs0 = this.reps[0];
+			this._optimum[cur].backs1 = this.reps[1];
+			this._optimum[cur].backs2 = this.reps[2];
+			this._optimum[cur].backs3 = this.reps[3];
+			curPrice = this._optimum[cur].price;
+
+			currentByte = this._matchFinder!.getIndexByte(-0x01);
+			matchByte = this._matchFinder!.getIndexByte(-this.reps[0] - 1 - 1);
+
+			posState = position & this._posStateMask;
+			curAnd1Price = curPrice!
+				+ PROB_PRICES[(this._isMatch[(state! << 0x04) + posState]) >>> 2]
+				+ this.getLiteralPrice(
+					this.getSubCoder(position, this._matchFinder!.getIndexByte(-2)),
+					state! >= 7,
+					matchByte,
+					currentByte,
+				);
+
+			nextOptimum = this._optimum[cur + 1];
+			nextIsChar = 0;
+
+			if (curAnd1Price < nextOptimum.price!) {
+				nextOptimum.price = curAnd1Price;
+				nextOptimum.posPrev = cur;
+				nextOptimum.backPrev = -0x01;
+				nextOptimum.prev1IsChar = 0;
+				nextIsChar = 1;
+			}
+
+			matchPrice = curPrice! + PROB_PRICES[
+				(2048 - this._isMatch[(state! << 4) + posState]) >>> 2
+			];
+
+			repMatchPrice = matchPrice + PROB_PRICES[(2048 - this._isRep[state!]) >>> 2];
+
+			if (matchByte == currentByte && !(nextOptimum.posPrev! < cur && !nextOptimum.backPrev)) {
+				shortRepPrice = repMatchPrice
+					+ (PROB_PRICES[(this._isRepG0[state!]) >>> 0x02] + PROB_PRICES[(this._isRep0Long[(state! << 0x04) + posState]) >>> 0x02]);
+
+				if (shortRepPrice <= nextOptimum.price!) {
+					nextOptimum.price = shortRepPrice;
+					nextOptimum.posPrev = cur;
+					nextOptimum.backPrev = 0;
+					nextOptimum.prev1IsChar = 0;
+					nextIsChar = 1;
+				}
+			}
+
+			numAvailableBytesFull = this._matchFinder!.getNumAvailableBytes() + 1;
+			numAvailableBytesFull = 0xFFF - cur < numAvailableBytesFull
+				? 0xFFF - cur
+				: numAvailableBytesFull;
+
+			numAvailableBytes = numAvailableBytesFull;
+
+			if (numAvailableBytes < 2) {
+				continue;
+			}
+
+			if (numAvailableBytes > this._numFastBytes) {
+				numAvailableBytes = this._numFastBytes;
+			}
+
+			if (!nextIsChar && matchByte != currentByte) {
+				t = Math.min(numAvailableBytesFull - 1, this._numFastBytes);
+				lenTest2 = this._matchFinder!.getMatchLen(0, this.reps[0], t);
+
+				if (lenTest2 >= 2) {
+					state2 = stateUpdateChar(state);
+					posStateNext = position + 1 & this._posStateMask;
+					nextRepMatchPrice = curAnd1Price
+						+ PROB_PRICES[(2048 - this._isMatch[(state2 << 4) + posStateNext]) >>> 2]
+						+ PROB_PRICES[(2048 - this._isRep[state2]) >>> 2];
+
+					offset = cur + 1 + lenTest2;
+
+					while (lenEnd < offset) {
+						this._optimum[lenEnd += 1].price = INFINITY_PRICE;
+					}
+
+					curAndLenPrice = nextRepMatchPrice + (price = this._repMatchLenEncoder!.getPrice(
+						lenTest2 - 2,
+						posStateNext,
+					),
+						price + this.getPureRepPrice(
+							0,
+							state2,
+							posStateNext,
+						));
+					optimum = this._optimum[offset];
+
+					if (curAndLenPrice < optimum.price!) {
+						optimum.price = curAndLenPrice;
+						optimum.posPrev = cur + 1;
+						optimum.backPrev = 0;
+						optimum.prev1IsChar = 1;
+						optimum.prev2 = 0;
+					}
+				}
+			}
+			startLen = 0x02;
+
+			for (repIndex = 0; repIndex < 4; ++repIndex) {
+				lenTest = this._matchFinder!.getMatchLen(
+					-0x01,
+					this.reps[repIndex],
+					numAvailableBytes,
+				);
+
+				if (lenTest < 2) {
+					continue;
+				}
+				lenTestTemp = lenTest;
+
+				do {
+					while (lenEnd < cur + lenTest) {
+						this._optimum[lenEnd += 1].price = INFINITY_PRICE;
+					}
+
+					curAndLenPrice = repMatchPrice + (price_0 = this._repMatchLenEncoder!.getPrice(
+						lenTest - 2,
+						posState,
+					),
+						price_0 + this.getPureRepPrice(
+							repIndex,
+							state,
+							posState,
+						));
+
+					optimum = this._optimum[cur + lenTest];
+
+					if (curAndLenPrice < optimum.price!) {
+						optimum.price = curAndLenPrice;
+						optimum.posPrev = cur;
+						optimum.backPrev = repIndex;
+						optimum.prev1IsChar = 0;
+					}
+				} while ((lenTest -= 1) >= 2);
+
+				lenTest = lenTestTemp;
+
+				if (!repIndex) {
+					startLen = lenTest + 1;
+				}
+
+				if (lenTest < numAvailableBytesFull) {
+					t = Math.min(
+						numAvailableBytesFull - 1 - lenTest,
+						this._numFastBytes,
+					);
+					lenTest2 = this._matchFinder!.getMatchLen(
+						lenTest,
+						this.reps[repIndex],
+						t,
+					);
+
+					if (lenTest2 >= 2) {
+						state2 = state < 7 ? 0x08 : 11;
+						posStateNext = position + lenTest & this._posStateMask;
+						curAndLenCharPrice = repMatchPrice
+							+ (price_1 = this._repMatchLenEncoder!.getPrice(lenTest - 2, posState), price_1 + this.getPureRepPrice(repIndex, state, posState))
+							+ PROB_PRICES[(this._isMatch[(state2 << 4) + posStateNext]) >>> 2]
+							+ this.getLiteralPrice(
+								this.getSubCoder(position + lenTest, this._matchFinder!.getIndexByte(lenTest - 1 - 1)),
+								true,
+								this._matchFinder!.getIndexByte(lenTest - 1 - (this.reps[repIndex] + 1)),
+								this._matchFinder!.getIndexByte(lenTest - 1),
+							);
+
+						state2 = stateUpdateChar(state2);
+						posStateNext = position + lenTest + 1 & this._posStateMask;
+
+						nextMatchPrice = curAndLenCharPrice + PROB_PRICES[
+							(2048 - this._isMatch[(state2 << 4) + posStateNext]) >>> 2
+						];
+
+						nextRepMatchPrice = nextMatchPrice + PROB_PRICES[
+							(2048 - this._isRep[state2]) >>> 2
+						];
+
+						offset = lenTest + 1 + lenTest2;
+
+						while (lenEnd < cur + offset) {
+							this._optimum[lenEnd += 1].price = INFINITY_PRICE;
+						}
+
+						curAndLenPrice = nextRepMatchPrice + (price_2 = this._repMatchLenEncoder!.getPrice(lenTest2 - 2, posStateNext), price_2 + this.getPureRepPrice(0, state2, posStateNext));
+						optimum = this._optimum[cur + offset];
+
+						if (curAndLenPrice < optimum.price!) {
+							optimum.price = curAndLenPrice;
+							optimum.posPrev = cur + lenTest + 1;
+							optimum.backPrev = 0;
+							optimum.prev1IsChar = 1;
+							optimum.prev2 = 1;
+							optimum.posPrev2 = cur;
+							optimum.backPrev2 = repIndex;
+						}
+					}
+				}
+			}
+
+			if (newLen > numAvailableBytes) {
+				newLen = numAvailableBytes;
+				for (
+					numDistancePairs = 0;
+					newLen > this._matchDistances[numDistancePairs];
+					numDistancePairs += 2
+				) {}
+				this._matchDistances[numDistancePairs] = newLen;
+				numDistancePairs += 2;
+			}
+
+			if (newLen >= startLen) {
+				normalMatchPrice = matchPrice + PROB_PRICES[(this._isRep[state]) >>> 2];
+
+				while (lenEnd < cur + newLen) {
+					this._optimum[lenEnd += 1].price = INFINITY_PRICE;
+				}
+				offs = 0;
+
+				while (startLen > this._matchDistances[offs]) {
+					offs += 2;
+				}
+				for (lenTest = startLen;; lenTest += 1) {
+					curBack = this._matchDistances[offs + 1];
+					curAndLenPrice = normalMatchPrice + this.getPosLenPrice(curBack, lenTest, posState);
+					optimum = this._optimum[cur + lenTest];
+
+					if (curAndLenPrice < optimum.price!) {
+						optimum.price = curAndLenPrice;
+						optimum.posPrev = cur;
+						optimum.backPrev = curBack + 4;
+						optimum.prev1IsChar = 0;
+					}
+
+					if (lenTest == this._matchDistances[offs]) {
+						if (lenTest < numAvailableBytesFull) {
+							t = Math.min(
+								numAvailableBytesFull - 1 - lenTest,
+								this._numFastBytes,
+							);
+							lenTest2 = this._matchFinder!.getMatchLen(
+								lenTest,
+								curBack,
+								t,
+							);
+
+							if (lenTest2 >= 2) {
+								state2 = state < 7 ? 7 : 10;
+								posStateNext = position + lenTest & this._posStateMask;
+
+								curAndLenCharPrice = curAndLenPrice
+									+ PROB_PRICES[(this._isMatch[(state2 << 4) + posStateNext]) >>> 2]
+									+ this.getLiteralPrice(
+										this.getSubCoder(
+											position + lenTest,
+											this._matchFinder!.getIndexByte(lenTest - 1 - 1),
+										),
+										true,
+										this._matchFinder!.getIndexByte(lenTest - (curBack + 1) - 1),
+										this._matchFinder!.getIndexByte(lenTest - 1),
+									);
+
+								state2 = stateUpdateChar(state2);
+								posStateNext = position + lenTest + 1 & this._posStateMask;
+
+								nextMatchPrice = curAndLenCharPrice + PROB_PRICES[
+									(2048 - this._isMatch[(state2 << 4) + posStateNext]) >>> 2
+								];
+
+								nextRepMatchPrice = nextMatchPrice + PROB_PRICES[
+									(2048 - this._isRep[state2]) >>> 2
+								];
+								offset = lenTest + 1 + lenTest2;
+
+								while (lenEnd < cur + offset) {
+									this._optimum[lenEnd += 1].price = INFINITY_PRICE;
+								}
+
+								curAndLenPrice = nextRepMatchPrice + (price_3 = this._repMatchLenEncoder!.getPrice(lenTest2 - 2, posStateNext), price_3 + this.getPureRepPrice(0, state2, posStateNext));
+								optimum = this._optimum[cur + offset];
+
+								if (curAndLenPrice < optimum.price!) {
+									optimum.price = curAndLenPrice;
+									optimum.posPrev = cur + lenTest + 1;
+									optimum.backPrev = 0;
+									optimum.prev1IsChar = 1;
+									optimum.prev2 = 1;
+									optimum.posPrev2 = cur;
+									optimum.backPrev2 = curBack + 4;
+								}
+							}
+						}
+						offs += 2;
+
+						if (offs == numDistancePairs) {
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		// Fallback return - should not be reached in normal execution
+		return 1;
+	}
+
+	codeOneBlock(): void {
+		let baseVal,
+			complexState,
+			curByte,
+			distance,
+			footerBits,
+			len,
+			lenToPosState,
+			matchByte,
+			pos,
+			posReduced,
+			posSlot,
+			posState,
+			progressPosValuePrev,
+			subCoder;
+
+		this.processedInSize[0] = P0_LONG_LIT;
+		this.processedOutSize[0] = P0_LONG_LIT;
+		this.finished[0] = 1;
+		progressPosValuePrev = this.nowPos64;
+
+		if (this._inStream) {
+			this._matchFinder!._stream = this._inStream;
+			this._matchFinder!.init();
+			this._needReleaseMFStream = 1;
+			this._inStream = null;
+		}
+
+		if (this._finished) {
+			return;
+		}
+
+		this._finished = 1;
+
+		if (compare64(this.nowPos64, P0_LONG_LIT) === 0) {
+			if (!this._matchFinder!.getNumAvailableBytes()) {
+				this.flushEncoding(lowBits64(this.nowPos64));
+				return;
+			}
+
+			this.readMatchDistances();
+			posState = lowBits64(this.nowPos64) & this._posStateMask;
+
+			this.encodeBit(
+				this._isMatch,
+				(this._state << 4) + posState,
+				0,
+			);
+
+			this._state = stateUpdateChar(this._state);
+			curByte = this._matchFinder!.getIndexByte(
+				-this._additionalOffset,
+			);
+
+			this.encodeLiteral(
+				this.getSubCoder(
+					lowBits64(this.nowPos64),
+					this._previousByte,
+				),
+				curByte,
+			);
+
+			this._previousByte = curByte;
+			this._additionalOffset -= 1;
+			this.nowPos64 = add64(
+				this.nowPos64,
+				P1_LONG_LIT,
+			);
+		}
+
+		if (!this._matchFinder!.getNumAvailableBytes()) {
+			this.flushEncoding(lowBits64(this.nowPos64));
+			return;
+		}
+
+		while (1) {
+			len = this.getOptimumLength(lowBits64(this.nowPos64));
+			pos = this.backRes;
+			posState = lowBits64(this.nowPos64) & this._posStateMask;
+			complexState = (this._state << 4) + posState;
+
+			if (len == 1 && pos == -1) {
+				this.encodeBit(
+					this._isMatch,
+					complexState,
+					0,
+				);
+
+				curByte = this._matchFinder!.getIndexByte(
+					-this._additionalOffset,
+				);
+
+				subCoder = this.getSubCoder(
+					lowBits64(this.nowPos64),
+					this._previousByte,
+				);
+
+				if (this._state < 7) {
+					this.encodeLiteral(subCoder, curByte);
+				} else {
+					matchByte = this._matchFinder!.getIndexByte(
+						-this._repDistances[0]
+							- 1
+							- this._additionalOffset,
+					);
+
+					this.encodeMatched(
+						subCoder,
+						matchByte,
+						curByte,
+					);
+				}
+				this._previousByte = curByte;
+				this._state = stateUpdateChar(this._state);
+			} else {
+				this.encodeBit(
+					this._isMatch,
+					complexState,
+					1,
+				);
+				if (pos < 4) {
+					this.encodeBit(
+						this._isRep,
+						this._state,
+						1,
+					);
+
+					if (!pos) {
+						this.encodeBit(
+							this._isRepG0,
+							this._state,
+							0,
+						);
+
+						if (len == 1) {
+							this.encodeBit(
+								this._isRep0Long,
+								complexState,
+								0,
+							);
+						} else {
+							this.encodeBit(
+								this._isRep0Long,
+								complexState,
+								1,
+							);
+						}
+					} else {
+						this.encodeBit(
+							this._isRepG0,
+							this._state,
+							1,
+						);
+
+						if (pos == 1) {
+							this.encodeBit(
+								this._isRepG1,
+								this._state,
+								0,
+							);
+						} else {
+							this.encodeBit(
+								this._isRepG1,
+								this._state,
+								1,
+							);
+							this.encodeBit(
+								this._isRepG2,
+								this._state,
+								pos - 2,
+							);
+						}
+					}
+
+					if (len == 1) {
+						this._state = this._state < 7 ? 9 : 11;
+					} else {
+						this.encodeLength(
+							this._repMatchLenEncoder!,
+							len - 2,
+							posState,
+						);
+						this._state = this._state < 7
+							? 0x08
+							: 11;
+					}
+					distance = this._repDistances[pos];
+					if (pos != 0) {
+						for (let i = pos; i >= 1; --i) {
+							this._repDistances[i] = this._repDistances[i - 1];
+						}
+						this._repDistances[0] = distance;
+					}
+				} else {
+					this.encodeBit(
+						this._isRep,
+						this._state,
+						0,
+					);
+
+					this._state = this._state < 7 ? 7 : 10;
+					this.encodeLength(
+						this._lenEncoder!,
+						len - 0x02,
+						posState,
+					);
+
+					pos -= 0x04;
+					posSlot = this.getPosSlot(pos);
+					lenToPosState = getLenToPosState(len);
+					this.encodeBitTree(
+						this._posSlotEncoder[lenToPosState],
+						posSlot,
+					);
+
+					if (posSlot >= 0x04) {
+						footerBits = (posSlot >> 0x01) - 0x01;
+						baseVal = (0x02 | (posSlot & 0x01)) << footerBits;
+						posReduced = pos - baseVal;
+
+						if (posSlot < 0x0E) {
+							this.reverseEncodeRange(
+								baseVal - posSlot - 0x01,
+								footerBits,
+								posReduced,
+							);
+						} else {
+							this.encodeDirectBits(posReduced >> 0x04, footerBits - 4);
+							this.reverseEncode(posReduced & 0x0F);
+							this._alignPriceCount += 1;
+						}
+					}
+					distance = pos;
+					for (let i = 3; i >= 1; --i) {
+						this._repDistances[i] = this._repDistances[i - 1];
+					}
+
+					this._repDistances[0] = distance;
+					this._matchPriceCount += 0x01;
+				}
+
+				this._previousByte = this._matchFinder!.getIndexByte(
+					len - 1 - this._additionalOffset,
+				);
+			}
+
+			this._additionalOffset -= len;
+			this.nowPos64 = add64(
+				this.nowPos64,
+				fromInt64(len),
+			);
+
+			if (!this._additionalOffset) {
+				if (this._matchPriceCount >= 0x80) {
+					this.fillDistancesPrices();
+				}
+
+				if (this._alignPriceCount >= 0x10) {
+					this.fillAlignPrices();
+				}
+
+				this.processedInSize[0] = this.nowPos64;
+				this.processedOutSize[0] = this.getProcessedSizeAdd();
+
+				if (!this._matchFinder!.getNumAvailableBytes()) {
+					this.flushEncoding(lowBits64(this.nowPos64));
+
+					return;
+				}
+
+				if (
+					compare64(
+						sub64(this.nowPos64, progressPosValuePrev),
+						[0x1000, 0],
+					) >= 0
+				) {
+					this._finished = 0;
+					this.finished[0] = 0;
+
+					return;
+				}
+			}
+		}
+	}
+
+	createMatchFinder(): void {
+		if (!this._matchFinder) {
+			const binTree = new BinTreeMatchFinder();
+			let numHashBytes = 4;
+
+			if (!this._matchFinderType) {
+				numHashBytes = 2;
+			}
+
+			binTree.setType(numHashBytes);
+			this._matchFinder = binTree;
+		}
+		this.createLiteralEncoder();
+
+		if (
+			this._dictionarySize == this._dictionarySizePrev
+			&& this._numFastBytesPrev == this._numFastBytes
+		) {
+			return;
+		}
+
+		this._matchFinder!.create(
+			this._dictionarySize,
+			this._numFastBytes,
+			0x1000,
+			0x0112,
+		);
+
+		this._dictionarySizePrev = this._dictionarySize;
+		this._numFastBytesPrev = this._numFastBytes;
+	}
+
+	writeHeaderProperties(output: OutputBuffer): void {
+		const HEADER_SIZE = 0x5;
+
+		this.properties[0] = (
+			(this._posStateBits * 5 + this._numLiteralPosStateBits) * 9 + this._numLiteralContextBits
+		) & 0xFF;
+
+		for (let byteIndex = 0; byteIndex < 4; byteIndex++) {
+			this.properties[1 + byteIndex] = (
+				this._dictionarySize >> (0x08 * byteIndex)
+			) & 0xFF;
+		}
+
+		output.writeBytes(this.properties, 0, HEADER_SIZE);
+	}
+
+	initCompression(
+		input: InputBuffer,
+		output: OutputBuffer,
+		len: [number, number],
+		mode: { searchDepth: number; filterStrength: number; modeIndex: number },
+	): void {
+		if (compare64(len, N1_LONG_LIT) < 0) {
+			throw new Error("invalid length " + len);
+		}
+
+		this.createOptimumStructures();
+		this.initialize();
+		this.configure(mode);
+
+		this.writeHeaderProperties(output);
+
+		for (let i = 0; i < 64; i += 8) {
+			output.writeByte(
+				(lowBits64(shr64(len, i)) & 0xFF) << 24 >> 24,
+			);
+		}
+
+		this._needReleaseMFStream = 0;
+		this._inStream = input;
+		this._finished = 0;
+
+		this.createMatchFinder();
+		this._rangeEncoder.stream = output;
+		this.init();
+
+		this.fillDistancesPrices();
+		this.fillAlignPrices();
+
+		this._lenEncoder!.setTableSize(this._numFastBytes + 1 - 2);
+		this._lenEncoder!.updateTables(1 << this._posStateBits);
+
+		this._repMatchLenEncoder!.setTableSize(this._numFastBytes + 1 - 2);
+		this._repMatchLenEncoder!.updateTables(1 << this._posStateBits);
+
+		this.nowPos64 = P0_LONG_LIT;
 	}
 }

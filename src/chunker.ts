@@ -14,26 +14,16 @@ interface BaseChunker {
 }
 
 /**
- * Interface for LZMA instance needed by EncoderChunker
- */
-interface LZMAInstance {
-	codeOneBlock(): void;
-	releaseStreams(): void;
-}
-
-/**
  * Encoder chunker for handling compression chunk processing
  */
 export class EncoderChunker implements BaseChunker {
-	encoder: Encoder | null = null;
+	encoder: Encoder;
 	decoder: null = null;
 	alive: number = 0;
 	inBytesProcessed: [number, number] = [0, 0];
 
-	private lzma: LZMAInstance;
-
-	constructor(lzma: LZMAInstance) {
-		this.lzma = lzma;
+	constructor(encoder: Encoder) {
+		this.encoder = encoder;
 	}
 
 	/**
@@ -44,15 +34,11 @@ export class EncoderChunker implements BaseChunker {
 			throw new Error("bad state");
 		}
 
-		if (!this.encoder) {
-			throw new Error("No decoding");
-		}
-
-		this.lzma.codeOneBlock();
+		this.encoder.codeOneBlock();
 		this.inBytesProcessed = this.encoder.processedInSize[0];
 
 		if (this.encoder.finished[0]) {
-			this.lzma.releaseStreams();
+			this.encoder.releaseStreams();
 			this.alive = 0;
 		}
 
