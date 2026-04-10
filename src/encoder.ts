@@ -4,7 +4,10 @@ import {
 } from "./len-coder.js";
 import { LitCoder } from "./lit-coder.js";
 import { BinTreeMatchFinder } from "./match-finder.js";
-import type { InputBuffer, OutputBuffer } from "./streams.js";
+import type {
+	InputBuffer,
+	OutputBuffer,
+} from "./streams.js";
 import type { LiteralDecoderEncoder2 } from "./utils.js";
 import {
 	type BitTree,
@@ -2084,7 +2087,7 @@ export class Encoder implements LenRangeEncoder {
 		input: InputBuffer,
 		output: OutputBuffer,
 		len: bigint,
-		mode: { searchDepth: number; filterStrength: number; modeIndex: number },
+		mode: { searchDepth: number; filterStrength: number; modeIndex: number; },
 	): void {
 		if (len < -1n) {
 			throw new Error("invalid length " + len);
@@ -2125,7 +2128,7 @@ export class Encoder implements LenRangeEncoder {
 	compress(
 		input: InputBuffer,
 		output: OutputBuffer,
-		mode: { searchDepth: number; filterStrength: number; modeIndex: number },
+		mode: { searchDepth: number; filterStrength: number; modeIndex: number; },
 	): void {
 		this.initCompression(input, output, BigInt(input.count), mode);
 
