@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/xseman/lzma1/compare/v0.3.0...v0.3.1) (2026-04-12)
+
+
+### Testing
+
+* add edge case for unknown header size in decompression ([fd08956](https://github.com/xseman/lzma1/commit/fd089568c490d5251500b46e68ff42d851e3fc0b))
+
 ## [0.3.0](https://github.com/xseman/lzma1/compare/v0.2.0...v0.3.0) (2026-04-10)
 
 
