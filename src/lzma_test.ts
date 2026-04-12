@@ -77,6 +77,18 @@ describe("compress and decompress edge cases", () => {
 
 		expect(decompressed).toEqual(input);
 	});
+
+	test("decompresses correctly when header size field is unknown", () => {
+		const input = "hello world";
+		const compressed = compressString(input, 1);
+
+		// Replace 8-byte size field (bytes 5–12) with the standard unknown-size marker
+		const withUnknownSize = compressed.slice();
+		withUnknownSize.fill(0xFF, 5, 13);
+
+		const result = decompressString(withUnknownSize);
+		expect(result).toBe(input);
+	});
 });
 
 describe("LZMA class direct usage", () => {
