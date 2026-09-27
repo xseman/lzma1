@@ -1,98 +1,146 @@
-import type { InputBuffer } from "./streams.js";
+import {
+	BIT_MODEL_TOTAL,
+	BIT_MODEL_TOTAL_BITS,
+	MOVE_BITS,
+	type Probs,
+	TOP_VALUE,
+} from "./range-coder.js";
 
+/** Number of bytes the range decoder reads on initialization. */
+export const RANGE_DECODER_INIT_SIZE = 5;
+
+/**
+ * Range decoder reading from an in-memory byte array.
+ *
+ * `range` and `code` are unsigned 32-bit values stored in regular numbers,
+ * so plain `<` comparisons are unsigned.
+ *
+ * The decoding methods here are the reference for the decoding steps. The
+ * LZMA decoder loop (`LzmaDecoder.decode`) repeats them inline with the
+ * state in local variables, which is why the state fields are public.
+ */
 export class RangeDecoder {
-	public stream: InputBuffer | null = null;
-	public code: number = 0;
-	public rrange: number = 0;
+	range = 0;
+	code = 0;
+	input: Uint8Array = new Uint8Array(0);
+	/** Position of the next unread input byte. */
+	pos = 0;
 
-	/**
-	 * Set input stream for decoding
-	 */
-	setStream(stream: InputBuffer | null): void {
-		this.stream = stream;
-	}
+	/** Reads the initial bytes from `input` starting at `pos`. */
+	init(input: Uint8Array, pos: number): void {
+		this.setInput(input, pos);
 
-	/**
-	 * Initialize range decoder
-	 */
-	init(): void {
+		if (this.readByte() !== 0x00) {
+			throw new Error("Corrupted input: invalid range coder header");
+		}
+
+		this.range = 0xFFFFFFFF;
 		this.code = 0;
-		this.rrange = -1;
+		for (let i = 1; i < RANGE_DECODER_INIT_SIZE; ++i) {
+			this.code = ((this.code << 8) | this.readByte()) >>> 0;
+		}
 
-		for (let i = 0; i < 5; ++i) {
-			this.code = this.code << 8 | this.readFromStream();
+		if (this.code === this.range) {
+			throw new Error("Corrupted input: invalid range coder header");
 		}
 	}
 
-	/**
-	 * Decode a single bit using probability model
-	 */
-	decodeBit(probs: number[], index: number): 0 | 1 {
-		let newBound, prob = probs[index];
-		newBound = (this.rrange >>> 11) * prob;
+	/** Continues decoding from a different buffer (used when streaming). */
+	setInput(input: Uint8Array, pos: number): void {
+		this.input = input;
+		this.pos = pos;
+	}
 
-		if ((this.code ^ -0x80000000) < (newBound ^ -0x80000000)) {
-			this.rrange = newBound;
-			probs[index] = prob + ((2048 - prob) >>> 5);
-			if (!(this.rrange & -0x1000000)) {
-				this.code = this.code << 8 | this.readFromStream();
-				this.rrange <<= 8;
-			}
-			return 0;
+	/** True when the encoder's flush bytes have been consumed exactly. */
+	isFinished(): boolean {
+		return this.code === 0;
+	}
+
+	/**
+	 * Decodes one bit with the adaptive probability `probs[index]`:
+	 * 1. Split the range in proportion to the probability of a 0.
+	 * 2. The part `code` falls into is the bit; keep that part of the range.
+	 * 3. Move the probability towards the decoded bit.
+	 * 4. When the range gets too small, shift in the next input byte.
+	 */
+	decodeBit(probs: Probs, index: number): number {
+		const prob = probs[index];
+		const bound = (this.range >>> BIT_MODEL_TOTAL_BITS) * prob;
+		let bit: number;
+
+		if (this.code < bound) {
+			this.range = bound;
+			probs[index] = prob + ((BIT_MODEL_TOTAL - prob) >>> MOVE_BITS);
+			bit = 0;
 		} else {
-			this.rrange -= newBound;
-			this.code -= newBound;
-			probs[index] = prob - (prob >>> 5);
-			if (!(this.rrange & -0x1000000)) {
-				this.code = this.code << 8 | this.readFromStream();
-				this.rrange <<= 8;
-			}
-			return 1;
+			this.range -= bound;
+			this.code -= bound;
+			probs[index] = prob - (prob >>> MOVE_BITS);
+			bit = 1;
 		}
+
+		if (this.range < TOP_VALUE) {
+			this.range = (this.range << 8) >>> 0;
+			this.code = ((this.code << 8) | this.readByte()) >>> 0;
+		}
+
+		return bit;
 	}
 
-	/**
-	 * Decode direct bits (without probability model)
-	 */
-	decodeDirectBits(numTotalBits: number): number {
+	/** Decodes a `bits`-bit symbol coded MSB-first with the bit tree at `offset`. */
+	decodeBitTree(probs: Probs, offset: number, bits: number): number {
+		const end = 1 << bits;
+		let symbol = 1;
+
+		do {
+			symbol = (symbol << 1) | this.decodeBit(probs, offset + symbol);
+		} while (symbol < end);
+
+		return symbol - end;
+	}
+
+	/** Decodes a `bits`-bit symbol coded LSB-first with the bit tree at `offset`. */
+	decodeReverseBitTree(probs: Probs, offset: number, bits: number): number {
+		let symbol = 1;
 		let result = 0;
 
-		for (let i = numTotalBits; i != 0; i -= 1) {
-			this.rrange >>>= 1;
-			let t = (this.code - this.rrange) >>> 31;
-			this.code -= this.rrange & (t - 1);
-			result = result << 1 | 1 - t;
-
-			if (!(this.rrange & -0x1000000)) {
-				this.code = this.code << 8 | this.readFromStream();
-				this.rrange <<= 8;
-			}
+		for (let i = 0; i < bits; ++i) {
+			const bit = this.decodeBit(probs, offset + symbol);
+			symbol = (symbol << 1) | bit;
+			result |= bit << i;
 		}
 
 		return result;
 	}
 
-	/**
-	 * Get current code value (for compatibility)
-	 */
-	get currentCode(): number {
-		return this.code;
+	/** Decodes `count` bits coded with a fixed 50% probability. */
+	decodeDirectBits(count: number): number {
+		let result = 0;
+
+		do {
+			this.range >>>= 1;
+			let bit = 0;
+
+			if (this.code >= this.range) {
+				this.code -= this.range;
+				bit = 1;
+			}
+
+			result = ((result << 1) | bit) >>> 0;
+
+			if (this.range < TOP_VALUE) {
+				this.range = (this.range << 8) >>> 0;
+				this.code = ((this.code << 8) | this.readByte()) >>> 0;
+			}
+		} while (--count !== 0);
+
+		return result;
 	}
 
-	/**
-	 * Get current range value (for compatibility)
-	 */
-	get currentRange(): number {
-		return this.rrange;
-	}
-
-	/**
-	 * Read a single byte from the input stream
-	 */
-	private readFromStream(): number {
-		if (!this.stream) {
-			return 0;
+	private readByte(): number {
+		if (this.pos >= this.input.length) {
+			throw new Error("Truncated input");
 		}
-		return this.stream.readByte();
+		return this.input[this.pos++];
 	}
 }
