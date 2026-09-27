@@ -1,0 +1,79 @@
+name: Benchmark
+
+on:
+    pull_request:
+        branches:
+            - master
+        paths:
+            - "src/**"
+            - "bench/**"
+            - ".github/workflows/bench.yml"
+
+permissions:
+    contents: read
+    pull-requests: write
+
+concurrency:
+    group: lzma1-bench-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    compare:
+        # Compares this pull request with its base branch, both running in the
+        # same process, so the speedup doesn't depend on the runner.
+        if: ${{ !startsWith(github.head_ref, 'release-please--') }}
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.event.pull_request.base.sha }}
+                  path: .base
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - name: install
+              run: |
+                  bun install --frozen-lockfile
+                  bun install --frozen-lockfile --cwd bench
+
+            - name: build base
+              working-directory: .base
+              run: |
+                  bun install --frozen-lockfile
+                  bun run build
+
+            - name: benchmark
+              working-directory: bench
+              env:
+                  LZMA1_BASELINE: ${{ github.workspace }}/.base/lib/index.js
+                  LZMA1_BASELINE_NAME: ${{ github.event.pull_request.base.ref }}
+              run: |
+                  node report.mjs \
+                      --title "Benchmark: this pull request vs ${{ github.event.pull_request.base.ref }}" \
+                      --markdown "$RUNNER_TEMP/bench.md"
+                  cat "$RUNNER_TEMP/bench.md" >> "$GITHUB_STEP_SUMMARY"
+
+            - name: comment
+              # Pull requests from forks get a read-only token.
+              continue-on-error: true
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR: ${{ github.event.pull_request.number }}
+                  MARKER: "<!-- lzma1-bench -->"
+              run: |
+                  body="$(printf '%s\n\n' "$MARKER"; cat "$RUNNER_TEMP/bench.md"; printf '\n_Shared CI runners are noisy: differences below ~10%% are not significant._\n')"
+                  id="$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+                      --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n 1)"
+                  if [ -n "$id" ]; then
+                      gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" > /dev/null
+                  else
+                      gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$body"
+                  fi

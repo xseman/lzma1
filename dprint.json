@@ -18,7 +18,7 @@
 		"importDeclaration.forceMultiLine": "whenMultiple"
 	},
 	"includes": [
-		"**/*.{ts,js,json,md,yml,yaml}"
+		"**/*.{ts,js,mjs,json,md,yml,yaml}"
 	],
 	"excludes": [
 		"CHANGELOG.md",
@@ -26,7 +26,8 @@
 		"**/node_modules",
 		"**/*-lock.json",
 		"**/lib",
-		"**/coverage"
+		"**/coverage",
+		"docs/benchmarks.*"
 	],
 	"plugins": [
 		"https://plugins.dprint.dev/typescript-0.95.15.wasm",
