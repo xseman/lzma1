@@ -75,12 +75,12 @@ const PRESETS: Record<CompressionMode, Preset> = {
 };
 
 export function resolveOptions(options: CompressionMode | CompressionOptions = {}): ResolvedOptions {
-	if (typeof options === "number") {
+	if (typeof options !== "object") {
 		options = { level: options };
 	}
 
 	const level = options.level ?? DEFAULT_LEVEL;
-	const preset = PRESETS[level];
+	const preset = Object.hasOwn(PRESETS, level) ? PRESETS[level] : undefined;
 	if (preset === undefined) {
 		throw new RangeError(`Invalid compression level: ${level}`);
 	}

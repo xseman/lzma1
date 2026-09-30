@@ -159,6 +159,10 @@ describe("options", () => {
 		}
 	});
 
+	test("level as a string, like v0.3.0", () => {
+		expect(compress(input, "9" as never)).toEqual(compress(input, 9));
+	});
+
 	test("writes lc/lp/pb and dictionary size to the header", () => {
 		const header = compress(input, { lc: 1, lp: 2, pb: 3, dictSize: 1 << 16 }).subarray(0, 5);
 		expect(header[0]).toBe((3 * 5 + 2) * 9 + 1);
@@ -175,6 +179,7 @@ describe("options", () => {
 	test.each([
 		{ level: 0 },
 		{ level: 10 },
+		{ level: "constructor" },
 		{ lc: 5 },
 		{ lc: 4, lp: 1 },
 		{ lp: 5 },
