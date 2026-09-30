@@ -76,7 +76,7 @@ export function decompressData(data: Uint8Array): Uint8Array {
 }
 
 /**
- * Class-based API, kept for compatibility. Prefer the standalone functions.
+ * Class-based API of v0.2.0. Prefer the standalone functions.
  */
 export class LZMA {
 	public compress(data: BinaryInput, mode: CompressionMode | CompressionOptions = DEFAULT_LEVEL): Int8Array {

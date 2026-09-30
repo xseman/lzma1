@@ -166,6 +166,9 @@ const text = await new Response(response.body.pipeThrough(new Decompress())).tex
 A stream's size isn't known in advance, so the header marks it as unknown and
 the data ends with an end marker.
 
+In TypeScript, their types need `TransformStream` from the `DOM` lib or
+`@types/node` (or `skipLibCheck`).
+
 ### Errors
 
 Decompressing truncated or corrupted data throws an `Error`, e.g.
