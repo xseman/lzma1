@@ -1,6 +1,6 @@
 {
 	"version": "0.3.0",
-	"commit": "e3678ac",
+	"commit": "1590823",
 	"baseline": "lzma1@0.3.0",
 	"runtime": "Node.js 22.22.2",
 	"cpu": "AMD Ryzen 7 PRO 8840HS w/ Radeon 780M Graphics",
@@ -8,73 +8,73 @@
 	"benchmarks": [
 		{
 			"name": "compress text 128 KiB, level 1",
-			"lzma1": 9621730,
-			"baseline": 93507202
+			"lzma1": 8685166,
+			"baseline": 82968910
 		},
 		{
 			"name": "compress text 128 KiB, level 5",
-			"lzma1": 63106886,
-			"baseline": 92648058
+			"lzma1": 53704375,
+			"baseline": 81741301
 		},
 		{
 			"name": "compress text 128 KiB, level 9",
-			"lzma1": 61787153,
-			"baseline": 92059571
+			"lzma1": 54033339,
+			"baseline": 82275348
 		},
 		{
 			"name": "compress json 128 KiB, level 1",
-			"lzma1": 5195051,
-			"baseline": 167446396
+			"lzma1": 4899334,
+			"baseline": 155258572
 		},
 		{
 			"name": "compress json 128 KiB, level 5",
-			"lzma1": 65171268,
-			"baseline": 195250213
+			"lzma1": 58932099,
+			"baseline": 177329916
 		},
 		{
 			"name": "compress json 128 KiB, level 9",
-			"lzma1": 78324583,
-			"baseline": 195926870
+			"lzma1": 71096727,
+			"baseline": 177404776
 		},
 		{
 			"name": "compress binary 128 KiB, level 1",
-			"lzma1": 10621174,
-			"baseline": 48117133
+			"lzma1": 9953511,
+			"baseline": 43163314
 		},
 		{
 			"name": "compress binary 128 KiB, level 5",
-			"lzma1": 25020779,
-			"baseline": 56015507
+			"lzma1": 22811772,
+			"baseline": 49786483
 		},
 		{
 			"name": "compress binary 128 KiB, level 9",
-			"lzma1": 37634277,
-			"baseline": 108924696
+			"lzma1": 33193501,
+			"baseline": 101169935
 		},
 		{
 			"name": "compress small 83 B, level 5",
-			"lzma1": 13779,
-			"baseline": 1318160
+			"lzma1": 13063,
+			"baseline": 1603711
 		},
 		{
 			"name": "decompress text 128 KiB",
-			"lzma1": 2762740,
-			"baseline": 4100128
+			"lzma1": 2602286,
+			"baseline": 3819296
 		},
 		{
 			"name": "decompress json 128 KiB",
-			"lzma1": 1291018,
-			"baseline": 2644552
+			"lzma1": 1175184,
+			"baseline": 2371225
 		},
 		{
 			"name": "decompress binary 128 KiB",
-			"lzma1": 5510536,
-			"baseline": 9797449
+			"lzma1": 5189650,
+			"baseline": 8900951
 		},
 		{
 			"name": "decompress small 83 B",
-			"lzma1": 4282,
-			"baseline": 59030
+			"lzma1": 4044,
+			"baseline": 65385
 		}
 	]
 }
