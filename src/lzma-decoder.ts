@@ -69,7 +69,7 @@ export class LzmaDecoder extends LzmaCoder {
 	 *
 	 * Performance: this is the hot loop of decompression. The range decoder
 	 * state, the coder state and the reps live in local variables, and the
-	 * bit decoding step of `RangeDecoder.decodeBit` is repeated inline:
+	 * bit decoding step (`decodeBit` in `range-coder_test.ts`) is repeated inline:
 	 *
 	 *     prob = probs[i];
 	 *     bound = (range >>> 11) * prob;

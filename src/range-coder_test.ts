@@ -5,8 +5,13 @@ import {
 } from "bun:test";
 
 import {
+	BIT_MODEL_TOTAL,
+	BIT_MODEL_TOTAL_BITS,
 	initProbs,
+	MOVE_BITS,
 	PROB_INIT,
+	type Probs,
+	TOP_VALUE,
 } from "./range-coder.js";
 import { RangeDecoder } from "./range-decoder.js";
 import {
@@ -33,6 +38,96 @@ function encode(fn: (rc: RangeEncoder) => void): Uint8Array {
 	return rc.finish();
 }
 
+// Reference decoding steps, which `LzmaDecoder.decode` repeats inline.
+
+function readByte(rc: RangeDecoder): number {
+	if (rc.pos >= rc.input.length) {
+		throw new Error("Truncated input");
+	}
+	return rc.input[rc.pos++];
+}
+
+/**
+ * Decodes one bit with the adaptive probability `probs[index]`:
+ * 1. Split the range in proportion to the probability of a 0.
+ * 2. The part `code` falls into is the bit; keep that part of the range.
+ * 3. Move the probability towards the decoded bit.
+ * 4. When the range gets too small, shift in the next input byte.
+ */
+function decodeBit(rc: RangeDecoder, probs: Probs, index: number): number {
+	const prob = probs[index];
+	const bound = (rc.range >>> BIT_MODEL_TOTAL_BITS) * prob;
+	let bit: number;
+
+	if (rc.code < bound) {
+		rc.range = bound;
+		probs[index] = prob + ((BIT_MODEL_TOTAL - prob) >>> MOVE_BITS);
+		bit = 0;
+	} else {
+		rc.range -= bound;
+		rc.code -= bound;
+		probs[index] = prob - (prob >>> MOVE_BITS);
+		bit = 1;
+	}
+
+	if (rc.range < TOP_VALUE) {
+		rc.range = (rc.range << 8) >>> 0;
+		rc.code = ((rc.code << 8) | readByte(rc)) >>> 0;
+	}
+
+	return bit;
+}
+
+/** Decodes a `bits`-bit symbol coded MSB-first with the bit tree at `offset`. */
+function decodeBitTree(rc: RangeDecoder, probs: Probs, offset: number, bits: number): number {
+	const end = 1 << bits;
+	let symbol = 1;
+
+	do {
+		symbol = (symbol << 1) | decodeBit(rc, probs, offset + symbol);
+	} while (symbol < end);
+
+	return symbol - end;
+}
+
+/** Decodes a `bits`-bit symbol coded LSB-first with the bit tree at `offset`. */
+function decodeReverseBitTree(rc: RangeDecoder, probs: Probs, offset: number, bits: number): number {
+	let symbol = 1;
+	let result = 0;
+
+	for (let i = 0; i < bits; ++i) {
+		const bit = decodeBit(rc, probs, offset + symbol);
+		symbol = (symbol << 1) | bit;
+		result |= bit << i;
+	}
+
+	return result;
+}
+
+/** Decodes `count` bits coded with a fixed 50% probability. */
+function decodeDirectBits(rc: RangeDecoder, count: number): number {
+	let result = 0;
+
+	do {
+		rc.range >>>= 1;
+		let bit = 0;
+
+		if (rc.code >= rc.range) {
+			rc.code -= rc.range;
+			bit = 1;
+		}
+
+		result = ((result << 1) | bit) >>> 0;
+
+		if (rc.range < TOP_VALUE) {
+			rc.range = (rc.range << 8) >>> 0;
+			rc.code = ((rc.code << 8) | readByte(rc)) >>> 0;
+		}
+	} while (--count !== 0);
+
+	return result;
+}
+
 /** Reference decoding of a matched literal, see `LzmaDecoder.decode`. */
 function decodeMatchedLiteral(rc: RangeDecoder, p: Uint16Array, offset: number, matchByte: number): number {
 	let symbol = 1;
@@ -40,7 +135,7 @@ function decodeMatchedLiteral(rc: RangeDecoder, p: Uint16Array, offset: number, 
 	do {
 		matchByte <<= 1;
 		const matchBit = matchByte & matchOffset;
-		const bit = rc.decodeBit(p, offset + matchOffset + matchBit + symbol);
+		const bit = decodeBit(rc, p, offset + matchOffset + matchBit + symbol);
 		symbol = (symbol << 1) | bit;
 		matchOffset &= bit === 0 ? ~matchBit : matchBit;
 	} while (symbol < 0x100);
@@ -65,7 +160,7 @@ describe("range coder", () => {
 
 		const rc = decoder(bytes);
 		const p = probs(2);
-		expect(bits.map((_, i) => rc.decodeBit(p, i < 10_000 ? 0 : 1))).toEqual(bits);
+		expect(bits.map((_, i) => decodeBit(rc, p, i < 10_000 ? 0 : 1))).toEqual(bits);
 		expect(rc.pos).toBe(bytes.length);
 		expect(rc.isFinished()).toBe(true);
 	});
@@ -104,11 +199,11 @@ describe("range coder", () => {
 		const rc = decoder(bytes);
 		const p = probs(LITERAL + 0x300);
 		for (let i = 0; i < symbols.length; i++) {
-			expect(rc.decodeBitTree(p, TREE, 6)).toBe(symbols[i] & 63);
-			expect(rc.decodeReverseBitTree(p, REVERSE, 4)).toBe(symbols[i] & 15);
-			expect(rc.decodeBitTree(p, LITERAL, 8)).toBe(symbols[i]);
+			expect(decodeBitTree(rc, p, TREE, 6)).toBe(symbols[i] & 63);
+			expect(decodeReverseBitTree(rc, p, REVERSE, 4)).toBe(symbols[i] & 15);
+			expect(decodeBitTree(rc, p, LITERAL, 8)).toBe(symbols[i]);
 			expect(decodeMatchedLiteral(rc, p, LITERAL, matchBytes[i])).toBe(symbols[i]);
-			expect(rc.decodeDirectBits(26)).toBe(directs[i]);
+			expect(decodeDirectBits(rc, 26)).toBe(directs[i]);
 		}
 		expect(rc.isFinished()).toBe(true);
 	});
@@ -117,7 +212,7 @@ describe("range coder", () => {
 		const rc = decoder(new Uint8Array([0, 0, 0, 0, 0]));
 		const p = probs(0x100);
 		expect(() => {
-			for (let i = 0; i < 100; i++) rc.decodeBitTree(p, 0, 8);
+			for (let i = 0; i < 100; i++) decodeBitTree(rc, p, 0, 8);
 		}).toThrow("Truncated input");
 	});
 
@@ -129,8 +224,8 @@ describe("range coder", () => {
 		});
 
 		const rc = decoder(bytes);
-		for (let i = 0; i < 100; i++) expect(rc.decodeDirectBits(26)).toBe(0x3FFFFFF);
-		expect(rc.decodeDirectBits(26)).toBe(0);
+		for (let i = 0; i < 100; i++) expect(decodeDirectBits(rc, 26)).toBe(0x3FFFFFF);
+		expect(decodeDirectBits(rc, 26)).toBe(0);
 	});
 
 	test("decoder rejects a non-zero first byte", () => {
@@ -141,7 +236,7 @@ describe("range coder", () => {
 		const rc = decoder(new Uint8Array([0, 0, 0, 0, 0]));
 		const p = probs(1);
 		expect(() => {
-			for (let i = 0; i < 100; i++) rc.decodeBit(p, 0);
+			for (let i = 0; i < 100; i++) decodeBit(rc, p, 0);
 		}).toThrow("Truncated input");
 	});
 });
