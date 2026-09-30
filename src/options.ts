@@ -23,12 +23,9 @@ export interface CompressionOptions {
 	 * to the header if it's enough to cover the whole input.
 	 */
 	dictSize?: number;
-	/**
-	 * Literal context bits (0-8), default 3. xz and liblzma accept only
-	 * `lc + lp <= 4`.
-	 */
+	/** Literal context bits (0-4, `lc + lp <= 4`), default 3. */
 	lc?: number;
-	/** Literal position bits (0-4), default 0. */
+	/** Literal position bits (0-4, `lc + lp <= 4`), default 0. */
 	lp?: number;
 	/** Position bits (0-4), default 2. */
 	pb?: number;
@@ -100,8 +97,11 @@ export function resolveOptions(options: CompressionMode | CompressionOptions = {
 		depth: options.depth ?? preset.depth,
 	};
 
-	checkInteger("lc", resolved.lc, 0, 8);
+	checkInteger("lc", resolved.lc, 0, 4);
 	checkInteger("lp", resolved.lp, 0, 4);
+	if (resolved.lc + resolved.lp > 4) {
+		throw new RangeError(`Invalid lc + lp: ${resolved.lc + resolved.lp} (xz accepts at most 4)`);
+	}
 	checkInteger("pb", resolved.pb, 0, 4);
 	checkInteger("dictSize", resolved.dictSize, DICT_SIZE_MIN, DICT_SIZE_MAX);
 	checkInteger("niceLen", resolved.niceLen, NICE_LEN_MIN, NICE_LEN_MAX);

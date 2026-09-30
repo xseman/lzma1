@@ -11,7 +11,7 @@ function createCrc32Table(): number[] {
 		for (let j = 0; j < 8; ++j) {
 			r = (r & 1) !== 0 ? (r >>> 1) ^ 0xEDB88320 : r >>> 1;
 		}
-		table.push(r);
+		table.push(r >>> 0);
 	}
 
 	return table;

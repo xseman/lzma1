@@ -99,10 +99,11 @@ describe("round trip", () => {
 			const size = Math.floor(random() ** 3 * 50_000);
 			const alphabet = 1 + Math.floor(random() * 255);
 			const input = Uint8Array.from({ length: size }, () => Math.floor(random() ** 2 * alphabet));
+			const lc = Math.floor(random() * 5);
 			const options: CompressionOptions = {
 				level: (1 + Math.floor(random() * 9)) as 1,
-				lc: Math.floor(random() * 5),
-				lp: Math.floor(random() * 5),
+				lc,
+				lp: Math.floor(random() * (5 - lc)),
 				pb: Math.floor(random() * 5),
 			};
 

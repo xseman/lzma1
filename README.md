@@ -130,8 +130,8 @@ Instead of a level, pass options. Options not given come from the level.
 const compressed = compress(data, {
 	level: 9, // preset 1-9
 	dictSize: 1 << 20, // dictionary size in bytes, 4 KiB - 768 MiB
-	lc: 3, // literal context bits, 0-8
-	lp: 0, // literal position bits, 0-4
+	lc: 3, // literal context bits, 0-4
+	lp: 0, // literal position bits, 0-4, lc + lp <= 4
 	pb: 2, // position bits, 0-4
 	mode: "normal", // "fast" or "normal" (optimal parsing)
 	niceLen: 64, // match length that is good enough, 8-273
@@ -141,7 +141,8 @@ const compressed = compress(data, {
 ```
 
 A dictionary larger than the input is reduced to fit it, which saves memory
-when compressing and decompressing. `xz` only accepts `lc + lp <= 4`.
+when compressing and decompressing. Data with `lc + lp > 4` from other
+encoders (e.g. 7-Zip) can still be decompressed.
 
 ### Streams
 

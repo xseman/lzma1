@@ -4,19 +4,30 @@ import {
 	test,
 } from "bun:test";
 
+import { AloneEncoder } from "./alone-encoder.js";
 import {
 	compress,
 	compressString,
+	CRC32_TABLE,
 	decompress,
 	decompressString,
 } from "./index.js";
 import { LZMA } from "./lzma.js";
-import type { CompressionMode } from "./options.js";
+import {
+	type CompressionMode,
+	resolveOptions,
+} from "./options.js";
 
 const LEVELS: CompressionMode[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 /** Parses space-separated hex bytes, e.g. "5d 00 10". */
 const fromHex = (hex: string) => Uint8Array.from(hex.split(" "), (byte) => parseInt(byte, 16));
+
+test("CRC32_TABLE has unsigned entries", () => {
+	expect(CRC32_TABLE[1]).toBe(0x77073096);
+	expect(CRC32_TABLE[255]).toBe(0x2D02EF8D);
+	expect(CRC32_TABLE[2]).toBe(0xEE0E612C);
+});
 
 describe("round trip", () => {
 	test("output of this version is stable", () => {
@@ -129,7 +140,7 @@ describe("options", () => {
 			{ mode: "normal", matchFinder: "hc4" },
 			{ mode: "fast", matchFinder: "bt4" },
 			{ lc: 0, lp: 0, pb: 0 },
-			{ lc: 8, lp: 4, pb: 4 },
+			{ lc: 0, lp: 4, pb: 4 },
 			{ lc: 1, lp: 3, pb: 1 },
 			{ dictSize: 4096 },
 			{ niceLen: 8 },
@@ -138,6 +149,14 @@ describe("options", () => {
 		] as const,
 	)("%o", (options) => {
 		expect(decompress(compress(input, options))).toEqual(input);
+	});
+
+	test("decompresses lc + lp > 4, which 7-Zip writes", () => {
+		for (const [lc, lp] of [[8, 4], [5, 0]]) {
+			const encoder = new AloneEncoder({ ...resolveOptions(5), lc, lp }, input.length);
+			encoder.write(input);
+			expect(decompress(encoder.finish())).toEqual(input);
+		}
 	});
 
 	test("writes lc/lp/pb and dictionary size to the header", () => {
@@ -156,7 +175,8 @@ describe("options", () => {
 	test.each([
 		{ level: 0 },
 		{ level: 10 },
-		{ lc: 9 },
+		{ lc: 5 },
+		{ lc: 4, lp: 1 },
 		{ lp: 5 },
 		{ pb: -1 },
 		{ dictSize: 100 },
