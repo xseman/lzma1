@@ -77,8 +77,8 @@ decompressString(data: ArrayBuffer | ArrayBufferView): string
 ```
 
 Strings are encoded as UTF-8. `decompressString` also decodes data compressed
-by v0.3.0 and older, which used Java's "modified UTF-8". The `LZMA` class of
-earlier versions is still exported.
+by v0.3.0 and older, which used Java's "modified UTF-8". The `LZMA` class
+from v0.2.0 is exported again; its `decompress` now returns a `Uint8Array`.
 
 ### Compressing a string
 
