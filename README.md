@@ -30,7 +30,7 @@ standard APIs.
 - Compression levels 1-9 or fine-grained options (dictionary size,
   `lc`/`lp`/`pb`, ...)
 - Web Streams (`TransformStream`) for compressing and decompressing streams
-- Errors on truncated or corrupted input
+- Errors on truncated input and on most corrupted input
 - No dependencies, runs in browsers, workers, Node.js, Deno and Bun
 
 ## Installation
@@ -169,6 +169,8 @@ the data ends with an end marker.
 
 Decompressing truncated or corrupted data throws an `Error`, e.g.
 `"Truncated input"` or `"Corrupted input: match distance is too large"`.
+The `.lzma` format has no checksum, so some corrupted data decodes without
+an error to different output.
 Invalid options throw a `RangeError`.
 
 ### HTML example
@@ -211,11 +213,9 @@ The `.lzma` data starts with a 13-byte header, followed by the compressed data:
 
 ```mermaid
 packet-beta
-  0-7: "lc (literal context)"
-  8-11: "lp (literal pos)"
-  12-15: "pb (position bits)"
-  16-47: "Dictionary Size (32-bit, LE)"
-  48-111: "Uncompressed Size (64-bit, LE)"
+  0-7: "Properties (lc, lp, pb)"
+  8-39: "Dictionary Size (32-bit, LE)"
+  40-103: "Uncompressed Size (64-bit, LE)"
 ```
 
 The first byte is `(pb * 5 + lp) * 9 + lc`. An uncompressed size of all `0xFF`

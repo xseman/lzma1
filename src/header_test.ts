@@ -19,9 +19,22 @@ describe("header", () => {
 		{ lc: 3, lp: 0, pb: 2, dictSize: 1 << 16, uncompressedSize: 11 },
 		{ lc: 0, lp: 0, pb: 0, dictSize: 4096, uncompressedSize: 0 },
 		{ lc: 8, lp: 4, pb: 4, dictSize: 0xFFFFFFFF, uncompressedSize: UNKNOWN_SIZE },
-		{ lc: 1, lp: 2, pb: 3, dictSize: 12345, uncompressedSize: 2 ** 40 + 7 },
+		{ lc: 1, lp: 2, pb: 3, dictSize: 12288, uncompressedSize: 2 ** 40 + 7 },
 	])("round-trips %o", (header) => {
 		expect(decodeHeader(encodeHeader(header))).toEqual(header);
+	});
+
+	test.each([
+		[4096, 4096],
+		[4097, 6144],
+		[6144, 6144],
+		[6145, 8192],
+		[1_000_000, 1 << 20],
+		[768 << 20, 768 << 20],
+		[0xFFFFFFFF, 0xFFFFFFFF],
+	])("dictionary size %i is written as %i", (dictSize, expected) => {
+		const bytes = encodeHeader({ lc: 3, lp: 0, pb: 2, dictSize, uncompressedSize: 0 });
+		expect(decodeHeader(bytes).dictSize).toBe(expected);
 	});
 
 	test("default properties byte is 0x5D", () => {

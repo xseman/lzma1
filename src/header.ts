@@ -26,12 +26,27 @@ export interface LzmaHeader {
 	uncompressedSize: number;
 }
 
+/**
+ * Rounds up to `2^n` or `2^n + 2^(n-1)`, the only dictionary sizes xz and
+ * 7-Zip accept in a `.lzma` header. A larger size than the encoder used is
+ * always valid, and liblzma rounds the same way.
+ */
+export function roundDictSize(dictSize: number): number {
+	let d = dictSize - 1;
+	d |= d >>> 2;
+	d |= d >>> 3;
+	d |= d >>> 4;
+	d |= d >>> 8;
+	d |= d >>> 16;
+	return Math.min((d >>> 0) + 1, 0xFFFFFFFF);
+}
+
 export function encodeHeader(header: LzmaHeader): Uint8Array {
 	const bytes = new Uint8Array(HEADER_SIZE);
 	const view = new DataView(bytes.buffer);
 
 	bytes[0] = (header.pb * 5 + header.lp) * 9 + header.lc;
-	view.setUint32(1, header.dictSize, true);
+	view.setUint32(1, roundDictSize(header.dictSize), true);
 
 	if (header.uncompressedSize === UNKNOWN_SIZE) {
 		bytes.fill(0xFF, 5);

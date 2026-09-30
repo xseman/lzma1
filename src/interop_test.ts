@@ -74,6 +74,8 @@ const optionSets: CompressionOptions[] = [
 	{ mode: "fast", matchFinder: "bt4", niceLen: 8 },
 	{ mode: "normal", matchFinder: "hc4", niceLen: 273 },
 	{ dictSize: 4096 },
+	// Written to the header rounded up to 6144, which xz requires.
+	{ dictSize: 5000 },
 ];
 
 describe("round trip", () => {
