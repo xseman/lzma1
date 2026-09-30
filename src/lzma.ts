@@ -1,142 +1,98 @@
-import { Decoder } from "./decoder.js";
-import { Encoder } from "./encoder.js";
+import { AloneDecoder } from "./alone-decoder.js";
+import { AloneEncoder } from "./alone-encoder.js";
+import { UNKNOWN_SIZE } from "./header.js";
 import {
-	InputBuffer,
-	OutputBuffer,
-} from "./streams.js";
+	type CompressionMode,
+	type CompressionOptions,
+	DEFAULT_LEVEL,
+	resolveOptions,
+} from "./options.js";
+import { OutputBuffer } from "./output-buffer.js";
+import {
+	decodeUtf8,
+	encodeUtf8,
+} from "./utf8.js";
 
-interface Mode {
-	searchDepth: number;
-	filterStrength: number;
-	modeIndex: number;
-}
+export type { CompressionMode } from "./options.js";
 
-/**
- * LZMA compression mode levels (1-9)
- * Higher values provide better compression but are slower
- */
-export type CompressionMode = keyof typeof MODES;
+/** Binary input accepted by all functions: any ArrayBuffer or view of one. */
+export type BinaryInput = ArrayBuffer | ArrayBufferView;
 
-/**
- * Compression modes
- */
-export const MODES = {
-	1: { searchDepth: 0x10, filterStrength: 0x40, modeIndex: 0x00 },
-	2: { searchDepth: 0x14, filterStrength: 0x40, modeIndex: 0x00 },
-	3: { searchDepth: 0x13, filterStrength: 0x40, modeIndex: 0x01 },
-	4: { searchDepth: 0x14, filterStrength: 0x40, modeIndex: 0x01 },
-	5: { searchDepth: 0x15, filterStrength: 0x80, modeIndex: 0x01 },
-	6: { searchDepth: 0x16, filterStrength: 0x80, modeIndex: 0x01 },
-	7: { searchDepth: 0x17, filterStrength: 0x80, modeIndex: 0x01 },
-	8: { searchDepth: 0x18, filterStrength: 0xFF, modeIndex: 0x01 },
-	9: { searchDepth: 0x19, filterStrength: 0xFF, modeIndex: 0x01 },
-} as const;
-
-export class LZMA {
-	#encoder = new Encoder();
-	#decoder = new Decoder();
-
-	public compress(
-		data: Uint8Array | ArrayBuffer,
-		mode: CompressionMode = 5,
-	): Int8Array {
-		const inputData = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
-		const output = new OutputBuffer(Math.max(32, Math.ceil(inputData.length * 1.2)));
-		const input = new InputBuffer(inputData);
-
-		this.#encoder.compress(input, output, MODES[mode]);
-
-		const result = output.toArray();
-		return new Int8Array(result.buffer, result.byteOffset, result.byteLength);
-	}
-
-	public compressString(
-		data: string,
-		mode: CompressionMode = 5,
-	): Int8Array {
-		return this.compress(new Uint8Array(this.#encodeString(data)), mode);
-	}
-
-	public decompress(bytearray: Uint8Array | ArrayBuffer): Uint8Array {
-		const inputData = bytearray instanceof ArrayBuffer ? new Uint8Array(bytearray) : bytearray;
-		const output = new OutputBuffer(Math.max(32, inputData.length * 2));
-		const input = new InputBuffer(inputData);
-
-		this.#decoder.decompress(input, output);
-
-		return output.toArray();
-	}
-
-	public decompressString(bytearray: Uint8Array | ArrayBuffer): string {
-		const decodedByteArray = this.decompress(bytearray);
-		const result = this.#decodeUTF8(decodedByteArray);
-
-		if (typeof result === "string") {
-			return result;
-		}
-		return String.fromCharCode(...result);
-	}
-
-	#encodeString(inputString: string): number[] {
-		const l = inputString.length;
-		const chars: number[] = [];
-		for (let i = 0; i < l; ++i) {
-			chars[i] = inputString.charCodeAt(i);
-		}
-
-		const data: number[] = [];
-		let elen = 0;
-		for (let i = 0; i < l; ++i) {
-			const ch = chars[i];
-			if (ch >= 1 && ch <= 0x7F) {
-				data[elen++] = ch << 24 >> 24;
-			} else if (!ch || ch >= 0x80 && ch <= 0x7FF) {
-				data[elen++] = (0xC0 | ch >> 6 & 0x1F) << 24 >> 24;
-				data[elen++] = (0x80 | ch & 0x3F) << 24 >> 24;
-			} else {
-				data[elen++] = (0xE0 | ch >> 12 & 0x0F) << 24 >> 24;
-				data[elen++] = (0x80 | ch >> 6 & 0x3F) << 24 >> 24;
-				data[elen++] = (0x80 | ch & 0x3F) << 24 >> 24;
-			}
-		}
-
+export function toUint8Array(data: BinaryInput): Uint8Array {
+	if (data instanceof Uint8Array) {
 		return data;
 	}
 
-	#decodeUTF8(utf: Uint8Array): string | Uint8Array {
-		let j = 0, x, y, z, l = utf.length, buf: string[] = [], charCodes: number[] = [];
+	if (ArrayBuffer.isView(data)) {
+		return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+	}
 
-		for (let i = 0; i < l; ++i, ++j) {
-			x = utf[i] & 0xFF;
-			if (!(x & 0x80)) {
-				if (!x) return utf;
-				charCodes[j] = x;
-			} else if ((x & 0xE0) == 0xC0) {
-				if (i + 1 >= l) return String.fromCharCode(...utf);
-				y = utf[++i] & 0xFF;
-				if ((y & 0xC0) != 0x80) return String.fromCharCode(...utf);
-				charCodes[j] = ((x & 0x1F) << 6) | (y & 0x3F);
-			} else if ((x & 0xF0) == 0xE0) {
-				if (i + 2 >= l) return utf;
-				y = utf[++i] & 0xFF;
-				if ((y & 0xC0) != 0x80) return utf;
-				z = utf[++i] & 0xFF;
-				if ((z & 0xC0) != 0x80) return utf;
-				charCodes[j] = ((x & 0x0F) << 0x0C) | ((y & 0x3F) << 6) | (z & 0x3F);
+	if (data instanceof ArrayBuffer) {
+		return new Uint8Array(data);
+	}
+
+	throw new TypeError("Expected an ArrayBuffer or an ArrayBufferView");
+}
+
+/** Compresses `data` into the `.lzma` format. */
+export function compressData(data: Uint8Array, options: CompressionMode | CompressionOptions = DEFAULT_LEVEL): Uint8Array {
+	const encoder = new AloneEncoder(resolveOptions(options), data.length, true);
+	encoder.write(data);
+	return encoder.finish();
+}
+
+/** Largest declared output size that is allocated at once when decompressing. */
+const PREALLOCATE_LIMIT = 64 << 20;
+
+/** Decompresses `.lzma` data. */
+export function decompressData(data: Uint8Array): Uint8Array {
+	let out: OutputBuffer | undefined;
+	let last: Uint8Array | undefined;
+
+	const decoder = new AloneDecoder(
+		(chunk) => {
+			if (decoder.contiguousOutput) {
+				last = chunk;
 			} else {
-				return utf;
+				// Don't trust the declared size for the initial allocation.
+				const size = decoder.uncompressedSize!;
+				out ??= new OutputBuffer(size === UNKNOWN_SIZE ? data.length * 4 : Math.min(size, 1 << 24));
+				out.write(chunk);
 			}
-			if (j == 0x3FFF) {
-				buf.push(String.fromCharCode.apply(String, charCodes));
-				j = -1;
-			}
-		}
+		},
+		PREALLOCATE_LIMIT,
+		true,
+	);
 
-		if (j > 0) {
-			charCodes.length = j;
-			buf.push(String.fromCharCode.apply(String, charCodes));
-		}
+	decoder.write(data);
+	decoder.end();
 
-		return buf.join("");
+	if (decoder.contiguousOutput) {
+		// The output was decoded in place into one buffer.
+		return last === undefined ? new Uint8Array(0) : new Uint8Array(last.buffer, 0, last.byteOffset + last.length);
+	}
+
+	return out?.finish() ?? new Uint8Array(0);
+}
+
+/**
+ * Class-based API of v0.2.0. Prefer the standalone functions.
+ */
+export class LZMA {
+	public compress(data: BinaryInput, mode: CompressionMode | CompressionOptions = DEFAULT_LEVEL): Int8Array {
+		const result = compressData(toUint8Array(data), mode);
+		return new Int8Array(result.buffer, result.byteOffset, result.byteLength);
+	}
+
+	public compressString(data: string, mode: CompressionMode | CompressionOptions = DEFAULT_LEVEL): Int8Array {
+		return this.compress(encodeUtf8(data), mode);
+	}
+
+	public decompress(data: BinaryInput): Uint8Array {
+		return decompressData(toUint8Array(data));
+	}
+
+	public decompressString(data: BinaryInput): string {
+		return decodeUtf8(this.decompress(data));
 	}
 }

@@ -46,7 +46,7 @@ jobs:
             group: lzma1-coverage-comment-${{ github.event.pull_request.number || github.event.inputs.pr_number || github.ref }}
             cancel-in-progress: false
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
             - uses: oven-sh/setup-bun@v2
               with:
                   bun-version: latest
@@ -72,7 +72,7 @@ jobs:
     fmt:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
             - uses: oven-sh/setup-bun@v2
               with:
                   bun-version: latest

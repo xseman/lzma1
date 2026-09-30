@@ -1,0 +1,13 @@
+{
+	"name": "bench",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"bench": "npm --prefix .. run build && node bench.mjs",
+		"report": "node report.mjs"
+	},
+	"dependencies": {
+		"lzma1-release": "npm:lzma1@0.3.0",
+		"mitata": "1.0.34"
+	}
+}

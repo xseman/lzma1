@@ -1,98 +1,57 @@
-import type { InputBuffer } from "./streams.js";
+/** Number of bytes the range decoder reads on initialization. */
+export const RANGE_DECODER_INIT_SIZE = 5;
 
+/**
+ * Range decoder reading from an in-memory byte array.
+ *
+ * `range` and `code` are unsigned 32-bit values stored in regular numbers,
+ * so plain `<` comparisons are unsigned.
+ *
+ * The LZMA decoder loop (`LzmaDecoder.decode`) does the decoding steps
+ * inline with the state in local variables, which is why the state fields
+ * are public. `range-coder_test.ts` has the reference implementations.
+ */
 export class RangeDecoder {
-	public stream: InputBuffer | null = null;
-	public code: number = 0;
-	public rrange: number = 0;
+	range = 0;
+	code = 0;
+	input: Uint8Array = new Uint8Array(0);
+	/** Position of the next unread input byte. */
+	pos = 0;
 
-	/**
-	 * Set input stream for decoding
-	 */
-	setStream(stream: InputBuffer | null): void {
-		this.stream = stream;
-	}
+	/** Reads the initial bytes from `input` starting at `pos`. */
+	init(input: Uint8Array, pos: number): void {
+		this.setInput(input, pos);
 
-	/**
-	 * Initialize range decoder
-	 */
-	init(): void {
+		if (this.readByte() !== 0x00) {
+			throw new Error("Corrupted input: invalid range coder header");
+		}
+
+		this.range = 0xFFFFFFFF;
 		this.code = 0;
-		this.rrange = -1;
+		for (let i = 1; i < RANGE_DECODER_INIT_SIZE; ++i) {
+			this.code = ((this.code << 8) | this.readByte()) >>> 0;
+		}
 
-		for (let i = 0; i < 5; ++i) {
-			this.code = this.code << 8 | this.readFromStream();
+		if (this.code === this.range) {
+			throw new Error("Corrupted input: invalid range coder header");
 		}
 	}
 
-	/**
-	 * Decode a single bit using probability model
-	 */
-	decodeBit(probs: number[], index: number): 0 | 1 {
-		let newBound, prob = probs[index];
-		newBound = (this.rrange >>> 11) * prob;
+	/** Continues decoding from a different buffer (used when streaming). */
+	setInput(input: Uint8Array, pos: number): void {
+		this.input = input;
+		this.pos = pos;
+	}
 
-		if ((this.code ^ -0x80000000) < (newBound ^ -0x80000000)) {
-			this.rrange = newBound;
-			probs[index] = prob + ((2048 - prob) >>> 5);
-			if (!(this.rrange & -0x1000000)) {
-				this.code = this.code << 8 | this.readFromStream();
-				this.rrange <<= 8;
-			}
-			return 0;
-		} else {
-			this.rrange -= newBound;
-			this.code -= newBound;
-			probs[index] = prob - (prob >>> 5);
-			if (!(this.rrange & -0x1000000)) {
-				this.code = this.code << 8 | this.readFromStream();
-				this.rrange <<= 8;
-			}
-			return 1;
+	/** True when the encoder's flush bytes have been consumed exactly. */
+	isFinished(): boolean {
+		return this.code === 0;
+	}
+
+	private readByte(): number {
+		if (this.pos >= this.input.length) {
+			throw new Error("Truncated input");
 		}
-	}
-
-	/**
-	 * Decode direct bits (without probability model)
-	 */
-	decodeDirectBits(numTotalBits: number): number {
-		let result = 0;
-
-		for (let i = numTotalBits; i != 0; i -= 1) {
-			this.rrange >>>= 1;
-			let t = (this.code - this.rrange) >>> 31;
-			this.code -= this.rrange & (t - 1);
-			result = result << 1 | 1 - t;
-
-			if (!(this.rrange & -0x1000000)) {
-				this.code = this.code << 8 | this.readFromStream();
-				this.rrange <<= 8;
-			}
-		}
-
-		return result;
-	}
-
-	/**
-	 * Get current code value (for compatibility)
-	 */
-	get currentCode(): number {
-		return this.code;
-	}
-
-	/**
-	 * Get current range value (for compatibility)
-	 */
-	get currentRange(): number {
-		return this.rrange;
-	}
-
-	/**
-	 * Read a single byte from the input stream
-	 */
-	private readFromStream(): number {
-		if (!this.stream) {
-			return 0;
-		}
-		return this.stream.readByte();
+		return this.input[this.pos++];
 	}
 }

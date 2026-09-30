@@ -1,0 +1,80 @@
+{
+	"version": "0.3.0",
+	"commit": "1590823",
+	"baseline": "lzma1@0.3.0",
+	"runtime": "Node.js 22.22.2",
+	"cpu": "AMD Ryzen 7 PRO 8840HS w/ Radeon 780M Graphics",
+	"date": "2026-09-30",
+	"benchmarks": [
+		{
+			"name": "compress text 128 KiB, level 1",
+			"lzma1": 8685166,
+			"baseline": 82968910
+		},
+		{
+			"name": "compress text 128 KiB, level 5",
+			"lzma1": 53704375,
+			"baseline": 81741301
+		},
+		{
+			"name": "compress text 128 KiB, level 9",
+			"lzma1": 54033339,
+			"baseline": 82275348
+		},
+		{
+			"name": "compress json 128 KiB, level 1",
+			"lzma1": 4899334,
+			"baseline": 155258572
+		},
+		{
+			"name": "compress json 128 KiB, level 5",
+			"lzma1": 58932099,
+			"baseline": 177329916
+		},
+		{
+			"name": "compress json 128 KiB, level 9",
+			"lzma1": 71096727,
+			"baseline": 177404776
+		},
+		{
+			"name": "compress binary 128 KiB, level 1",
+			"lzma1": 9953511,
+			"baseline": 43163314
+		},
+		{
+			"name": "compress binary 128 KiB, level 5",
+			"lzma1": 22811772,
+			"baseline": 49786483
+		},
+		{
+			"name": "compress binary 128 KiB, level 9",
+			"lzma1": 33193501,
+			"baseline": 101169935
+		},
+		{
+			"name": "compress small 83 B, level 5",
+			"lzma1": 13063,
+			"baseline": 1603711
+		},
+		{
+			"name": "decompress text 128 KiB",
+			"lzma1": 2602286,
+			"baseline": 3819296
+		},
+		{
+			"name": "decompress json 128 KiB",
+			"lzma1": 1175184,
+			"baseline": 2371225
+		},
+		{
+			"name": "decompress binary 128 KiB",
+			"lzma1": 5189650,
+			"baseline": 8900951
+		},
+		{
+			"name": "decompress small 83 B",
+			"lzma1": 4044,
+			"baseline": 65385
+		}
+	]
+}
