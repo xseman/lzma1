@@ -48,7 +48,7 @@ for (const { group, baseline, runs } of output.benchmarks) {
 
 const report = {
 	version: JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version,
-	commit: exec("git", ["rev-parse", "--short", "HEAD"]).trim(),
+	commit: exec("git", ["describe", "--always", "--dirty", "--exclude=*"]).trim(),
 	baseline: output.benchmarks.find((b) => b.baseline).alias,
 	runtime: `Node.js ${process.versions.node}`,
 	cpu: cpus()[0].model,
