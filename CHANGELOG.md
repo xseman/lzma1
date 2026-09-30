@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.0](https://github.com/xseman/lzma1/compare/v0.3.0...v0.4.0) (2026-09-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* rewrite LZMA as a port of XZ for Java ([#36](https://github.com/xseman/lzma1/issues/36))
+
+### Features
+
+* rewrite LZMA as a port of XZ for Java ([#36](https://github.com/xseman/lzma1/issues/36)) ([41c1793](https://github.com/xseman/lzma1/commit/41c179342f09da3a3b550c78924391679ab5e27a))
+
+
+### Maintenance
+
+* publish to npm via trusted publisher (OIDC) ([dac528b](https://github.com/xseman/lzma1/commit/dac528b96a3cf50b39ecf2bb1587cc61b829725a))
+* skip coverage report on release PRs ([fb04094](https://github.com/xseman/lzma1/commit/fb0409440b0a79471f22dfff9d53671c94cd1320))
+
+
+### Testing
+
+* add edge case for unknown header size in decompression ([fd08956](https://github.com/xseman/lzma1/commit/fd089568c490d5251500b46e68ff42d851e3fc0b))
+
 ## [0.3.0](https://github.com/xseman/lzma1/compare/v0.2.0...v0.3.0) (2026-04-10)
 
 
