@@ -38,11 +38,11 @@
 		"node": ">=18.0.0"
 	},
 	"sideEffects": false,
-	"types": "./src/index.ts",
+	"types": "./lib/index.d.ts",
 	"exports": {
 		"./package.json": "./package.json",
 		".": {
-			"types": "./src/index.ts",
+			"types": "./lib/index.d.ts",
 			"bun": "./src/index.ts",
 			"import": "./lib/index.js",
 			"require": "./lib/index.js"
@@ -50,6 +50,7 @@
 	},
 	"files": [
 		"lib/**/*.js",
+		"lib/**/*.d.ts",
 		"!lib/**/*_test*",
 		"src/**/*.ts",
 		"!src/**/*_test.ts"
