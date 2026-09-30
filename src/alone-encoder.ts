@@ -1,6 +1,6 @@
 /**
  * Encoder for the `.lzma` format: header followed by raw LZMA data and an
- * end marker.
+ * end marker, which is optional when the header holds the size.
  */
 
 import { BT4 } from "./bt4.js";
@@ -44,6 +44,7 @@ export class AloneEncoder {
 	private readonly lzma: LzmaEncoder;
 	private readonly expectedSize: number;
 	private readonly poolKey: string | undefined;
+	private readonly endMarker: boolean;
 	private inputSize = 0;
 
 	/**
@@ -54,11 +55,16 @@ export class AloneEncoder {
 	 */
 	constructor(options: ResolvedOptions, uncompressedSize: number = UNKNOWN_SIZE, reuse = false) {
 		const knownSize = uncompressedSize !== UNKNOWN_SIZE;
+		if (!knownSize && !options.endMarker) {
+			throw new RangeError("Invalid endMarker: false (the end marker is required when the size is unknown, e.g. in a stream)");
+		}
+
 		const dictSize = knownSize
 			? fitDictSize(options.dictSize, uncompressedSize)
 			: options.dictSize;
 
 		this.expectedSize = uncompressedSize;
+		this.endMarker = options.endMarker;
 		this.rc = new RangeEncoder(knownSize ? Math.min(uncompressedSize >>> 1, 1 << 20) + 64 : 1 << 16);
 		this.rc.writeBytes(encodeHeader({
 			lc: options.lc,
@@ -107,7 +113,7 @@ export class AloneEncoder {
 		return this.rc.take();
 	}
 
-	/** Compresses the remaining input, writes the end marker and returns the rest of the output. */
+	/** Compresses the remaining input, writes the end marker if enabled and returns the rest of the output. */
 	finish(): Uint8Array {
 		if (this.expectedSize !== UNKNOWN_SIZE && this.inputSize !== this.expectedSize) {
 			throw new Error("Input is smaller than the declared uncompressed size");
@@ -115,7 +121,9 @@ export class AloneEncoder {
 
 		this.lzma.lz.setFinishing();
 		this.lzma.encode();
-		this.lzma.encodeEndMarker();
+		if (this.endMarker) {
+			this.lzma.encodeEndMarker();
+		}
 		const output = this.rc.finish();
 
 		if (this.poolKey !== undefined) {

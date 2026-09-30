@@ -61,6 +61,8 @@ const farMatches = (() => {
 	return data;
 })();
 
+const levels = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+
 const optionSets: CompressionOptions[] = [
 	{ level: 1 },
 	{ level: 2 },
@@ -83,6 +85,17 @@ describe("round trip", () => {
 		test(name, () => {
 			for (const options of optionSets) {
 				expect(decompress(compress(input, options))).toEqual(input);
+			}
+		});
+
+		test(`${name} without end marker at every level`, () => {
+			for (const level of levels) {
+				const withMarker = compress(input, { level });
+
+				const withoutMarker = compress(input, { level, endMarker: false });
+
+				expect(decompress(withoutMarker)).toEqual(input);
+				expect(withoutMarker.length).toBeLessThanOrEqual(withMarker.length);
 			}
 		});
 	}
@@ -121,6 +134,16 @@ describe.skipIf(!hasXz)("xz interoperability", () => {
 			}
 		});
 
+		test(`xz decodes ${name} without end marker`, () => {
+			for (const options of optionSets) {
+				const compressed = compress(input, { ...options, endMarker: false });
+
+				const output = xz(["--decompress", "--format=lzma", "--stdout"], compressed);
+
+				expect(output).toEqual(input);
+			}
+		});
+
 		test(`decodes ${name} from xz`, () => {
 			for (const preset of ["-0", "-3", "-6", "-9e"]) {
 				const compressed = xz(["--compress", "--format=lzma", "--stdout", preset], input);
@@ -134,6 +157,19 @@ describe.skipIf(!hasXz)("xz interoperability", () => {
 			const compressed = xz(["--compress", "--format=lzma", "--stdout", `--lzma1=${filter}`], farMatches);
 			expect(decompress(compressed)).toEqual(farMatches);
 		}
+	});
+
+	test("xz --format=raw, which doesn't know the size, needs the end marker", () => {
+		const input = corpus()[2][1].subarray(0, 300);
+		const rawData = (options: CompressionOptions) => compress(input, options).subarray(13);
+		const args = ["--decompress", "--format=raw", "--stdout", "--lzma1=lc=3,lp=0,pb=2,dict=4KiB"];
+
+		const withMarker = spawnSync("xz", args, { input: rawData({}) });
+		const withoutMarker = spawnSync("xz", args, { input: rawData({ endMarker: false }) });
+
+		expect(withMarker.status).toBe(0);
+		expect(new Uint8Array(withMarker.stdout)).toEqual(input);
+		expect(withoutMarker.status).not.toBe(0);
 	});
 
 	test("compression ratio is close to xz", () => {

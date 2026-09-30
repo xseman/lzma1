@@ -37,6 +37,22 @@ export interface CompressionOptions {
 	matchFinder?: MatchFinderType;
 	/** Maximum match finder search depth, 0 = automatic. */
 	depth?: number;
+	/**
+	 * Write an end marker after the data, default `true`. The header also
+	 * holds the uncompressed size, so the marker is redundant for decoders
+	 * that read it: `false` omits it and saves 5-6 bytes, like XZ for Java
+	 * and 7-Zip without `-eos`.
+	 *
+	 * Safe to turn off when the decoder knows the size: this library,
+	 * `xz --format=lzma`, 7-Zip, or a format that stores the size elsewhere.
+	 * Not safe for decoders of raw LZMA data or streams that don't know the
+	 * size (e.g. `xz --format=raw`, Python's `FORMAT_RAW`): without the marker
+	 * they report an error or decode past the end. Strict decoders that know
+	 * the size may reject a marker, e.g. XZ for Java's `LZMAInputStream`.
+	 *
+	 * Requires a known size: `Compress` throws a `RangeError` for `false`.
+	 */
+	endMarker?: boolean;
 }
 
 export interface ResolvedOptions {
@@ -48,6 +64,7 @@ export interface ResolvedOptions {
 	niceLen: number;
 	matchFinder: MatchFinderType;
 	depth: number;
+	endMarker: boolean;
 }
 
 export const DEFAULT_LEVEL: CompressionMode = 5;
@@ -57,7 +74,7 @@ export const DICT_SIZE_MAX = 768 << 20;
 export const NICE_LEN_MIN = 8;
 export const NICE_LEN_MAX = 273;
 
-type Preset = Omit<ResolvedOptions, "lc" | "lp" | "pb">;
+type Preset = Omit<ResolvedOptions, "lc" | "lp" | "pb" | "endMarker">;
 
 // Levels 1-3 match xz's presets. Levels 4-9 keep the dictionary sizes of
 // earlier versions of this library, which bound memory use.
@@ -95,6 +112,7 @@ export function resolveOptions(options: CompressionMode | CompressionOptions = {
 		niceLen: options.niceLen ?? preset.niceLen,
 		matchFinder: options.matchFinder ?? preset.matchFinder,
 		depth: options.depth ?? preset.depth,
+		endMarker: options.endMarker ?? true,
 	};
 
 	checkInteger("lc", resolved.lc, 0, 4);
@@ -112,6 +130,9 @@ export function resolveOptions(options: CompressionMode | CompressionOptions = {
 	}
 	if (resolved.matchFinder !== "hc4" && resolved.matchFinder !== "bt4") {
 		throw new RangeError(`Invalid matchFinder: ${resolved.matchFinder}`);
+	}
+	if (typeof resolved.endMarker !== "boolean") {
+		throw new RangeError(`Invalid endMarker: ${resolved.endMarker} (expected a boolean)`);
 	}
 
 	return resolved;

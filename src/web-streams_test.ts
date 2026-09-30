@@ -85,7 +85,7 @@ describe("Compress", () => {
 
 	test("accepts a level or options", async () => {
 		const input = sampleData(20_000);
-		for (const options of [1, 9, { dictSize: 4096, lc: 0 }] as const) {
+		for (const options of [1, 9, { dictSize: 4096, lc: 0 }, { endMarker: true }] as const) {
 			const compressed = await collect(chunked(input, 3000).pipeThrough(new Compress(options)));
 			expect(decompress(compressed)).toEqual(input);
 		}
@@ -116,5 +116,11 @@ describe("Compress", () => {
 
 	test("rejects invalid options on construction", () => {
 		expect(() => new Compress({ lc: 20 })).toThrow(RangeError);
+	});
+
+	test("rejects endMarker: false, the size of a stream is unknown", () => {
+		const create = () => new Compress({ endMarker: false });
+
+		expect(create).toThrow(RangeError);
 	});
 });
