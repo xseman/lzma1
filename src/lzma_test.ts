@@ -80,6 +80,35 @@ describe("round trip", () => {
 	});
 });
 
+describe("default output is identical to v0.4.0", () => {
+	let seed = 3;
+	const random = () => (seed = (seed * 1103515245 + 12345) >>> 0) >>> 24;
+	const golden: [string, Uint8Array, string][] = [
+		["empty", new Uint8Array(0), "5d 00 10 00 00 00 00 00 00 00 00 00 00 00 83 ff fb ff ff c0 00 00 00"],
+		["one byte", new Uint8Array([42]), "5d 00 10 00 00 01 00 00 00 00 00 00 00 00 15 41 fb ff ff ff e0 00 00 00"],
+		[
+			"text",
+			new TextEncoder().encode("It was the best of times, it was the worst of times."),
+			"5d 00 10 00 00 34 00 00 00 00 00 00 00 00 24 9d 00 07 73 43 85 19 c1 bc 61 9e 16 43 3f 49 a5 27 15 b4 f5 10 18 54 bf cd 91 38 3b 33 8b 52 7c 83 66 3c 94 be ff ff fe 04 b0 00",
+		],
+		[
+			"random",
+			Uint8Array.from({ length: 48 }, () => random()),
+			"5d 00 10 00 00 30 00 00 00 00 00 00 00 00 62 86 c8 60 42 0b 5c 85 3e f9 3e 2d 70 ed ea 3a 57 aa e4 2a 8e 95 30 fd 30 df 6f 3f d4 75 1a 36 7f c7 ee 5c 1c 24 20 e7 68 b3 ed 52 8c 64 42 af 20 47 5b a7 4d fb 32 c3 ff ff 37 84 00 00",
+		],
+	];
+
+	test.each(golden)("%s", (_, input, hex) => {
+		const expected = fromHex(hex);
+
+		const byDefault = compress(input);
+		const withMarker = compress(input, { endMarker: true });
+
+		expect(byDefault).toEqual(expected);
+		expect(withMarker).toEqual(expected);
+	});
+});
+
 describe("compatibility with v0.3.0 output", () => {
 	// Produced by lzma1 v0.3.0, which used a different encoder and
 	// encoded strings as Java's "modified UTF-8".
@@ -190,8 +219,63 @@ describe("options", () => {
 		{ niceLen: 274 },
 		{ mode: "slow" },
 		{ matchFinder: "bt2" },
+		{ endMarker: "no" },
+		{ endMarker: 0 },
 	])("rejects %o", (options) => {
 		expect(() => compress(input, options as never)).toThrow(RangeError);
+	});
+});
+
+describe("endMarker: false", () => {
+	const input = new TextEncoder().encode("PAY by square: 1234.56 EUR to SK3112000000198742637541, variable symbol 123456. ".repeat(3));
+	const text = new TextDecoder().decode(input);
+
+	test("omits the end marker", () => {
+		const withMarker = compress(input);
+
+		const withoutMarker = compress(input, { endMarker: false });
+
+		expect(withoutMarker.subarray(0, 13)).toEqual(withMarker.subarray(0, 13));
+		expect(withoutMarker.length).toBeLessThan(withMarker.length);
+		expect(decompress(withoutMarker)).toEqual(input);
+	});
+
+	test("empty input has size 0 in the header and decodes to nothing", () => {
+		const compressed = compress(new Uint8Array(0), { endMarker: false });
+
+		const output = decompress(compressed);
+
+		expect(compressed.subarray(5, 13)).toEqual(new Uint8Array(8));
+		expect(output).toEqual(new Uint8Array(0));
+	});
+
+	test("compressString and the LZMA class give the same output as compress", () => {
+		const expected = compress(input, { endMarker: false });
+
+		const fromString = compressString(text, { endMarker: false });
+		const fromClass = new LZMA().compressString(text, { endMarker: false });
+
+		expect(fromString).toEqual(expected);
+		expect(new Uint8Array(fromClass.buffer, fromClass.byteOffset, fromClass.byteLength)).toEqual(expected);
+		expect(decompressString(fromString)).toBe(text);
+		expect(new LZMA().decompressString(fromClass)).toBe(text);
+	});
+
+	test("truncated data throws", () => {
+		const compressed = compress(input, { endMarker: false });
+
+		const truncated = compressed.subarray(0, compressed.length >> 1);
+
+		expect(() => decompress(truncated)).toThrow("Truncated input");
+	});
+
+	test("AloneEncoder without a size rejects it", () => {
+		const options = resolveOptions({ endMarker: false });
+
+		const create = () => new AloneEncoder(options);
+
+		expect(create).toThrow(RangeError);
+		expect(create).toThrow("the end marker is required when the size is unknown");
 	});
 });
 
@@ -361,6 +445,22 @@ describe("encoder reuse", () => {
 				});
 			});
 		}
+	});
+
+	test("alternating endMarker on the same input matches new encoders", () => {
+		const input = new TextEncoder().encode("pooled encoder, pooled encoder, pooled encoder");
+		const fresh = (endMarker: boolean) => {
+			const encoder = new AloneEncoder(resolveOptions({ endMarker }), input.length);
+			encoder.write(input);
+			return encoder.finish();
+		};
+		const [withMarker, withoutMarker] = [fresh(true), fresh(false)];
+		const sequence = [true, false, true, false, false, true, true, false];
+
+		const outputs = sequence.map((endMarker) => compress(input, { endMarker }));
+
+		expect(outputs).toEqual(sequence.map((endMarker) => (endMarker ? withMarker : withoutMarker)));
+		expect(withoutMarker.length).toBeLessThan(withMarker.length);
 	});
 });
 

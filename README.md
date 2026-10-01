@@ -137,12 +137,23 @@ const compressed = compress(data, {
 	niceLen: 64, // match length that is good enough, 8-273
 	matchFinder: "bt4", // "hc4" (hash chain) or "bt4" (binary tree)
 	depth: 0, // match finder search depth, 0 = automatic
+	endMarker: true, // false omits the end marker, see below
 });
 ```
 
 A dictionary larger than the input is reduced to fit it, which saves memory
 when compressing and decompressing. Data with `lc + lp > 4` from other
 encoders (e.g. 7-Zip) can still be decompressed.
+
+The header holds the uncompressed size, so the end marker after the data is
+redundant for decoders that read it. `endMarker: false` omits it, like XZ for
+Java and 7-Zip without `-eos`, and saves 5-6 bytes, which matters for small
+payloads such as QR codes. Decoders that don't know the size need the marker to
+find the end: raw LZMA decoders (`xz --format=raw`, Python's `FORMAT_RAW`)
+report an error or decode past the end without it. Omit it only when the data
+is decoded with its header (this library, `xz --format=lzma`, 7-Zip) or the
+size is known from elsewhere. Strict decoders that know the size may reject a
+marker, e.g. XZ for Java's `LZMAInputStream`.
 
 ### Streams
 
@@ -164,7 +175,8 @@ const text = await new Response(response.body.pipeThrough(new Decompress())).tex
 ```
 
 A stream's size isn't known in advance, so the header marks it as unknown and
-the data ends with an end marker.
+the data always ends with an end marker: `new Compress({ endMarker: false })`
+throws a `RangeError`.
 
 In TypeScript, their types need `TransformStream` from the `DOM` lib or
 `@types/node` (or `skipLibCheck`).

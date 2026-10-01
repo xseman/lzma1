@@ -27,7 +27,7 @@ const TransformStreamBase: typeof TransformStream = globalThis.TransformStream
 /**
  * Compresses a stream of bytes into the `.lzma` format. The uncompressed
  * size is not known in advance, so the header marks it as unknown and the
- * data ends with an end marker.
+ * data ends with an end marker. `endMarker: false` throws a `RangeError`.
  *
  * @example
  * const compressed = file.stream().pipeThrough(new Compress(5));
