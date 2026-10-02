@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/xseman/lzma1/compare/v0.4.0...v0.4.1) (2026-10-02)
+
+
+### Features
+
+* add endMarker option to omit the end marker when the size is known ([#37](https://github.com/xseman/lzma1/issues/37)) ([8dbe324](https://github.com/xseman/lzma1/commit/8dbe3245c37f63a8a53dc5e7254af5f7362e1cbe))
+
+
+### Documentation
+
+* add CLAUDE.md with repo rules and code style ([9d50446](https://github.com/xseman/lzma1/commit/9d50446e07864dcaf550ffc21034b8298d6d3d3e))
+
 ## [0.4.0](https://github.com/xseman/lzma1/compare/v0.3.0...v0.4.0) (2026-09-30)
 
 
