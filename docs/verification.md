@@ -697,3 +697,31 @@ Argument:
   Java code.
 - _Same order._ Each rewritten statement performs the same reads and writes in
   the same order; the method bodies keep their statements.
+
+### Loop invariants of `calcLongRepPrices` read once per call
+
+Change, in `lzma-encoder.ts` and `lzma-encoder-normal.ts`: `calcLongRepPrices`
+reads `this.opts`, `opts.price`, `this.optCur`, `this.lz`, `optCur * REPS` and
+the rep length price row into locals at its start. `getPrice(x, posState)`
+becomes `lenPrices[x - MATCH_LEN_MIN]`, where `lenPrices` comes from the new
+`LengthEncoder.getPriceRow(posState)`, which returns the row `getPrice` indexes.
+Each rep's distance, read twice per iteration, is read once.
+
+Argument:
+
+- _The references are fixed._ `opts`, `lz`, `repLenEncoder`, `Optimums.price`
+  and `LengthEncoder.prices` are assigned only in constructors, and the rows of
+  `prices` are never replaced. `optCur` is assigned only in `reset`,
+  `convertOpts` and `getNextSymbol`'s loop header, and nothing
+  `calcLongRepPrices` calls reaches them. `posState` is a parameter that is not
+  reassigned.
+- _The price row's contents are fixed._ Length prices are written only by
+  `updatePrices()`, which `getNextSymbol` calls before the optimum search, never
+  during it. So the row read gives the value `getPrice` gave.
+- _The rep distance is fixed._ Between its two reads, the code writes only
+  `optEnd` and the fields `reset`, `set1` and `set3` write, none of them `reps`.
+  `reps` is written only in `updateOptStateAndReps` and at the start of
+  `getNextSymbol`'s search.
+
+The new reads have no side effects, and every write and call happens with the
+same arguments in the same order.

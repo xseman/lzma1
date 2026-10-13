@@ -666,6 +666,10 @@ export class LengthEncoder extends LengthCoder {
 		return this.prices[posState][len - MATCH_LEN_MIN];
 	}
 
+	getPriceRow(posState: number): Int32Array {
+		return this.prices[posState];
+	}
+
 	updatePrices(): void {
 		for (let posState = 0; posState < this.counters.length; ++posState) {
 			if (this.counters[posState] <= 0) {

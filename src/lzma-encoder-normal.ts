@@ -506,26 +506,35 @@ export class LzmaEncoderNormal extends LzmaEncoder {
 	 * Calculates prices of long rep and long rep + literal + rep0.
 	 */
 	private calcLongRepPrices(pos: number, posState: number, avail: number, anyRepPrice: number): number {
+		// Read once per call: this runs for every position of the optimum
+		// search, and re-reading these on every use was measurably slower.
+		const opts = this.opts;
+		const optPrice = opts.price;
+		const optCur = this.optCur;
+		const lz = this.lz;
+		const repsOffset = optCur * REPS;
+		const lenPrices = this.repLenEncoder.getPriceRow(posState);
+
 		let startLen = MATCH_LEN_MIN;
 		const lenLimit = Math.min(avail, this.niceLen);
 
 		for (let rep = 0; rep < REPS; ++rep) {
-			const len = this.lz.getMatchLen(0, this.opts.reps[this.optCur * REPS + rep], lenLimit);
+			const dist = opts.reps[repsOffset + rep];
+			const len = lz.getMatchLen(0, dist, lenLimit);
 			if (len < MATCH_LEN_MIN) {
 				continue;
 			}
 
-			while (this.optEnd < this.optCur + len) {
-				this.opts.reset(++this.optEnd);
+			while (this.optEnd < optCur + len) {
+				opts.reset(++this.optEnd);
 			}
 
-			const longRepPrice = this.getLongRepPrice(anyRepPrice, rep, this.opts.state[this.optCur], posState);
+			const longRepPrice = this.getLongRepPrice(anyRepPrice, rep, opts.state[optCur], posState);
 
 			for (let i = len; i >= MATCH_LEN_MIN; --i) {
-				const price = longRepPrice
-					+ this.repLenEncoder.getPrice(i, posState);
-				if (price < this.opts.price[this.optCur + i]) {
-					this.opts.set1(this.optCur + i, price, this.optCur, rep);
+				const price = longRepPrice + lenPrices[i - MATCH_LEN_MIN];
+				if (price < optPrice[optCur + i]) {
+					opts.set1(optCur + i, price, optCur, rep);
 				}
 			}
 
@@ -542,19 +551,18 @@ export class LzmaEncoderNormal extends LzmaEncoder {
 				len2Limit = this.niceLen;
 			}
 
-			const len2 = this.lz.getMatchLen(len + 1, this.opts.reps[this.optCur * REPS + rep], len2Limit);
+			const len2 = lz.getMatchLen(len + 1, dist, len2Limit);
 
 			if (len2 >= MATCH_LEN_MIN) {
 				// Rep
-				let price = longRepPrice
-					+ this.repLenEncoder.getPrice(len, posState);
-				this.nextState = this.opts.state[this.optCur];
+				let price = longRepPrice + lenPrices[len - MATCH_LEN_MIN];
+				this.nextState = opts.state[optCur];
 				this.nextState = stateAfterLongRep(this.nextState);
 
 				// Literal
-				const curByte = this.lz.getByteAt(len, 0);
-				const matchByte = this.lz.getByte(0); // lz.getByteAt(len, len)
-				const prevByte = this.lz.getByteAt(len, 1);
+				const curByte = lz.getByteAt(len, 0);
+				const matchByte = lz.getByte(0); // lz.getByteAt(len, len)
+				const prevByte = lz.getByteAt(len, 1);
 				price += this.literalEncoder.getPrice(curByte, matchByte, prevByte, pos + len, this.nextState);
 				this.nextState = stateAfterLiteral(this.nextState);
 
@@ -562,13 +570,13 @@ export class LzmaEncoderNormal extends LzmaEncoder {
 				const nextPosState = (pos + len + 1) & this.posMask;
 				price += this.getLongRepAndLenPrice(0, len2, this.nextState, nextPosState);
 
-				const i = this.optCur + len + 1 + len2;
+				const i = optCur + len + 1 + len2;
 				while (this.optEnd < i) {
-					this.opts.reset(++this.optEnd);
+					opts.reset(++this.optEnd);
 				}
 
-				if (price < this.opts.price[i]) {
-					this.opts.set3(i, price, this.optCur, rep, len, 0);
+				if (price < optPrice[i]) {
+					opts.set3(i, price, optCur, rep, len, 0);
 				}
 			}
 		}
