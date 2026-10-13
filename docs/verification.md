@@ -795,3 +795,15 @@ Argument:
 - _Bit 1._ `-1 & 2047` is 2047. With `prob = 16q + r` (`r` in 0..15),
   `prob ^ 2047 = 16(127 - q) + (15 - r)`, so the old index is `127 - q`. The new
   index is `128 + q`, which holds `prices[127 - q]`.
+
+### Hashing with an int32 copy of the CRC table
+
+Change, in `hash234.ts`: `calcHashes` reads an `Int32Array` copy of
+`CRC32_TABLE`, made when the module is evaluated.
+
+Argument: the table's entries are in [0, 2^32), and the copy holds ToInt32 of
+each. `calcHashes` uses an entry only as the left operand of `^` and `<<`, which
+apply ToInt32 first, so they receive the same int32 and give the same result.
+Indexes are bytes, in range for both. The library never writes either table. A
+caller that changes the exported array at run time no longer affects hashing;
+`crc32.ts` says so.
