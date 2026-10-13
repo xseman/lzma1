@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.6.0](https://github.com/xseman/lzma1/compare/v0.4.0...v0.6.0) (2026-10-13)
+
+
+### Features
+
+* add endMarker option to omit the end marker when the size is known ([#37](https://github.com/xseman/lzma1/issues/37)) ([8dbe324](https://github.com/xseman/lzma1/commit/8dbe3245c37f63a8a53dc5e7254af5f7362e1cbe))
+
+
+### Bug Fixes
+
+* make normal-mode output byte-identical to XZ for Java and check it in CI ([3e49d05](https://github.com/xseman/lzma1/commit/3e49d05fc5d051f1e3892f28b3dbd39831ad58cb))
+* retranslate the core coders from XZ for Java to match its output ([d63e901](https://github.com/xseman/lzma1/commit/d63e9015f4da0499e96a97540ebe62ea2838e80c))
+
+
+### Performance Improvements
+
+* speed up compression while keeping output identical to XZ for Java ([a933264](https://github.com/xseman/lzma1/commit/a9332642afc4ce505f102ea0a0899ea6fda78557))
+
+
+### Documentation
+
+* add CLAUDE.md with repo rules and code style ([9d50446](https://github.com/xseman/lzma1/commit/9d50446e07864dcaf550ffc21034b8298d6d3d3e))
+* add the XZ for Java verification rules to CLAUDE.md ([4f6a03c](https://github.com/xseman/lzma1/commit/4f6a03c254f5cfbe66992a860076c56a3061f575))
+
+
+### Maintenance
+
+* compute the encoder's price tables in module functions ([0b5b901](https://github.com/xseman/lzma1/commit/0b5b901f8ba1f3391c27fd5d90f1a70b3062456c))
+* copy the optimum search's reps with element assignments ([0b5efac](https://github.com/xseman/lzma1/commit/0b5efacfeb059747254f220ca02366e1fa38f67c))
+* hash with an int32 copy of the CRC table ([f06a45a](https://github.com/xseman/lzma1/commit/f06a45a7cf53289562f01e70fdbde032300b7a32))
+* hoist loop invariants out of calcLongRepPrices ([8324066](https://github.com/xseman/lzma1/commit/8324066d0adaf9bcbbe294e300e8f8e99f6afc69))
+* keep the optimum search's states as numbers ([e5fa4fa](https://github.com/xseman/lzma1/commit/e5fa4fa6f63fddc7bda916ff0ae4933c6abe9d2e))
+* price bits from one table indexed by bit and probability ([2ac3d88](https://github.com/xseman/lzma1/commit/2ac3d883091099dab771e6ca9fe9a7670d93e686))
+* regenerate the fixtures and compare them with the committed ones ([c4f0445](https://github.com/xseman/lzma1/commit/c4f0445619a4255bebfc0ee4ff8f476de6be6765))
+* release 0.6.0 ([1743fde](https://github.com/xseman/lzma1/commit/1743fde447cb25456bb332b34e971e606ab788c8))
+* reset each coder's probability array with one fill ([5e88117](https://github.com/xseman/lzma1/commit/5e88117dec28ff9936b70996d3c5f0469681dc13))
+* reuse distance prices for matches of length 5+ ([201ad8b](https://github.com/xseman/lzma1/commit/201ad8beedc464380277a9a3c844497b861fa2d5))
+* reuse probability arrays between one-shot decoders ([6ea425b](https://github.com/xseman/lzma1/commit/6ea425b7f613c920cea3d8138fb34ab65c09e179))
+* run quality checks when fixtures or the test tsconfig change ([4880b41](https://github.com/xseman/lzma1/commit/4880b41f818634e4a4e9ac1a1881f3fe4ec93a72))
+* share the initial price tables between encoders ([879fefa](https://github.com/xseman/lzma1/commit/879fefacd3528186b57672f31c5893f7383ee897))
+* store each coder's probabilities in one flat array ([05b9711](https://github.com/xseman/lzma1/commit/05b97116cd3961238d0d22d9a5b74584df1c5a30))
+* store the optimum search's positions as struct-of-arrays ([e5f7a84](https://github.com/xseman/lzma1/commit/e5f7a848eb634c2e88eb076f9f24ec76102ea329))
+
+
+### Testing
+
+* add XZ for Java differential corpus fixtures and their generator ([d2e5c00](https://github.com/xseman/lzma1/commit/d2e5c00872f8b0cae0e10e08d215635d62ddd3c0))
+* declare the interop corpus with its concrete buffer type ([9534708](https://github.com/xseman/lzma1/commit/9534708af395306aecad1baa799a2cb3c0f383ef))
+
 ## [0.4.0](https://github.com/xseman/lzma1/compare/v0.3.0...v0.4.0) (2026-09-30)
 
 
