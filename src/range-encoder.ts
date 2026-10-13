@@ -27,13 +27,26 @@ import {
 const MOVE_REDUCING_BITS = 4;
 const BIT_PRICE_SHIFT_BITS = 4;
 
-/**
- * Price (approximate cost in 1/16 bits) of encoding a bit with a given
- * probability, indexed by `probability >>> MOVE_REDUCING_BITS`.
- */
-const prices = createPriceTable();
+// Bit prices in 1/16 bits: the price of a 0 bit, then the same prices
+// reversed, which are the prices of a 1 bit, at
+// (bit << 7) | (prob >>> MOVE_REDUCING_BITS). One lookup without the Java
+// code's bit flip was measured faster.
+const bitPrices = createBitPriceTable();
 
-function createPriceTable(): Uint32Array {
+function createBitPriceTable(): Uint32Array {
+	const prices = createPriceTable();
+	const half = prices.length;
+	const table = new Uint32Array(2 * half);
+
+	for (let i = 0; i < half; ++i) {
+		table[i] = prices[i];
+		table[half + i] = prices[half - 1 - i];
+	}
+
+	return table;
+}
+
+export function createPriceTable(): Uint32Array {
 	const table = new Uint32Array(BIT_MODEL_TOTAL >>> MOVE_REDUCING_BITS);
 
 	for (let i = (1 << MOVE_REDUCING_BITS) / 2; i < BIT_MODEL_TOTAL; i += 1 << MOVE_REDUCING_BITS) {
@@ -58,7 +71,7 @@ function createPriceTable(): Uint32Array {
 
 export function getBitPrice(prob: number, bit: number): number {
 	// NOTE: Unlike in encodeBit(), here bit must be 0 or 1.
-	return prices[(prob ^ (-bit & (BIT_MODEL_TOTAL - 1))) >>> MOVE_REDUCING_BITS];
+	return bitPrices[(bit << 7) | (prob >>> MOVE_REDUCING_BITS)];
 }
 
 export function getBitTreePrice(probs: Probs, offset: number, bits: number, symbol: number): number {

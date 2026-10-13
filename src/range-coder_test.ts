@@ -5,11 +5,13 @@ import {
 } from "bun:test";
 
 import {
+	BIT_MODEL_TOTAL,
 	initProbs,
 	PROB_INIT,
 } from "./range-coder.js";
 import { RangeDecoder } from "./range-decoder.js";
 import {
+	createPriceTable,
 	getBitPrice,
 	getBitTreePrice,
 	getDirectBitsPrice,
@@ -135,6 +137,16 @@ describe("prices", () => {
 		expect(getBitPrice(PROB_INIT, 0)).toBe(16);
 		expect(getBitPrice(PROB_INIT, 1)).toBe(17);
 		expect(getDirectBitsPrice(3)).toBe(48);
+	});
+
+	test("bit prices equal the Java code's table lookup for every probability", () => {
+		const prices = createPriceTable();
+		const inputs = Array.from({ length: 2 * BIT_MODEL_TOTAL }, (_, i) => ({ prob: i >>> 1, bit: i & 1 }));
+		const expected = inputs.map(({ prob, bit }) => prices[(prob ^ (-bit & (BIT_MODEL_TOTAL - 1))) >>> 4]);
+
+		const actual = inputs.map(({ prob, bit }) => getBitPrice(prob, bit));
+
+		expect(actual).toEqual(expected);
 	});
 
 	test("likely bits are cheaper than unlikely bits", () => {

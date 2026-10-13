@@ -775,3 +775,23 @@ index ranges. The struct-of-arrays entry shows the predecessor position is
 strictly below `optCur`, so the source and destination blocks are disjoint and
 no assignment overwrites an element still to be read. Assignments in any order
 then copy what `copyWithin` copies.
+
+### Bit prices from one table indexed by bit and probability
+
+Change, in `range-encoder.ts`: `getBitPrice(prob, bit)` returns
+`bitPrices[(bit << 7) | (prob >>> 4)]` instead of
+`prices[(prob ^ (-bit & 2047)) >>> 4]`. `bitPrices` has 256 entries: `prices[q]`
+at `q`, and `prices[127 - q]` at `128 + q`, for `q` in 0..127. `prices` is the
+Java code's table, still built by `createPriceTable`, now exported for a test.
+
+Argument:
+
+- _Domain._ Every caller passes bit 0 or 1, as the Java code's comment requires:
+  a literal, `rep - 2` for rep 2 or 3, or a bit taken with `& 1`. Probabilities
+  lie in 0..2047: they are set to 1024 by `initProbs` or zero-filled, and
+  `encodeBit`'s update keeps them in range.
+- _Bit 0._ `-0 & 2047` is 0, so both index `q = prob >>> 4`, and `bitPrices[q]`
+  is `prices[q]`.
+- _Bit 1._ `-1 & 2047` is 2047. With `prob = 16q + r` (`r` in 0..15),
+  `prob ^ 2047 = 16(127 - q) + (15 - r)`, so the old index is `127 - q`. The new
+  index is `128 + q`, which holds `prices[127 - q]`.
