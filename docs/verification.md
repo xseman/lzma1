@@ -725,3 +725,41 @@ Argument:
 
 The new reads have no side effects, and every write and call happens with the
 same arguments in the same order.
+
+### Loop invariants of `calcNormalMatchPrices` read once per call
+
+Change, in `lzma-encoder.ts` and `lzma-encoder-normal.ts`:
+
+1. The distance part of `getMatchAndLenPrice` moves into
+   `getDistPrice(distState, dist)`, which `getMatchAndLenPrice` now calls.
+2. `calcNormalMatchPrices` hoists its reads as the previous entry does, plus
+   `this.matches` and its `len` and `dist` arrays, and reads `matches.count`
+   once, after the block that shortens the matches.
+3. Its length loop adds `normalMatchPrice`, the length price from the hoisted
+   row, and a distance price instead of calling `getMatchAndLenPrice`. For
+   `len < DIST_STATES + MATCH_LEN_MIN - 1` (lengths 2 to 4) the distance price
+   is `getDistPrice(len - MATCH_LEN_MIN, dist)`. For longer lengths it is
+   `longMatchDistPrice`, which is `getDistPrice(DIST_STATES - 1, dist)` computed
+   once per match, before the loop and after each `++match` that continues it.
+
+Argument:
+
+- _The sum is unchanged._ `getDistPrice` returns what the old distance branch
+  added, and the three terms are added in the same order. Prices are integers
+  below 2^30, so the sums are exact.
+- _The distance state is the same._ `getDistState(len)` is `len - MATCH_LEN_MIN`
+  below `DIST_STATES + MATCH_LEN_MIN` and `DIST_STATES - 1` from there up. So
+  the new code's state equals `getDistState(len)` for every length, including
+  length 5, where both forms give `DIST_STATES - 1`.
+- _The reads are fixed._ As in the previous entry, nothing this function calls
+  assigns `optCur` or writes a price table. `matches` and its arrays are
+  assigned only in `getNextSymbol` and the `Matches` constructor. The match
+  finders, the only other writers of `count`, `len` and `dist`, run only from
+  `getNextSymbol`, so after the shortening block nothing writes them during the
+  call. So `dist` equals the old per-iteration read of `dist[match]`, because
+  `match` changes only at `++match`, where `dist` is re-read.
+  `longMatchDistPrice`, computed from the current `dist` and fixed tables,
+  equals each call it replaces.
+- _An unused value is harmless._ For a match whose lengths all stay below 5,
+  `longMatchDistPrice` is computed and not used. `getDistPrice` only computes a
+  slot and reads price tables, so computing it has no effect.

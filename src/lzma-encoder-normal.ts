@@ -15,6 +15,7 @@ import type {
 	Matches,
 } from "./lz-encoder.js";
 import {
+	DIST_STATES,
 	MATCH_LEN_MAX,
 	MATCH_LEN_MIN,
 	REPS,
@@ -588,43 +589,57 @@ export class LzmaEncoderNormal extends LzmaEncoder {
 	 * Calculates prices of a normal match and normal match + literal + rep0.
 	 */
 	private calcNormalMatchPrices(pos: number, posState: number, avail: number, anyMatchPrice: number, startLen: number): void {
+		const matches = this.matches;
+		const matchLens = matches.len;
+		const matchDists = matches.dist;
+		const opts = this.opts;
+		const optPrice = opts.price;
+		const optCur = this.optCur;
+		const lz = this.lz;
+		const lenPrices = this.matchLenEncoder.getPriceRow(posState);
+
 		// If the longest match is so long that it would not fit into
 		// the opts array, shorten the matches.
-		if (this.matches.len[this.matches.count - 1] > avail) {
-			this.matches.count = 0;
-			while (this.matches.len[this.matches.count] < avail) {
-				++this.matches.count;
+		if (matchLens[matches.count - 1] > avail) {
+			matches.count = 0;
+			while (matchLens[matches.count] < avail) {
+				++matches.count;
 			}
 
-			this.matches.len[this.matches.count++] = avail;
+			matchLens[matches.count++] = avail;
 		}
 
-		if (this.matches.len[this.matches.count - 1] < startLen) {
+		const count = matches.count;
+		if (matchLens[count - 1] < startLen) {
 			return;
 		}
 
-		while (this.optEnd < this.optCur + this.matches.len[this.matches.count - 1]) {
-			this.opts.reset(++this.optEnd);
+		while (this.optEnd < optCur + matchLens[count - 1]) {
+			opts.reset(++this.optEnd);
 		}
 
-		const normalMatchPrice = this.getNormalMatchPrice(anyMatchPrice, this.opts.state[this.optCur]);
+		const normalMatchPrice = this.getNormalMatchPrice(anyMatchPrice, opts.state[optCur]);
 
 		let match = 0;
-		while (startLen > this.matches.len[match]) {
+		while (startLen > matchLens[match]) {
 			++match;
 		}
 
-		for (let len = startLen;; ++len) {
-			const dist = this.matches.dist[match];
+		let dist = matchDists[match];
+		let longMatchDistPrice = this.getDistPrice(DIST_STATES - 1, dist);
 
+		for (let len = startLen;; ++len) {
 			// Calculate the price of a match of len bytes from the nearest
 			// possible distance.
-			const matchAndLenPrice = this.getMatchAndLenPrice(normalMatchPrice, dist, len, posState);
-			if (matchAndLenPrice < this.opts.price[this.optCur + len]) {
-				this.opts.set1(this.optCur + len, matchAndLenPrice, this.optCur, dist + REPS);
+			// From length 5 up, getDistState(len) stays at DIST_STATES - 1, so the
+			// distance price is the one computed once per match.
+			const distPrice = len < DIST_STATES + MATCH_LEN_MIN - 1 ? this.getDistPrice(len - MATCH_LEN_MIN, dist) : longMatchDistPrice;
+			const matchAndLenPrice = normalMatchPrice + lenPrices[len - MATCH_LEN_MIN] + distPrice;
+			if (matchAndLenPrice < optPrice[optCur + len]) {
+				opts.set1(optCur + len, matchAndLenPrice, optCur, dist + REPS);
 			}
 
-			if (len !== this.matches.len[match]) {
+			if (len !== matchLens[match]) {
 				continue;
 			}
 
@@ -635,15 +650,15 @@ export class LzmaEncoderNormal extends LzmaEncoder {
 					len2Limit = this.niceLen;
 				}
 
-				const len2 = this.lz.getMatchLen(len + 1, dist, len2Limit);
+				const len2 = lz.getMatchLen(len + 1, dist, len2Limit);
 				if (len2 >= MATCH_LEN_MIN) {
-					this.nextState = this.opts.state[this.optCur];
+					this.nextState = opts.state[optCur];
 					this.nextState = stateAfterMatch(this.nextState);
 
 					// Literal
-					const curByte = this.lz.getByteAt(len, 0);
-					const matchByte = this.lz.getByte(0); // lz.getByteAt(len, len)
-					const prevByte = this.lz.getByteAt(len, 1);
+					const curByte = lz.getByteAt(len, 0);
+					const matchByte = lz.getByte(0); // lz.getByteAt(len, len)
+					const prevByte = lz.getByteAt(len, 1);
 					let price = matchAndLenPrice
 						+ this.literalEncoder.getPrice(curByte, matchByte, prevByte, pos + len, this.nextState);
 					this.nextState = stateAfterLiteral(this.nextState);
@@ -652,20 +667,23 @@ export class LzmaEncoderNormal extends LzmaEncoder {
 					const nextPosState = (pos + len + 1) & this.posMask;
 					price += this.getLongRepAndLenPrice(0, len2, this.nextState, nextPosState);
 
-					const i = this.optCur + len + 1 + len2;
+					const i = optCur + len + 1 + len2;
 					while (this.optEnd < i) {
-						this.opts.reset(++this.optEnd);
+						opts.reset(++this.optEnd);
 					}
 
-					if (price < this.opts.price[i]) {
-						this.opts.set3(i, price, this.optCur, dist + REPS, len, 0);
+					if (price < optPrice[i]) {
+						opts.set3(i, price, optCur, dist + REPS, len, 0);
 					}
 				}
 			}
 
-			if (++match === this.matches.count) {
+			if (++match === count) {
 				break;
 			}
+
+			dist = matchDists[match];
+			longMatchDistPrice = this.getDistPrice(DIST_STATES - 1, dist);
 		}
 	}
 }
