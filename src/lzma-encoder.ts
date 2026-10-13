@@ -371,22 +371,23 @@ export abstract class LzmaEncoder extends LzmaCoder {
 		return longRepPrice + this.repLenEncoder.getPrice(len, posState);
 	}
 
-	getMatchAndLenPrice(normalMatchPrice: number, dist: number, len: number, posState: number): number {
-		let price = normalMatchPrice
-			+ this.matchLenEncoder.getPrice(len, posState);
-		const distState = getDistState(len);
-
+	getDistPrice(distState: number, dist: number): number {
 		if (dist < FULL_DISTANCES) {
-			price += this.fullDistPrices[distState][dist];
-		} else {
-			// Note that distSlotPrices includes also
-			// the price of direct bits.
-			const distSlot = getDistSlot(dist);
-			price += this.distSlotPrices[distState][distSlot]
-				+ this.alignPrices[dist & ALIGN_MASK];
+			return this.fullDistPrices[distState][dist];
 		}
 
-		return price;
+		// Note that distSlotPrices includes also
+		// the price of direct bits.
+		const distSlot = getDistSlot(dist);
+
+		return this.distSlotPrices[distState][distSlot]
+			+ this.alignPrices[dist & ALIGN_MASK];
+	}
+
+	getMatchAndLenPrice(normalMatchPrice: number, dist: number, len: number, posState: number): number {
+		return normalMatchPrice
+			+ this.matchLenEncoder.getPrice(len, posState)
+			+ this.getDistPrice(getDistState(len), dist);
 	}
 
 	private updateDistPrices(): void {
@@ -664,6 +665,10 @@ export class LengthEncoder extends LengthCoder {
 
 	getPrice(len: number, posState: number): number {
 		return this.prices[posState][len - MATCH_LEN_MIN];
+	}
+
+	getPriceRow(posState: number): Int32Array {
+		return this.prices[posState];
 	}
 
 	updatePrices(): void {

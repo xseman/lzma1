@@ -697,3 +697,113 @@ Argument:
   Java code.
 - _Same order._ Each rewritten statement performs the same reads and writes in
   the same order; the method bodies keep their statements.
+
+### Loop invariants of `calcLongRepPrices` read once per call
+
+Change, in `lzma-encoder.ts` and `lzma-encoder-normal.ts`: `calcLongRepPrices`
+reads `this.opts`, `opts.price`, `this.optCur`, `this.lz`, `optCur * REPS` and
+the rep length price row into locals at its start. `getPrice(x, posState)`
+becomes `lenPrices[x - MATCH_LEN_MIN]`, where `lenPrices` comes from the new
+`LengthEncoder.getPriceRow(posState)`, which returns the row `getPrice` indexes.
+Each rep's distance, read twice per iteration, is read once.
+
+Argument:
+
+- _The references are fixed._ `opts`, `lz`, `repLenEncoder`, `Optimums.price`
+  and `LengthEncoder.prices` are assigned only in constructors, and the rows of
+  `prices` are never replaced. `optCur` is assigned only in `reset`,
+  `convertOpts` and `getNextSymbol`'s loop header, and nothing
+  `calcLongRepPrices` calls reaches them. `posState` is a parameter that is not
+  reassigned.
+- _The price row's contents are fixed._ Length prices are written only by
+  `updatePrices()`, which `getNextSymbol` calls before the optimum search, never
+  during it. So the row read gives the value `getPrice` gave.
+- _The rep distance is fixed._ Between its two reads, the code writes only
+  `optEnd` and the fields `reset`, `set1` and `set3` write, none of them `reps`.
+  `reps` is written only in `updateOptStateAndReps` and at the start of
+  `getNextSymbol`'s search.
+
+The new reads have no side effects, and every write and call happens with the
+same arguments in the same order.
+
+### Loop invariants of `calcNormalMatchPrices` read once per call
+
+Change, in `lzma-encoder.ts` and `lzma-encoder-normal.ts`:
+
+1. The distance part of `getMatchAndLenPrice` moves into
+   `getDistPrice(distState, dist)`, which `getMatchAndLenPrice` now calls.
+2. `calcNormalMatchPrices` hoists its reads as the previous entry does, plus
+   `this.matches` and its `len` and `dist` arrays, and reads `matches.count`
+   once, after the block that shortens the matches.
+3. Its length loop adds `normalMatchPrice`, the length price from the hoisted
+   row, and a distance price instead of calling `getMatchAndLenPrice`. For
+   `len < DIST_STATES + MATCH_LEN_MIN - 1` (lengths 2 to 4) the distance price
+   is `getDistPrice(len - MATCH_LEN_MIN, dist)`. For longer lengths it is
+   `longMatchDistPrice`, which is `getDistPrice(DIST_STATES - 1, dist)` computed
+   once per match, before the loop and after each `++match` that continues it.
+
+Argument:
+
+- _The sum is unchanged._ `getDistPrice` returns what the old distance branch
+  added, and the three terms are added in the same order. Prices are integers
+  below 2^30, so the sums are exact.
+- _The distance state is the same._ `getDistState(len)` is `len - MATCH_LEN_MIN`
+  below `DIST_STATES + MATCH_LEN_MIN` and `DIST_STATES - 1` from there up. So
+  the new code's state equals `getDistState(len)` for every length, including
+  length 5, where both forms give `DIST_STATES - 1`.
+- _The reads are fixed._ As in the previous entry, nothing this function calls
+  assigns `optCur` or writes a price table. `matches` and its arrays are
+  assigned only in `getNextSymbol` and the `Matches` constructor. The match
+  finders, the only other writers of `count`, `len` and `dist`, run only from
+  `getNextSymbol`, so after the shortening block nothing writes them during the
+  call. So `dist` equals the old per-iteration read of `dist[match]`, because
+  `match` changes only at `++match`, where `dist` is re-read.
+  `longMatchDistPrice`, computed from the current `dist` and fixed tables,
+  equals each call it replaces.
+- _An unused value is harmless._ For a match whose lengths all stay below 5,
+  `longMatchDistPrice` is computed and not used. `getDistPrice` only computes a
+  slot and reads price tables, so computing it has no effect.
+
+### Reps copied with element assignments
+
+Change, in `lzma-encoder-normal.ts`: in `updateOptStateAndReps`, the copy of a
+predecessor's four reps, and the copy of its first three into slots 1 to 3, are
+element assignments instead of `copyWithin` calls.
+
+Argument: `REPS` is 4, a format constant, so the assignments cover the same
+index ranges. The struct-of-arrays entry shows the predecessor position is
+strictly below `optCur`, so the source and destination blocks are disjoint and
+no assignment overwrites an element still to be read. Assignments in any order
+then copy what `copyWithin` copies.
+
+### Bit prices from one table indexed by bit and probability
+
+Change, in `range-encoder.ts`: `getBitPrice(prob, bit)` returns
+`bitPrices[(bit << 7) | (prob >>> 4)]` instead of
+`prices[(prob ^ (-bit & 2047)) >>> 4]`. `bitPrices` has 256 entries: `prices[q]`
+at `q`, and `prices[127 - q]` at `128 + q`, for `q` in 0..127. `prices` is the
+Java code's table, still built by `createPriceTable`, now exported for a test.
+
+Argument:
+
+- _Domain._ Every caller passes bit 0 or 1, as the Java code's comment requires:
+  a literal, `rep - 2` for rep 2 or 3, or a bit taken with `& 1`. Probabilities
+  lie in 0..2047: they are set to 1024 by `initProbs` or zero-filled, and
+  `encodeBit`'s update keeps them in range.
+- _Bit 0._ `-0 & 2047` is 0, so both index `q = prob >>> 4`, and `bitPrices[q]`
+  is `prices[q]`.
+- _Bit 1._ `-1 & 2047` is 2047. With `prob = 16q + r` (`r` in 0..15),
+  `prob ^ 2047 = 16(127 - q) + (15 - r)`, so the old index is `127 - q`. The new
+  index is `128 + q`, which holds `prices[127 - q]`.
+
+### Hashing with an int32 copy of the CRC table
+
+Change, in `hash234.ts`: `calcHashes` reads an `Int32Array` copy of
+`CRC32_TABLE`, made when the module is evaluated.
+
+Argument: the table's entries are in [0, 2^32), and the copy holds ToInt32 of
+each. `calcHashes` uses an entry only as the left operand of `^` and `<<`, which
+apply ToInt32 first, so they receive the same int32 and give the same result.
+Indexes are bytes, in range for both. The library never writes either table. A
+caller that changes the exported array at run time no longer affects hashing;
+`crc32.ts` says so.

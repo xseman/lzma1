@@ -1,5 +1,6 @@
 /**
- * CRC-32 (IEEE 802.3) lookup table. The match finders use it for hashing.
+ * CRC-32 (IEEE 802.3) lookup table. The match finders hash with a copy of
+ * it, so changing this array does not affect compression.
  */
 export const CRC32_TABLE: number[] = createCrc32Table();
 
