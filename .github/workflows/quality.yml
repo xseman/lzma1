@@ -8,6 +8,8 @@ on:
             - "src/**"
             - "package.json"
             - "tsconfig.json"
+            - "tsconfig.tests.json"
+            - "fixtures/**"
             - "dprint.json"
             - "bunfig.toml"
             - ".github/.release-config.json"
@@ -21,6 +23,8 @@ on:
             - "src/**"
             - "package.json"
             - "tsconfig.json"
+            - "tsconfig.tests.json"
+            - "fixtures/**"
             - "dprint.json"
             - "bunfig.toml"
             - ".github/.release-config.json"
@@ -82,3 +86,42 @@ jobs:
 
             - name: format check
               run: bun run fmt:check
+
+    fixtures:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+            - uses: actions/setup-java@v6
+              with:
+                  distribution: temurin
+                  java-version: 21
+
+            - name: install
+              run: bun install
+
+            - name: fetch XZ for Java at the pinned commit
+              run: |
+                  commit="$(node -p 'require("./fixtures/manifest.json").java.commit')"
+                  git init --quiet "$RUNNER_TEMP/xz-java"
+                  git -C "$RUNNER_TEMP/xz-java" fetch --quiet --depth 1 https://github.com/tukaani-project/xz-java.git "$commit"
+                  git -C "$RUNNER_TEMP/xz-java" checkout --quiet FETCH_HEAD
+
+            - name: regenerate
+              run: node fixtures/generate.ts "$RUNNER_TEMP/xz-java"
+
+            # javaVersion names the JDK build that ran the generator, not
+            # generated content, so it may differ.
+            - name: compare with the committed fixtures
+              run: |
+                  untracked="$(git ls-files --others --exclude-standard -- fixtures)"
+                  if ! git diff --exit-code -I '^\s*"javaVersion": ' -- fixtures || [ -n "$untracked" ]; then
+                      echo "$untracked"
+                      echo "::error::The committed fixtures differ from what fixtures/generate.ts produces; see fixtures/README.md."
+                      exit 1
+                  fi

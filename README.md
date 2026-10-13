@@ -244,6 +244,28 @@ structure.
 
 See [docs/benchmarks.md](docs/benchmarks.md), and [bench](bench) to run them.
 
+## Verification
+
+The encoder's output is byte-identical to [XZ for Java][xz-java] at commit
+[`6925f81`](https://github.com/tukaani-project/xz-java/commit/6925f81244a99d0ea4f3fd021938e2ee1e6de2eb)
+on a corpus of inputs and encoder settings. The decoder handles a set of
+corrupted streams the same way, except for four documented kinds of corrupt
+input that it accepts where XZ for Java rejects them. CI checks both.
+[fixtures/README.md](fixtures/README.md) describes the corpus and how to
+regenerate it.
+
+Passing tests aren't enough for this code. An encoder decision that differs from
+XZ for Java's usually still produces a valid stream that decompresses correctly,
+so round-trip tests miss it, and the code, though small, has an enormous input
+space, many edge cases and modular arithmetic for such differences to hide in.
+So every change to the coders comes with a written argument in
+[docs/verification.md](docs/verification.md): either that behavior is unchanged
+for all inputs, or a documented deviation from the Java code. The identity tests
+check those arguments on the corpus.
+
+To run the checks yourself: `bun test src/xz-java-identity_test.ts`, or
+`node fixtures/verify.ts` (Node >= 22.18) to run them on V8.
+
 ## Related
 
 - [XZ for Java](https://github.com/tukaani-project/xz-java) - the implementation this library is ported from

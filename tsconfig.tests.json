@@ -1,0 +1,16 @@
+{
+	// Type-checks the tests and the fixture tooling, which the build config
+	// (tsconfig.json) leaves out. Never emits: bun and Node run these files
+	// directly and neither checks types. `bun run typecheck` runs both.
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": ".",
+		"noEmit": true,
+		"allowImportingTsExtensions": true
+	},
+	"include": [
+		"src/**/*",
+		"fixtures/**/*.ts"
+	],
+	"exclude": []
+}

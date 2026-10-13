@@ -6,7 +6,8 @@
  * read position gets close to the end of the buffer, the window is moved
  * back to the start of the buffer.
  *
- * Ported from XZ for Java (0BSD) by Lasse Collin and Igor Pavlov.
+ * Ported from XZ for Java (0BSD), `src/org/tukaani/xz/lz/LZEncoder.java`,
+ * `Matches.java` and `MatchLength.java`, by Lasse Collin and Igor Pavlov.
  */
 
 export type MatchFinderType = "hc4" | "bt4";

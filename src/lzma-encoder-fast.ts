@@ -2,7 +2,8 @@
  * Fast LZMA encoder: picks symbols with simple heuristics, similar to a
  * lazy-matching LZ77 encoder.
  *
- * Ported from XZ for Java (0BSD) by Lasse Collin and Igor Pavlov.
+ * Ported from XZ for Java (0BSD), `src/org/tukaani/xz/lzma/LZMAEncoderFast.java`,
+ * by Lasse Collin and Igor Pavlov.
  */
 
 import type { Matches } from "./lz-encoder.js";

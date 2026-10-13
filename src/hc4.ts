@@ -4,7 +4,8 @@
  * Every position links to the previous position with the same 4-byte hash.
  * Faster than the binary tree finder but finds fewer long matches.
  *
- * Ported from XZ for Java (0BSD) by Lasse Collin and Igor Pavlov.
+ * Ported from XZ for Java (0BSD), `src/org/tukaani/xz/lz/HC4.java`, by
+ * Lasse Collin and Igor Pavlov.
  */
 
 import { Hash234 } from "./hash234.js";

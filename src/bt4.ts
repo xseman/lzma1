@@ -5,7 +5,8 @@
  * that follow it. Searching the tree finds the longest matches at the cost
  * of more work per byte than the hash chain finder.
  *
- * Ported from XZ for Java (0BSD) by Lasse Collin and Igor Pavlov.
+ * Ported from XZ for Java (0BSD), `src/org/tukaani/xz/lz/BT4.java`, by
+ * Lasse Collin and Igor Pavlov.
  */
 
 import { Hash234 } from "./hash234.js";

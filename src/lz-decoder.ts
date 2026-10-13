@@ -6,6 +6,13 @@
  * so small outputs don't allocate the whole dictionary up front, unless
  * `preallocate` is set. Bytes are passed to `sink` before they get
  * overwritten.
+ *
+ * Ported from XZ for Java (0BSD), `src/org/tukaani/xz/lz/LZDecoder.java`,
+ * by Lasse Collin and Igor Pavlov; the fixed dictionary buffer flushed by
+ * the caller became this growing buffer with a sink, and the Java code's
+ * mid-match output limit (`pendingLen`) is not needed, because the limit
+ * here is the whole declared size, which `LzmaDecoder` enforces before
+ * each match.
  */
 export class LzDecoder {
 	private buf: Uint8Array;

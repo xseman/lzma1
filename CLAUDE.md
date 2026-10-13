@@ -7,14 +7,16 @@ dependencies, web standard APIs only. Read `README.md` for the API.
 
 ```sh
 bun run test            # bun test src/ with coverage
-bun run typecheck       # tsc --noEmit
+bun run typecheck       # tsc --noEmit && tsc -p tsconfig.tests.json
 bun run fmt             # dprint fmt
 bun run build           # tsc --build into lib/
 bun run bench           # bench/, results in docs/benchmarks.md
 bun test src/lzma_test.ts
 ```
 
-CI (`.github/workflows/quality.yml`) runs typecheck, test and `fmt:check`.
+CI (`.github/workflows/quality.yml`) runs typecheck, test and `fmt:check`, and
+regenerates `fixtures/` from XZ for Java to check that they match their
+generator.
 
 ## Rules
 
@@ -23,9 +25,19 @@ CI (`.github/workflows/quality.yml`) runs typecheck, test and `fmt:check`.
   header. Omitting it is opt-in only (`endMarker: false`).
 - Output stays interoperable with `xz --format=lzma`, 7-Zip and the LZMA SDK;
   `interop_test.ts` checks it.
-- A logical change needs its tests added or adjusted, and `README.md` brought
-  up to date (sections: Why, Features, Installation, Quick start, How it
-  works, Related).
+- Encoder output is byte-identical to XZ for Java at the commit pinned in
+  `fixtures/manifest.json`, on the committed differential corpus;
+  `xz-java-identity_test.ts` checks it. The interoperability tests complement
+  this check and do not replace it.
+- `fixtures/` holds that corpus: inputs, XZ for Java's output for them,
+  malformed streams with their recorded outcomes, and the generator. Never
+  regenerate XZ for Java's fixture bytes to make a failing identity test pass; a
+  failure means the port diverged. A fixture change needs an explicit reason (a
+  new pin, a generator correction, a corpus extension), and a new class of
+  malformed-stream deviation needs a maintainer decision.
+- A logical change needs its tests added or adjusted, and `README.md` brought up
+  to date (sections: Why, Features, Installation, Quick start, How it works,
+  Verification, Related).
 - Do not edit `CHANGELOG.md`: release-please writes it from the commit types.
   Commits and PR titles are lowercase conventional commits.
 
@@ -50,6 +62,19 @@ Ported files (`bt4`, `hc4`, `hash234`, `lz-*`, `lzma-coder`, `lzma-decoder`,
 for Java structure, names and parameter lists so they can be compared with
 upstream; don't reshape them only to satisfy the rules below. The rules apply
 to new code; existing code is not churned to match them.
+
+Every change to the coders comes with a written argument in
+`docs/verification.md`. A change of representation is a behavior-preserving
+transformation: its argument shows that behavior is unchanged for every input,
+stating the invariant that makes the old and new code equivalent. A new feature
+with no Java counterpart states what it changes and argues that nothing else
+changes. The identity test backs the arguments up; it does not replace them.
+This library needs that discipline: the code is small, but its input space is
+enormous, the algorithm is full of edge cases and 32-bit modular arithmetic, and
+an encoder decision that differs from XZ for Java's usually still produces a
+valid stream that decompresses correctly, so round-trip tests miss it. Logic
+taken from any source other than XZ for Java is an explicit decision, documented
+as such.
 
 ### Imports and exports
 
@@ -157,7 +182,9 @@ return out.finish();
   comes from the preset.
 - A `//` comment records a decision: why, what breaks without it, how it was
   found. Label comments are the only kind that may restate the code.
-- A ported file names its origin in the module doc comment (`Ported from XZ
-  for Java (0BSD) by …`).
+- A ported file names its origin and its exact XZ for Java source path(s) in the
+  module doc comment (`Ported from XZ for Java (0BSD), <path>, by …`). The full
+  pinned commit is recorded once, in `fixtures/manifest.json` and the README's
+  Verification section.
 - Binary layouts get a table or ASCII box diagram in the doc comment
   (`header.ts`).

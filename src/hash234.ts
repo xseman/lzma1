@@ -1,7 +1,9 @@
 /**
  * Hash tables of the last positions of 2-, 3- and 4-byte sequences.
  *
- * Ported from XZ for Java (0BSD) by Lasse Collin and Igor Pavlov.
+ * Ported from XZ for Java (0BSD), `src/org/tukaani/xz/lz/Hash234.java` and
+ * `CRC32Hash.java` (the table itself comes from `crc32.ts`), by Lasse
+ * Collin and Igor Pavlov.
  */
 
 import { CRC32_TABLE } from "./crc32.js";

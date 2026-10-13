@@ -32,7 +32,7 @@ function createRandom(seed: number): () => number {
 }
 
 /** Inputs covering the different kinds of symbols. */
-function corpus(): [string, Uint8Array][] {
+function corpus(): [string, Uint8Array<ArrayBuffer>][] {
 	const random = createRandom(5);
 	const text = new TextEncoder().encode(
 		"It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness. ",

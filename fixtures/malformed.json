@@ -1,0 +1,7376 @@
+{
+	"memLimitKiB": 524288,
+	"cases": [
+		{
+			"id": "base-100-n-bt4-64@trunc0",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc2",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc3",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc4",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc5",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc6",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc7",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc8",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 8
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc9",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 9
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc10",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 10
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc11",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 11
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc12",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 12
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc13",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 13
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc14",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 14
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc15",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 15
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc16",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 16
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc17",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 17
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc18",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 18
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc19",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 19
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc20",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 20
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc21",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 21
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc22",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 22
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc23",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 23
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc24",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 24
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc25",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 25
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc26",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 26
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc27",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 27
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc28",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 28
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc29",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 29
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc30",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 30
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc31",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 31
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc32",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 32
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc33",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 33
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc34",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 34
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@trunc35",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 35
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip0.0",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 0,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip1.1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 1,
+				"bit": 1
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip2.2",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 2,
+				"bit": 2
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip3.3",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 3,
+				"bit": 3
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip4.4",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 4,
+				"bit": 4
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip5.5",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 5,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip6.6",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 6,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip7.7",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 7,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip8.0",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 8,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip9.1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 9,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip10.2",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 10,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip11.3",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 11,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip12.4",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 12,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip13.5",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 13,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip14.6",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 14,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip15.7",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 15,
+				"bit": 7
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "c886d9988e181064b4a99f0ad20c74aa254cc659bec9d64e210668509ae86d1d"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip16.0",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 16,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip17.1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 17,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip18.2",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 18,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip19.3",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 19,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip20.4",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 20,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip21.5",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 21,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip22.6",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 22,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip23.7",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 23,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip24.0",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 24,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip25.1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 25,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip26.2",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 26,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip27.3",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 27,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip28.4",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 28,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip29.5",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 29,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip30.6",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 30,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip31.7",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 31,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip32.0",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 32,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "accepted-corruption",
+			"port": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "07f31b1d562880a1f5a162e2e91db98bd7ea27fa3fb531028c45349d31eead5b"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip33.1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 33,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip34.2",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 34,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@flip35.3",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 35,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc2",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc4",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc5",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc6",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc7",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc8",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 8
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc9",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 9
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc10",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 10
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc11",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 11
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc12",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 12
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc13",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 13
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc14",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 14
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc15",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 15
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc16",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 16
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc17",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 17
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc18",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 18
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc19",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 19
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc42",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 42
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc65",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 65
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc88",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 88
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc111",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 111
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc134",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 134
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc157",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 157
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc180",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 180
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc203",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 203
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc226",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 226
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc249",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 249
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc272",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 272
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc295",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 295
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc318",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 318
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc341",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 341
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc364",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 364
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc387",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 387
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc410",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 410
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc433",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 433
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc456",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 456
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc479",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 479
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc502",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 502
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc525",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 525
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc548",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 548
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc571",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 571
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc594",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 594
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc617",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 617
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc640",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 640
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc663",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 663
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc686",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 686
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc709",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 709
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc732",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 732
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc755",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 755
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc778",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 778
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc801",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 801
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc824",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 824
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc847",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 847
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc870",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 870
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc893",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 893
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc916",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 916
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc939",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 939
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc962",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 962
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc985",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 985
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1008",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1008
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1031",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1031
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1054",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1054
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1077",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1077
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1100",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1100
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1123",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1123
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1130",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1130
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@trunc1131",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "truncate",
+				"at": 1131
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip0.0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 0,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip1.1",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 1,
+				"bit": 1
+			},
+			"java": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip2.2",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 2,
+				"bit": 2
+			},
+			"java": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip3.3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 3,
+				"bit": 3
+			},
+			"java": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip4.4",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 4,
+				"bit": 4
+			},
+			"java": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip5.5",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 5,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip6.6",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 6,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip7.7",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 7,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip8.0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 8,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip9.1",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 9,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip10.2",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 10,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip11.3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 11,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip12.4",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 12,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip13.5",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 13,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip40.0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 40,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip67.3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 67,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip94.6",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 94,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip121.1",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 121,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip148.4",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 148,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip175.7",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 175,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip202.2",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 202,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip229.5",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 229,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip256.0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 256,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip283.3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 283,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip310.6",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 310,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip337.1",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 337,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip364.4",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 364,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip391.7",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 391,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip418.2",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 418,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip445.5",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 445,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip472.0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 472,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip499.3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 499,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip526.6",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 526,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip553.1",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 553,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip580.4",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 580,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip607.7",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 607,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip634.2",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 634,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip661.5",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 661,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip688.0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 688,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip715.3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 715,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip742.6",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 742,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip769.1",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 769,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip796.4",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 796,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip823.7",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 823,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip850.2",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 850,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip877.5",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 877,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip904.0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 904,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip931.3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 931,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip958.6",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 958,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip985.1",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 985,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip1012.4",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 1012,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip1039.7",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 1039,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip1066.2",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 1066,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip1093.5",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 1093,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip1120.0",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 1120,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64@flip1131.3",
+			"source": "base-5000-n-bt4-64",
+			"op": {
+				"kind": "flipbit",
+				"at": 1131,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc0",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc2",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc3",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc4",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc6",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc7",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc8",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 8
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc9",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 9
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc10",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 10
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc11",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 11
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc12",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 12
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc13",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 13
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc14",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 14
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc15",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 15
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc16",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 16
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc17",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 17
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc18",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 18
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc19",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 19
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc43",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 43
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc67",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 67
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc91",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 91
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc115",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 115
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc139",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 139
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc163",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 163
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc187",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 187
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc211",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 211
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc235",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 235
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc259",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 259
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc283",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 283
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc307",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 307
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc331",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 331
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc355",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 355
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc379",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 379
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc403",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 403
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc427",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 427
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc451",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 451
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc475",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 475
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc499",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 499
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc523",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 523
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc547",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 547
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc571",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 571
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc595",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 595
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc619",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 619
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc643",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 643
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc667",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 667
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc691",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 691
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc715",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 715
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc739",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 739
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc763",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 763
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc787",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 787
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc811",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 811
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc835",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 835
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc859",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 859
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc883",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 883
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc907",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 907
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc931",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 931
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc955",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 955
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc979",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 979
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1003",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1003
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1027",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1027
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1051",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1051
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1075",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1075
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1099",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1099
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1123",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1123
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1147",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1147
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1150",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1150
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@trunc1151",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "truncate",
+				"at": 1151
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip0.0",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 0,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip1.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 1,
+				"bit": 1
+			},
+			"java": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip2.2",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 2,
+				"bit": 2
+			},
+			"java": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip3.3",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 3,
+				"bit": 3
+			},
+			"java": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip4.4",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 4,
+				"bit": 4
+			},
+			"java": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip5.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 5,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip6.6",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 6,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip7.7",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 7,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip8.0",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 8,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip9.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 9,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip10.2",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 10,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip11.3",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 11,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip12.4",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 12,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip13.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 13,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip41.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 41,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip69.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 69,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip97.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 97,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip125.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 125,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip153.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 153,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip181.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 181,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip209.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 209,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip237.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 237,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip265.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 265,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip293.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 293,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip321.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 321,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip349.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 349,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip377.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 377,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip405.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 405,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip433.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 433,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip461.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 461,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip489.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 489,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip517.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 517,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip545.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 545,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip573.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 573,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip601.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 601,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip629.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 629,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip657.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 657,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip685.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 685,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip713.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 713,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip741.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 741,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip769.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 769,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip797.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 797,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip825.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 825,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip853.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 853,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip881.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 881,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip909.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 909,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip937.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 937,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip965.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 965,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip993.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 993,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip1021.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 1021,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip1049.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 1049,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip1077.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 1077,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip1105.1",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 1105,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip1133.5",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 1133,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8@flip1151.7",
+			"source": "base-5000-f-hc4-128d8",
+			"op": {
+				"kind": "flipbit",
+				"at": 1151,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 5000,
+				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc0",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc1",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc2",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc3",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc4",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc5",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc6",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc7",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc8",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 8
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc9",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 9
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc10",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 10
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc11",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 11
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc12",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 12
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc13",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 13
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc14",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 14
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc15",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 15
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc16",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 16
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc17",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 17
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc18",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 18
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc19",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 19
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc167",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 167
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc315",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 315
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc463",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 463
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc611",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 611
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc759",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 759
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc907",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 907
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc1055",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 1055
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc1203",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 1203
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc1351",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 1351
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc1499",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 1499
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc1647",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 1647
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc1795",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 1795
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc1943",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 1943
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc2091",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 2091
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc2239",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 2239
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc2387",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 2387
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc2535",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 2535
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc2683",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 2683
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc2831",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 2831
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc2979",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 2979
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc3127",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 3127
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc3275",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 3275
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc3423",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 3423
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc3571",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 3571
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc3719",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 3719
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc3867",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 3867
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc4015",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 4015
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc4163",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 4163
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc4311",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 4311
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc4459",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 4459
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc4607",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 4607
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc4755",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 4755
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc4903",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 4903
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc5051",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 5051
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc5199",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 5199
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc5347",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 5347
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc5495",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 5495
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc5643",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 5643
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc5791",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 5791
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc5939",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 5939
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc6087",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 6087
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc6235",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 6235
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc6383",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 6383
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc6531",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 6531
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc6679",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 6679
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc6827",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 6827
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc6975",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 6975
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc7110",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 7110
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@trunc7111",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "truncate",
+				"at": 7111
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip0.0",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 0,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip1.1",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 1,
+				"bit": 1
+			},
+			"java": {
+				"status": "ok",
+				"length": 70000,
+				"sha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d"
+			}
+		},
+		{
+			"id": "repcycle-n@flip2.2",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 2,
+				"bit": 2
+			},
+			"java": {
+				"status": "ok",
+				"length": 70000,
+				"sha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d"
+			}
+		},
+		{
+			"id": "repcycle-n@flip3.3",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 3,
+				"bit": 3
+			},
+			"java": {
+				"status": "ok",
+				"length": 70000,
+				"sha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d"
+			}
+		},
+		{
+			"id": "repcycle-n@flip4.4",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 4,
+				"bit": 4
+			},
+			"java": {
+				"status": "ok",
+				"length": 70000,
+				"sha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d"
+			}
+		},
+		{
+			"id": "repcycle-n@flip5.5",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 5,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip6.6",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 6,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip7.7",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 7,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip8.0",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 8,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip9.1",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 9,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip10.2",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 10,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip11.3",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 11,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip12.4",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 12,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip13.5",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 13,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip190.6",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 190,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip367.7",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 367,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip544.0",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 544,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip721.1",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 721,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip898.2",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 898,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip1075.3",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 1075,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip1252.4",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 1252,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip1429.5",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 1429,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip1606.6",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 1606,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip1783.7",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 1783,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip1960.0",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 1960,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip2137.1",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 2137,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip2314.2",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 2314,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip2491.3",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 2491,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip2668.4",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 2668,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip2845.5",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 2845,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip3022.6",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 3022,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip3199.7",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 3199,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip3376.0",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 3376,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip3553.1",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 3553,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip3730.2",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 3730,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip3907.3",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 3907,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip4084.4",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 4084,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip4261.5",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 4261,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip4438.6",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 4438,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip4615.7",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 4615,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip4792.0",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 4792,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip4969.1",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 4969,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip5146.2",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 5146,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip5323.3",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 5323,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip5500.4",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 5500,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip5677.5",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 5677,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip5854.6",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 5854,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip6031.7",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 6031,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip6208.0",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 6208,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip6385.1",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 6385,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip6562.2",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 6562,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip6739.3",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 6739,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip6916.4",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 6916,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip7093.5",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 7093,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "repcycle-n@flip7111.7",
+			"source": "repcycle-n",
+			"op": {
+				"kind": "flipbit",
+				"at": 7111,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 70000,
+				"sha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d"
+			}
+		},
+		{
+			"id": "empty-normal@trunc0",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc1",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc2",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc3",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc4",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc5",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc6",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc7",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc8",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 8
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc9",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 9
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc10",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 10
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc11",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 11
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc12",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 12
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@trunc13",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 13
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@trunc14",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 14
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@trunc15",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 15
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@trunc16",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 16
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@trunc17",
+			"source": "empty-normal",
+			"op": {
+				"kind": "truncate",
+				"at": 17
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip0.0",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 0,
+				"bit": 0
+			},
+			"java": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip1.1",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 1,
+				"bit": 1
+			},
+			"java": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip2.2",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 2,
+				"bit": 2
+			},
+			"java": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip3.3",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 3,
+				"bit": 3
+			},
+			"java": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip4.4",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 4,
+				"bit": 4
+			},
+			"java": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip5.5",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 5,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@flip6.6",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 6,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@flip7.7",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 7,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@flip8.0",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 8,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@flip9.1",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 9,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@flip10.2",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 10,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@flip11.3",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 11,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@flip12.4",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 12,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "empty-normal@flip13.5",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 13,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip14.6",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 14,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip15.7",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 15,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip16.0",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 16,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "empty-normal@flip17.1",
+			"source": "empty-normal",
+			"op": {
+				"kind": "flipbit",
+				"at": 17,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			},
+			"deviation": "trailing-state-leniency",
+			"port": {
+				"status": "ok",
+				"length": 0,
+				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc0",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc1",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc2",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc3",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc4",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc5",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc6",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc7",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc8",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 8
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc9",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 9
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc10",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 10
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc11",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 11
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc12",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 12
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc13",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 13
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc14",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 14
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc15",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 15
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc16",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 16
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc17",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 17
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc18",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 18
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc19",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 19
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc20",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 20
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc21",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 21
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc22",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 22
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc23",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 23
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc24",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 24
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc25",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 25
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc26",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 26
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc27",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 27
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc28",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 28
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc29",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 29
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc30",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 30
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc31",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 31
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc32",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 32
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc33",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 33
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc34",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 34
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc35",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 35
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc36",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 36
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc37",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 37
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc38",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 38
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc39",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 39
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@trunc40",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "truncate",
+				"at": 40
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip0.0",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 0,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip1.1",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 1,
+				"bit": 1
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip2.2",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 2,
+				"bit": 2
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip3.3",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 3,
+				"bit": 3
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip4.4",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 4,
+				"bit": 4
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip5.5",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 5,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip6.6",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 6,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip7.7",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 7,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip8.0",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 8,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip9.1",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 9,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip10.2",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 10,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip11.3",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 11,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip12.4",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 12,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip13.5",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 13,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip14.6",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 14,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip15.7",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 15,
+				"bit": 7
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "c886d9988e181064b4a99f0ad20c74aa254cc659bec9d64e210668509ae86d1d"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip16.0",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 16,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip17.1",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 17,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip18.2",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 18,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip19.3",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 19,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip20.4",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 20,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip21.5",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 21,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip22.6",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 22,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip23.7",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 23,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip24.0",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 24,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip25.1",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 25,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip26.2",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 26,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip27.3",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 27,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip28.4",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 28,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip29.5",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 29,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip30.6",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 30,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip31.7",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 31,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip32.0",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 32,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip33.1",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 33,
+				"bit": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip34.2",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 34,
+				"bit": 2
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip35.3",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 35,
+				"bit": 3
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip36.4",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 36,
+				"bit": 4
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip37.5",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 37,
+				"bit": 5
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip38.6",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 38,
+				"bit": 6
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip39.7",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 39,
+				"bit": 7
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@flip40.0",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "flipbit",
+				"at": 40,
+				"bit": 0
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@props225",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "props",
+				"value": 225
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@props255",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "props",
+				"value": 255
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@props224",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "props",
+				"value": 224
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@dict0",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "dictSize",
+				"value": 0
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@dict1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "dictSize",
+				"value": 1
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@dict4095",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "dictSize",
+				"value": 4095
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@dict4294967295",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "dictSize",
+				"value": 4294967295
+			},
+			"java": {
+				"status": "error",
+				"error": "UnsupportedOptionsException"
+			},
+			"deviation": "dict-size-clamp",
+			"port": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@size+1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "size",
+				"delta": 1
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@size-1",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "size",
+				"delta": -1
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@sizeUnknown",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "size",
+				"value": "unknown"
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64@sizeHuge",
+			"source": "base-100-n-bt4-64",
+			"op": {
+				"kind": "header",
+				"field": "size",
+				"value": "2^63-1"
+			},
+			"java": {
+				"status": "error",
+				"error": "EOFException"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@declared-actual",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "declaredSize",
+				"size": 100
+			},
+			"java": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@declared-actual+5",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "declaredSize",
+				"size": 105
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			},
+			"deviation": "end-marker-leniency",
+			"port": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@declared-actual+1",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "declaredSize",
+				"size": 101
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			},
+			"deviation": "end-marker-leniency",
+			"port": {
+				"status": "ok",
+				"length": 100,
+				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64.marker@declared-actual-1",
+			"source": "base-100-n-bt4-64.marker",
+			"op": {
+				"kind": "declaredSize",
+				"size": 99
+			},
+			"java": {
+				"status": "error",
+				"error": "CorruptedInputException"
+			}
+		}
+	]
+}

@@ -1,0 +1,1789 @@
+{
+	"java": {
+		"project": "XZ for Java",
+		"repository": "https://github.com/tukaani-project/xz-java",
+		"commit": "6925f81244a99d0ea4f3fd021938e2ee1e6de2eb"
+	},
+	"javaVersion": "openjdk version \"21.0.12.1\" 2026-08-18",
+	"decoderMemLimitKiB": 524288,
+	"cells": [
+		{
+			"id": "base-1-n-bt4-32",
+			"input": {
+				"builder": "mixed",
+				"size": 1,
+				"seed": 1000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 32,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+			"fixtureSha256": {
+				"marker": "1bdb276907166161b64a6b869d0fb2ce6a084d14c3243a99c87a0eb5e48fb13b",
+				"plain": "5b5c3ab17bb58f6b6f88661c16ea883d5bdebd2f64be5274199d5d0da07d0c7a"
+			}
+		},
+		{
+			"id": "base-1-n-bt4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 1,
+				"seed": 1000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+			"fixtureSha256": {
+				"marker": "1bdb276907166161b64a6b869d0fb2ce6a084d14c3243a99c87a0eb5e48fb13b",
+				"plain": "5b5c3ab17bb58f6b6f88661c16ea883d5bdebd2f64be5274199d5d0da07d0c7a"
+			}
+		},
+		{
+			"id": "base-1-n-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 1,
+				"seed": 1000
+			},
+			"cfg": {
+				"dictSize": 4194304,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+			"fixtureSha256": {
+				"marker": "1bdb276907166161b64a6b869d0fb2ce6a084d14c3243a99c87a0eb5e48fb13b",
+				"plain": "5b5c3ab17bb58f6b6f88661c16ea883d5bdebd2f64be5274199d5d0da07d0c7a"
+			}
+		},
+		{
+			"id": "base-1-n-hc4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 1,
+				"seed": 1000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "hc4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+			"fixtureSha256": {
+				"marker": "1bdb276907166161b64a6b869d0fb2ce6a084d14c3243a99c87a0eb5e48fb13b",
+				"plain": "5b5c3ab17bb58f6b6f88661c16ea883d5bdebd2f64be5274199d5d0da07d0c7a"
+			}
+		},
+		{
+			"id": "base-1-f-hc4-128d8",
+			"input": {
+				"builder": "mixed",
+				"size": 1,
+				"seed": 1000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "hc4",
+				"niceLen": 128,
+				"depth": 8,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+			"fixtureSha256": {
+				"marker": "1bdb276907166161b64a6b869d0fb2ce6a084d14c3243a99c87a0eb5e48fb13b",
+				"plain": "5b5c3ab17bb58f6b6f88661c16ea883d5bdebd2f64be5274199d5d0da07d0c7a"
+			}
+		},
+		{
+			"id": "base-1-f-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 1,
+				"seed": 1000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+			"fixtureSha256": {
+				"marker": "1bdb276907166161b64a6b869d0fb2ce6a084d14c3243a99c87a0eb5e48fb13b",
+				"plain": "5b5c3ab17bb58f6b6f88661c16ea883d5bdebd2f64be5274199d5d0da07d0c7a"
+			}
+		},
+		{
+			"id": "base-1-n-bt4-64-lc0lp2pb0",
+			"input": {
+				"builder": "mixed",
+				"size": 1,
+				"seed": 1000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 2,
+				"pb": 0
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "6da43b944e494e885e69af021f93c6d9331c78aa228084711429160a5bbd15b5",
+			"fixtureSha256": {
+				"marker": "7b5f33a751c4e25c48c9e7a7209ce5881b93affe4e157eefe197c6c1bfce918e",
+				"plain": "aa2fab96e87c49a255b6f01b321665822852d8c57869b0dd38f8cde33c59f021"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-32",
+			"input": {
+				"builder": "mixed",
+				"size": 100,
+				"seed": 1001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 32,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719",
+			"fixtureSha256": {
+				"marker": "a099c2ae936a90c90658e4dda16d03489ed332ad857127803948698492db592d",
+				"plain": "0cda6cdfdea450ba2f86c0b488a0e79183dabc0cc52a46cbdbcad53c1be5e764"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 100,
+				"seed": 1001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719",
+			"fixtureSha256": {
+				"marker": "a099c2ae936a90c90658e4dda16d03489ed332ad857127803948698492db592d",
+				"plain": "0cda6cdfdea450ba2f86c0b488a0e79183dabc0cc52a46cbdbcad53c1be5e764"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 100,
+				"seed": 1001
+			},
+			"cfg": {
+				"dictSize": 4194304,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719",
+			"fixtureSha256": {
+				"marker": "a099c2ae936a90c90658e4dda16d03489ed332ad857127803948698492db592d",
+				"plain": "0cda6cdfdea450ba2f86c0b488a0e79183dabc0cc52a46cbdbcad53c1be5e764"
+			}
+		},
+		{
+			"id": "base-100-n-hc4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 100,
+				"seed": 1001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "hc4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719",
+			"fixtureSha256": {
+				"marker": "a099c2ae936a90c90658e4dda16d03489ed332ad857127803948698492db592d",
+				"plain": "0cda6cdfdea450ba2f86c0b488a0e79183dabc0cc52a46cbdbcad53c1be5e764"
+			}
+		},
+		{
+			"id": "base-100-f-hc4-128d8",
+			"input": {
+				"builder": "mixed",
+				"size": 100,
+				"seed": 1001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "hc4",
+				"niceLen": 128,
+				"depth": 8,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719",
+			"fixtureSha256": {
+				"marker": "a099c2ae936a90c90658e4dda16d03489ed332ad857127803948698492db592d",
+				"plain": "0cda6cdfdea450ba2f86c0b488a0e79183dabc0cc52a46cbdbcad53c1be5e764"
+			}
+		},
+		{
+			"id": "base-100-f-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 100,
+				"seed": 1001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719",
+			"fixtureSha256": {
+				"marker": "a099c2ae936a90c90658e4dda16d03489ed332ad857127803948698492db592d",
+				"plain": "0cda6cdfdea450ba2f86c0b488a0e79183dabc0cc52a46cbdbcad53c1be5e764"
+			}
+		},
+		{
+			"id": "base-100-n-bt4-64-lc0lp2pb0",
+			"input": {
+				"builder": "mixed",
+				"size": 100,
+				"seed": 1001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 2,
+				"pb": 0
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719",
+			"fixtureSha256": {
+				"marker": "fa2f5843548f40c252b60e297598c7571ce95022b987fa81f3485d9b60cfc654",
+				"plain": "24792e0c200e89b65979812eeb656b35dac0368597f7be5af97b1673b9dfc93c"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-32",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 1002
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 32,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041",
+			"fixtureSha256": {
+				"marker": "c6b087bb5a3ddbbd12e7491ce417b73a652f7bf265e032625b9b917f8b1e595e",
+				"plain": "ed96f015abe819502cdf871b967d66ff168af8189da14a495eadf0f5222c994b"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 1002
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041",
+			"fixtureSha256": {
+				"marker": "d83e16d54bf14482e10871b72c1e3df7de31317f3ed68af674a9f8e764d7024c",
+				"plain": "f08c7611d51292cfadcf7fa6fa0c3246a20206ea93becb97cfe9d0c6a8b83fd0"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 1002
+			},
+			"cfg": {
+				"dictSize": 4194304,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041",
+			"fixtureSha256": {
+				"marker": "d83e16d54bf14482e10871b72c1e3df7de31317f3ed68af674a9f8e764d7024c",
+				"plain": "f08c7611d51292cfadcf7fa6fa0c3246a20206ea93becb97cfe9d0c6a8b83fd0"
+			}
+		},
+		{
+			"id": "base-5000-n-hc4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 1002
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "hc4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041",
+			"fixtureSha256": {
+				"marker": "d8e086a8f4d61c128341946ef5ecec911acba49dbd2d247f65bb365dbafec298",
+				"plain": "b661f739a69ed41f5ab08698166291b8ad2ca7c0ff68bf133f65bd47ae629fa9"
+			}
+		},
+		{
+			"id": "base-5000-f-hc4-128d8",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 1002
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "hc4",
+				"niceLen": 128,
+				"depth": 8,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041",
+			"fixtureSha256": {
+				"marker": "75c7f8a87bde20805b791eed54a6214604343068c3df3e02e450ff7d6ff432f8",
+				"plain": "574c760536aafe9dd6a6ae10ded88afd6a63a3205b119c80d189607c4e6bebc2"
+			}
+		},
+		{
+			"id": "base-5000-f-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 1002
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041",
+			"fixtureSha256": {
+				"marker": "cb530bb01df56d30e08e0a0982be102ffa6f9cd04d99bd65eec9980396b3f917",
+				"plain": "23cba47b04131c5f767f74238c98ee83eec96ab82b1bd5dc62f6c760daeb536e"
+			}
+		},
+		{
+			"id": "base-5000-n-bt4-64-lc0lp2pb0",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 1002
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 2,
+				"pb": 0
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041",
+			"fixtureSha256": {
+				"marker": "6e87c2ce5b0d8419e7fa8b4976835894b0df62d29513009b9b25436a79db0f96",
+				"plain": "17e618e833c46c272c2a9c8d1649e8124b8626de221430fa43158dd71b2f63e3"
+			}
+		},
+		{
+			"id": "base-70000-n-bt4-32",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 1003
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 32,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "d6848149563bd082146155f060a6fb5f50e0de15369534960091166a4de7447a",
+			"fixtureSha256": {
+				"marker": "d8b0088154e616686b98457bf730364ef585ee9801d531622c7e5a1f416101a8",
+				"plain": "338eb18e8e5d1ff557dd56a7939343ed90e864d9ef90dab876f0c363c9d36d69"
+			}
+		},
+		{
+			"id": "base-70000-n-bt4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 1003
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "d6848149563bd082146155f060a6fb5f50e0de15369534960091166a4de7447a",
+			"fixtureSha256": {
+				"marker": "c8205cfb314c0c84ba0b529ad76d474b5697f84ed5fae7fbb65c4a82713d9051",
+				"plain": "0dad548559d398c0f14276972fb926c05aba62853e0ebc7306778543abbb7588"
+			}
+		},
+		{
+			"id": "base-70000-n-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 1003
+			},
+			"cfg": {
+				"dictSize": 4194304,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "d6848149563bd082146155f060a6fb5f50e0de15369534960091166a4de7447a",
+			"fixtureSha256": {
+				"marker": "7aa6d9a5a5ce3f6a124d92cb8baebf55b910f877ad175b5d5d1356f12581b2ae",
+				"plain": "b1c68bc403ba51e33c456a257fca0bed886924c0720be9da455851eaef29ffd3"
+			}
+		},
+		{
+			"id": "base-70000-n-hc4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 1003
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "hc4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "d6848149563bd082146155f060a6fb5f50e0de15369534960091166a4de7447a",
+			"fixtureSha256": {
+				"marker": "9c506983a38a30b9695a524c4132a5f9667d2f8fc373525a2c08769a1eedb6e6",
+				"plain": "eeb9807a68f401fd292a15333ee74b2b32d1782921f8c953cc05c3350ebb0b76"
+			}
+		},
+		{
+			"id": "base-70000-f-hc4-128d8",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 1003
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "hc4",
+				"niceLen": 128,
+				"depth": 8,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "d6848149563bd082146155f060a6fb5f50e0de15369534960091166a4de7447a",
+			"fixtureSha256": {
+				"marker": "3df72fb8d0b443619f07abdb9f5e74582c426d4b8849a6844e8e6f972e7bb402",
+				"plain": "d8bd8116139e080d231452e81f2bd4107bbd1cbc61f9b44c295702e92c18e66d"
+			}
+		},
+		{
+			"id": "base-70000-f-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 1003
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "d6848149563bd082146155f060a6fb5f50e0de15369534960091166a4de7447a",
+			"fixtureSha256": {
+				"marker": "65cb11a5a3d418501358b25d75262ea9dc2eacf5f6645332c3226f7dbf0fa2dd",
+				"plain": "6a73993a78d32f955ed8cf467707d1bf50702d644549ede4dfe1d50639093309"
+			}
+		},
+		{
+			"id": "base-70000-n-bt4-64-lc0lp2pb0",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 1003
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 2,
+				"pb": 0
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "d6848149563bd082146155f060a6fb5f50e0de15369534960091166a4de7447a",
+			"fixtureSha256": {
+				"marker": "94ced41e382ba405fd0a1b1d1b329fd60e37116daba8063a38c95d7dd576e9ac",
+				"plain": "0173652fc8bf1c449571f75358980301927ba079f32b1cd67788a021123db450"
+			}
+		},
+		{
+			"id": "base-300000-n-bt4-32",
+			"input": {
+				"builder": "mixed",
+				"size": 300000,
+				"seed": 1004
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 32,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 393216,
+			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
+			"fixtureSha256": {
+				"marker": "efb4b17da6c90616b5836aa1963000b1f7f5ee9ef6a4898fd4574725ddc316f0",
+				"plain": "8944d8faf5c36bcaa0453544adfee5af93b55f68292d1fb321f4a4482b55a00c"
+			}
+		},
+		{
+			"id": "base-300000-n-bt4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 300000,
+				"seed": 1004
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 393216,
+			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
+			"fixtureSha256": {
+				"marker": "b0b36de8ff5f9da9f998c41463436cffa8da0dc757ded803ba57cba88b27268d",
+				"plain": "13cc21f29983799fd329c3ea43ec7f33c620f794164ade7cf276c9880db99e10"
+			}
+		},
+		{
+			"id": "base-300000-n-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 300000,
+				"seed": 1004
+			},
+			"cfg": {
+				"dictSize": 4194304,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 393216,
+			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
+			"fixtureSha256": {
+				"marker": "b39f764953e4da6bcff556db33405e24ed9c75e9560235584eec4e91dbf4b998",
+				"plain": "d100dad01651d4b8ff61859fb0de7118d4865126858e1a4b20045aadc41c9249"
+			}
+		},
+		{
+			"id": "base-300000-n-hc4-64",
+			"input": {
+				"builder": "mixed",
+				"size": 300000,
+				"seed": 1004
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "hc4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 393216,
+			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
+			"fixtureSha256": {
+				"marker": "dddc7dfd05709f37bbfdaa5dd076fd0889c5dad6f7605b966469a753fa229a65",
+				"plain": "1d0132fc3f090d8f703f6c2123129719597c2a288e2e3252be2b457853d51327"
+			}
+		},
+		{
+			"id": "base-300000-f-hc4-128d8",
+			"input": {
+				"builder": "mixed",
+				"size": 300000,
+				"seed": 1004
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "hc4",
+				"niceLen": 128,
+				"depth": 8,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 393216,
+			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
+			"fixtureSha256": {
+				"marker": "bb3ff7e6d7cf5a04e855d8926ad352479b1f7f743fa4f2b81ac479ddaf07adac",
+				"plain": "7522e42d33c898193fab1891f597d1680d6f32994e3d9cb84acaadd422ff3278"
+			}
+		},
+		{
+			"id": "base-300000-f-bt4-273",
+			"input": {
+				"builder": "mixed",
+				"size": 300000,
+				"seed": 1004
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 393216,
+			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
+			"fixtureSha256": {
+				"marker": "46bea48547adcbfd263ec306df9db9c69e6f068c64db6312c4553f6147561535",
+				"plain": "bbfe910e1b88c2e666220a5d82a8fdcf6b158d4f478b8bd7542d672546d26693"
+			}
+		},
+		{
+			"id": "base-300000-n-bt4-64-lc0lp2pb0",
+			"input": {
+				"builder": "mixed",
+				"size": 300000,
+				"seed": 1004
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 2,
+				"pb": 0
+			},
+			"fittedDictSize": 393216,
+			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
+			"fixtureSha256": {
+				"marker": "2785ef2dcf6e38183a54de61a3d105002602e34e0e2e640d3737c913564d6d2c",
+				"plain": "628cca5b8f15ab6ca86c9606e44368732464ed97c1757a91bc94cba3349b9642"
+			}
+		},
+		{
+			"id": "empty-normal",
+			"input": {
+				"builder": "mixed",
+				"size": 0,
+				"seed": 1
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"fixtureSha256": {
+				"marker": "da343da97420e033dcaf4bc7cb50f420bbe92f431b093aef89de45063c61fb17",
+				"plain": "d10a4d932930d4378422e8917683171a0b8b02416f865ab956ead19609cd1d0d"
+			}
+		},
+		{
+			"id": "empty-fast",
+			"input": {
+				"builder": "mixed",
+				"size": 0,
+				"seed": 1
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "hc4",
+				"niceLen": 128,
+				"depth": 8,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+			"fixtureSha256": {
+				"marker": "da343da97420e033dcaf4bc7cb50f420bbe92f431b093aef89de45063c61fb17",
+				"plain": "d10a4d932930d4378422e8917683171a0b8b02416f865ab956ead19609cd1d0d"
+			}
+		},
+		{
+			"id": "nice-8",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 2000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 8,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "68815caca5da4569417b913a16cfb8e6aad6b7450c29f66a606c46d7fa11e431",
+			"fixtureSha256": {
+				"marker": "339403bced0a40871a804797adb09ebae8ad4f401c69e6bea2d62f3fbcb07af2",
+				"plain": "a236f66edff2b16cf9655c1116bef84f81857f7507a7b1fedad0a7b07931a777"
+			}
+		},
+		{
+			"id": "nice-9",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 2000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 9,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "68815caca5da4569417b913a16cfb8e6aad6b7450c29f66a606c46d7fa11e431",
+			"fixtureSha256": {
+				"marker": "de28e7aa66c530f36fec693121103096614eb0eec65ee0856bf34db63ee09b88",
+				"plain": "54142c7a057bcd3f1a9ddcadd65ca664f303990dc6da95a21c1148c2b52d39b9"
+			}
+		},
+		{
+			"id": "nice-272",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 2000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 272,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "68815caca5da4569417b913a16cfb8e6aad6b7450c29f66a606c46d7fa11e431",
+			"fixtureSha256": {
+				"marker": "3626e4e161ea51e1aa1b82c4f25c47bd58ae72277d68a8b8e2199bd4ee4f8c0d",
+				"plain": "454d37169c5c125b8e11dabfc72e40eb6749a36776dcf2c133380cf303c34322"
+			}
+		},
+		{
+			"id": "nice-273",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 2000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "68815caca5da4569417b913a16cfb8e6aad6b7450c29f66a606c46d7fa11e431",
+			"fixtureSha256": {
+				"marker": "3626e4e161ea51e1aa1b82c4f25c47bd58ae72277d68a8b8e2199bd4ee4f8c0d",
+				"plain": "454d37169c5c125b8e11dabfc72e40eb6749a36776dcf2c133380cf303c34322"
+			}
+		},
+		{
+			"id": "opts-2047",
+			"input": {
+				"builder": "mixed",
+				"size": 2047,
+				"seed": 5047
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "7420b6a18e77be4a80990feb3784ed6720ad642b46f3b305c7b7a1ed825c503c",
+			"fixtureSha256": {
+				"marker": "403ec60d9f57b9c5f6508198546155ccc6b7e8bb148660b1e35bbad76f1a586d",
+				"plain": "f92df5a7bd967a5882c27fe0a79190556f3f91b862bf13602da86231ae613451"
+			}
+		},
+		{
+			"id": "opts-2048",
+			"input": {
+				"builder": "mixed",
+				"size": 2048,
+				"seed": 5048
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "c52a88324f0a6437a87dfb978a8bccb634d3ab83e2cfd71e7317185ed4ec15b1",
+			"fixtureSha256": {
+				"marker": "9e06448881ceb340caca9234410e5c55c473b766cbcf2ae05375d11cba8425d1",
+				"plain": "75faf312009e0ddcc45e1f102847053accc7d300c2eb4bd04c0c3007ec8f9aae"
+			}
+		},
+		{
+			"id": "opts-2049",
+			"input": {
+				"builder": "mixed",
+				"size": 2049,
+				"seed": 5049
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "d1b912b5d5c83338e7c50dbac1602e17a52d5f1a42a859558f582d648040e075",
+			"fixtureSha256": {
+				"marker": "292168f5e2d12efc603a0d6d4bb9d509883cb320c92661fe357d830691573841",
+				"plain": "71077d3dd083b1925d47d7d7bc4d2d3ebe6d2c1b27dda676526f007e36231502"
+			}
+		},
+		{
+			"id": "opts-4095",
+			"input": {
+				"builder": "mixed",
+				"size": 4095,
+				"seed": 7095
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "c446a38072737ba8bef447ffe6091474e136ca39f5ee6b5f0fe89a70fb9bab91",
+			"fixtureSha256": {
+				"marker": "2370115d19ba1bbb35696a2c49230a6873fcd7d7e2f68383f8f0aceccf3389c6",
+				"plain": "f818875a14104216ef591c2ac2a6f9f58fded880b5f86e7eb1b953f1069bb820"
+			}
+		},
+		{
+			"id": "opts-4096",
+			"input": {
+				"builder": "mixed",
+				"size": 4096,
+				"seed": 7096
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "42c8545b8a2eb974aec381459da9b42f56be812126530566315c4aaa37dcc15b",
+			"fixtureSha256": {
+				"marker": "a8c0d39b5635f7d16e95cd1dd76f4b333332a156f848408125ca250a04cf5f9e",
+				"plain": "2ab0b38b0fe1b001084dc89fae2cd6d3f5f60eb9d0ae91f28c6bf0b46b91eae9"
+			}
+		},
+		{
+			"id": "opts-4097",
+			"input": {
+				"builder": "mixed",
+				"size": 4097,
+				"seed": 7097
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "2fd0e43444054204a8f7f9fb4c447bdd6d8d61fc4e70aefb3e8cbade6467e7e0",
+			"fixtureSha256": {
+				"marker": "103bf0a60170d31eed15ece30b99189f3c7ba5136d56952331fe8cb963721e95",
+				"plain": "96f53ab04ec3ee1a083dbbcba7b035e053e4da63eddded6424f28fde120d7269"
+			}
+		},
+		{
+			"id": "optscap-n-bt4-273",
+			"input": {
+				"builder": "optsCap",
+				"size": 24000,
+				"seed": 8001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 24576,
+			"inputSha256": "aab2c3a2bbddbb4cd897971f957a112ef920472f8c16241dd5368c76571b9201",
+			"fixtureSha256": {
+				"marker": "00143d0d0d9378e2d258fa3e112bc331029f1b9565db90f47de0f8d3514fb541",
+				"plain": "d1fcc0a3fea3ea879ddf1b26a9a1484c2652c925ecf19545a7bea23f119b56b2"
+			}
+		},
+		{
+			"id": "optscap-n-bt4-128d1",
+			"input": {
+				"builder": "optsCap",
+				"size": 24000,
+				"seed": 8001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 128,
+				"depth": 1,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 24576,
+			"inputSha256": "aab2c3a2bbddbb4cd897971f957a112ef920472f8c16241dd5368c76571b9201",
+			"fixtureSha256": {
+				"marker": "fd9116370add632f4a7095b5a23f60e960716c4b5d7f6723f514c58f296ba179",
+				"plain": "0aaa1332b34222999b5b657520630d822390175dc551cd3b346a131b0f606e5d"
+			}
+		},
+		{
+			"id": "dict4k-4095",
+			"input": {
+				"builder": "mixed",
+				"size": 4095,
+				"seed": 8095
+			},
+			"cfg": {
+				"dictSize": 4096,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "608d2ce8eac722cafa8ac8ede27139c3d0583c027444d5449f384f40d3f4752c",
+			"fixtureSha256": {
+				"marker": "77d5982bc28ba5a739a802550fc0de4a52250834f7c29de0ee35460574aa4320",
+				"plain": "56f03bdd84f9ac78aa6b5b04dd2379b4519e12bbc725470bea92a1385ec03b34"
+			}
+		},
+		{
+			"id": "dict4k-4096",
+			"input": {
+				"builder": "mixed",
+				"size": 4096,
+				"seed": 8096
+			},
+			"cfg": {
+				"dictSize": 4096,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "54b0af382de5b49f6c71ef17baf6e159eb6708cbfc534d9312240ab7535fa49a",
+			"fixtureSha256": {
+				"marker": "e3e6909583df166421f59f1bc16b4c11593505717bca5d69aacb67636ec1fa7b",
+				"plain": "1ceea27a370b1e8ca23894eb8bcaf3b38f2112d4dc9c267c5c0aa0c65d39f19a"
+			}
+		},
+		{
+			"id": "dict4k-4097",
+			"input": {
+				"builder": "mixed",
+				"size": 4097,
+				"seed": 8097
+			},
+			"cfg": {
+				"dictSize": 4096,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "f7e70d1993b5edc5e337b7eed1ab6150f4535ef861215fe8a3876bb25ea9ab86",
+			"fixtureSha256": {
+				"marker": "2b631ee426f0a9bfc5c42430a7aec813a95a2be053a22cff324cfebaa55c4a51",
+				"plain": "5dcd28fcc9167a60375ef7caa4ed101f79c125065a3b41ecc154437eb7252366"
+			}
+		},
+		{
+			"id": "dict4k-12000",
+			"input": {
+				"builder": "mixed",
+				"size": 12000,
+				"seed": 16000
+			},
+			"cfg": {
+				"dictSize": 4096,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 4096,
+			"inputSha256": "f47625715b4bf2663775e8b71c4026eb9fa6a46e50a1e66237b7ca4cc3cc9ddb",
+			"fixtureSha256": {
+				"marker": "1627edada8e04628a903b2848a89798098deede1fdfed46ae7315b6b2b34cce8",
+				"plain": "87f48aa2fda626c6eea9956c3c971474321ab98c9182bf157bd06df9780698ea"
+			}
+		},
+		{
+			"id": "dict6k-8192",
+			"input": {
+				"builder": "mixed",
+				"size": 8192,
+				"seed": 4200
+			},
+			"cfg": {
+				"dictSize": 6144,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "d81004d47de2c3bdb8d7639ace8b7fd44c2f67a02a1d764a245b5105ad08c11b",
+			"fixtureSha256": {
+				"marker": "191cd3dd0c30cf5cb14d460e35a92fdd58dd1348fb759e540ef0145756e6b6e8",
+				"plain": "995d84b7562b761e482ee38a00db09c12fa077fb3010df139ea55ba79e0e2cf9"
+			}
+		},
+		{
+			"id": "pow2-65535",
+			"input": {
+				"builder": "mixed",
+				"size": 65535,
+				"seed": 70535
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 65536,
+			"inputSha256": "17916ed0ae3037547e1dfe47ce8c5858e4a0cd533a62d14ff11b7cfd5c832078",
+			"fixtureSha256": {
+				"marker": "e0e0479d9c08ab699c2e722b792a9a0a28943dc008d68cd92cea48a48f42467f",
+				"plain": "348ad87ff523fff36ca49886f7f1353c7eb03c26572636e76c796925f0b00e8e"
+			}
+		},
+		{
+			"id": "pow2-65536",
+			"input": {
+				"builder": "mixed",
+				"size": 65536,
+				"seed": 70536
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 65536,
+			"inputSha256": "9cc8755d57cd2e720b1c50bfcc281ee067eb21151156fe079e96e0bcf1928019",
+			"fixtureSha256": {
+				"marker": "896739b07b7ed24f9b148a6c60d75c0c0a65895f3d80bc9022855ecc8ca6ac77",
+				"plain": "784c87aa68ce642a813a15537c6c50d39f46409e65d39bb84b0e6c159469a119"
+			}
+		},
+		{
+			"id": "pow2-65537",
+			"input": {
+				"builder": "mixed",
+				"size": 65537,
+				"seed": 70537
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "8f81da2d93b506d72fcafa7c101e52fa398ccfc7bf2e1be1e117d86d7cc5f761",
+			"fixtureSha256": {
+				"marker": "c08a5928656fb27b7d057895dab235edf4e19193cd7479ea56979dde961ebf9f",
+				"plain": "cae2fbd6bcc0ec5122ec3876e80db6da30f3a26d56d2f42b2f6a585e252bbef5"
+			}
+		},
+		{
+			"id": "props-lc4lp0pb2-5000",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 11000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 4,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "9bfddb775212dae770374dbaeb41d485321bd64724ff772b17b2e8b926d8e2b7",
+			"fixtureSha256": {
+				"marker": "c8b5adf17c7c03b2828861f34e2c210de83f15db046a609f29df94f62c1f5f12",
+				"plain": "34a1a617bd6f17da864c6eb77ebf371254cc926c94d0a6d412a237210581feb2"
+			}
+		},
+		{
+			"id": "props-lc4lp0pb2-70000",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 76000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 4,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
+			"fixtureSha256": {
+				"marker": "cb17569bba7282fb3e87e38156dd15248c7817cdeeee8c4ff35ae0460a695d15",
+				"plain": "3fe07747076c576b66233c011a4d4b36ed04586f7b137bb81725075bffa8e83c"
+			}
+		},
+		{
+			"id": "props-lc0lp4pb2-5000",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 11000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 4,
+				"pb": 2
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "9bfddb775212dae770374dbaeb41d485321bd64724ff772b17b2e8b926d8e2b7",
+			"fixtureSha256": {
+				"marker": "c426bfc3daf194c12f4ea259cf3c2af0fd0c877a9cc87f8c2c7e0c0a4a22c60b",
+				"plain": "03b15d9bcedcfc10fb1c82e31dfa147a45fe0f070cb900509f36f7697bea4246"
+			}
+		},
+		{
+			"id": "props-lc0lp4pb2-70000",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 76000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 4,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
+			"fixtureSha256": {
+				"marker": "05d373dc5209e3fc0c8936981e465c15fefeb334e6a99d23f8fde558d7bbd0b6",
+				"plain": "b2e891f71ad0e683ecda1b29c898e9edd8e2a15c787e3188268e603f0f7702c1"
+			}
+		},
+		{
+			"id": "props-lc0lp0pb0-5000",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 11000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 0,
+				"pb": 0
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "9bfddb775212dae770374dbaeb41d485321bd64724ff772b17b2e8b926d8e2b7",
+			"fixtureSha256": {
+				"marker": "c13627b18274f248a5a489bfe483ab565666fa8e61248856163042ff149dd2b1",
+				"plain": "241985996de9f67bfced5ea33e66473065c00d00d6c0756eb13deafb59df98dc"
+			}
+		},
+		{
+			"id": "props-lc0lp0pb0-70000",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 76000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 0,
+				"lp": 0,
+				"pb": 0
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
+			"fixtureSha256": {
+				"marker": "4b13e12fefe22b4e4120803e3b10fba089be3536d43f0ab3dc517084e6cfc893",
+				"plain": "044f5c7035ed3b57c2864ee4d1a1e34855765d28346beda60473b149b178e89e"
+			}
+		},
+		{
+			"id": "props-lc3lp0pb4-5000",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 11000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 4
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "9bfddb775212dae770374dbaeb41d485321bd64724ff772b17b2e8b926d8e2b7",
+			"fixtureSha256": {
+				"marker": "5cd67bd6f18d887aff5820cb0e92bf3b5d53f9bf272d291026d04f903e53f092",
+				"plain": "9ef19f0b1d52407d76226e1bebd6f5e95e0b701e4182775b7cbdf607adf012cd"
+			}
+		},
+		{
+			"id": "props-lc3lp0pb4-70000",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 76000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 4
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
+			"fixtureSha256": {
+				"marker": "2ec79091749c2348a6547c21f1b38ec5eecd4afa265c106c7840b306f6de0ec1",
+				"plain": "7396f27374ce573ad31e6f64926a8d851530366c9c9ef814443f23d90d5584e4"
+			}
+		},
+		{
+			"id": "props-lc2lp2pb1-5000",
+			"input": {
+				"builder": "mixed",
+				"size": 5000,
+				"seed": 11000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 2,
+				"lp": 2,
+				"pb": 1
+			},
+			"fittedDictSize": 6144,
+			"inputSha256": "9bfddb775212dae770374dbaeb41d485321bd64724ff772b17b2e8b926d8e2b7",
+			"fixtureSha256": {
+				"marker": "9011dfb204bf20fc06a740620a9e0a17809c2c422bcf2cb794620ffadc520562",
+				"plain": "894a7832f993c98bddb4b9c679bee9ece4f283e0aaa336fd01036430f30a3ea9"
+			}
+		},
+		{
+			"id": "props-lc2lp2pb1-70000",
+			"input": {
+				"builder": "mixed",
+				"size": 70000,
+				"seed": 76000
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 2,
+				"lp": 2,
+				"pb": 1
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
+			"fixtureSha256": {
+				"marker": "cee7ef6e9deeb94acdef5a959a011897acb4784118e34bbb5f60f343045b9ea7",
+				"plain": "8ac91d3eed71bb31c83ae034cf5aaee10434bd972230e6d57e4f591912b3adb4"
+			}
+		},
+		{
+			"id": "runs-n-273",
+			"input": {
+				"builder": "runs",
+				"size": 70000,
+				"seed": 7001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "0c1ec5dd4d49d02404c998e9b92444d24bfc30c74708282af9a13f4850ad6ad1",
+			"fixtureSha256": {
+				"marker": "c1069077f8baab0b21b0df7b456359021cd5e55865c710bdb5300d7da3c0e8bc",
+				"plain": "93c6c8b213f794721d5d1ab07a11bed9bdaca9116d31a7b09812ae205633d2be"
+			}
+		},
+		{
+			"id": "runs-f-273",
+			"input": {
+				"builder": "runs",
+				"size": 70000,
+				"seed": 7001
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "0c1ec5dd4d49d02404c998e9b92444d24bfc30c74708282af9a13f4850ad6ad1",
+			"fixtureSha256": {
+				"marker": "c1069077f8baab0b21b0df7b456359021cd5e55865c710bdb5300d7da3c0e8bc",
+				"plain": "93c6c8b213f794721d5d1ab07a11bed9bdaca9116d31a7b09812ae205633d2be"
+			}
+		},
+		{
+			"id": "longdist-2m-fast",
+			"input": {
+				"builder": "longDist",
+				"size": 2101249,
+				"seed": 7101
+			},
+			"cfg": {
+				"dictSize": 4194304,
+				"mode": "fast",
+				"matchFinder": "bt4",
+				"niceLen": 273,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 3145728,
+			"inputSha256": "7052143a90e3c8845d8649f56c78bb87a3d0c0c6d7476609b7b27ff587837ec2",
+			"fixtureSha256": {
+				"marker": "77a303d2cba579d97bd71fd66b9e5daddfe17a32df42ed880f18a9ac72305c75",
+				"plain": "9146f979f0f79ec16e632f6b72d2ae91f1aeab676625a4aa65d751eade003709"
+			}
+		},
+		{
+			"id": "longdist-800k-normal",
+			"input": {
+				"builder": "longDist",
+				"size": 819200,
+				"seed": 7102
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 1048576,
+			"inputSha256": "8ef4876aa889dd3dbfad7c931782a9ca3a33cba9ba5714ffd8e73a3fdfbdd75a",
+			"fixtureSha256": {
+				"marker": "193cc54b742c696cd08b8a92eae01bbaa8cf0f0e7358a4b9e20326ab46e9fda6",
+				"plain": "9d1f73dc76a9f27483917526285138b78dccdb12ff37a58372fcc3bb8759e299"
+			}
+		},
+		{
+			"id": "repcycle-n",
+			"input": {
+				"builder": "repCycle",
+				"size": 70000,
+				"seed": 7201
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d",
+			"fixtureSha256": {
+				"marker": "d3312f5fd27ad3f70afb956d2f9706c7055e099587f286d46e7424b6eb076124",
+				"plain": "320f8a82f32a1bace9b6c0d9ea1eb6b24e6f4bd46c15dd01d1a174069477a299"
+			}
+		},
+		{
+			"id": "repcycle-f",
+			"input": {
+				"builder": "repCycle",
+				"size": 70000,
+				"seed": 7201
+			},
+			"cfg": {
+				"dictSize": 1048576,
+				"mode": "fast",
+				"matchFinder": "hc4",
+				"niceLen": 128,
+				"depth": 8,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 98304,
+			"inputSha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d",
+			"fixtureSha256": {
+				"marker": "264c6e84b6b98b7308d0b83b19a5243d49206dbd867e1d4c729b277a3a66cfd3",
+				"plain": "9bb57f7c81b7938c838f484ff949afa83cf203006f873d4eb711dde50afe1a4f"
+			}
+		},
+		{
+			"id": "stream-n-bt4-64-dict64k",
+			"input": {
+				"builder": "mixed",
+				"size": 300000,
+				"seed": 8101
+			},
+			"cfg": {
+				"dictSize": 65536,
+				"mode": "normal",
+				"matchFinder": "bt4",
+				"niceLen": 64,
+				"depth": 0,
+				"lc": 3,
+				"lp": 0,
+				"pb": 2
+			},
+			"fittedDictSize": 65536,
+			"inputSha256": "321f887e9161392a8fe0eb6ad7aa649810779a50ab60191a914b0abe51610145",
+			"fixtureSha256": {
+				"marker": "290464f53b2addd66665c035072152835f383afa848367e773d74b7540387fab"
+			},
+			"stream": {
+				"chunkSize": 7919
+			}
+		}
+	]
+}
