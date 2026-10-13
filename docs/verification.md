@@ -763,3 +763,15 @@ Argument:
 - _An unused value is harmless._ For a match whose lengths all stay below 5,
   `longMatchDistPrice` is computed and not used. `getDistPrice` only computes a
   slot and reads price tables, so computing it has no effect.
+
+### Reps copied with element assignments
+
+Change, in `lzma-encoder-normal.ts`: in `updateOptStateAndReps`, the copy of a
+predecessor's four reps, and the copy of its first three into slots 1 to 3, are
+element assignments instead of `copyWithin` calls.
+
+Argument: `REPS` is 4, a format constant, so the assignments cover the same
+index ranges. The struct-of-arrays entry shows the predecessor position is
+strictly below `optCur`, so the source and destination blocks are disjoint and
+no assignment overwrites an element still to be read. Assignments in any order
+then copy what `copyWithin` copies.

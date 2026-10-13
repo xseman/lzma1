@@ -415,7 +415,15 @@ export class LzmaEncoderNormal extends LzmaEncoder {
 				this.opts.state[this.optCur] = stateAfterLiteral(this.opts.state[this.optCur]);
 			}
 
-			this.opts.reps.copyWithin(this.optCur * REPS, optPrev * REPS, optPrev * REPS + REPS);
+			// Element assignments: with four reps, they were measured faster
+			// than copyWithin.
+			const reps = this.opts.reps;
+			const curRepsOffset = this.optCur * REPS;
+			const prevRepsOffset = optPrev * REPS;
+			reps[curRepsOffset] = reps[prevRepsOffset];
+			reps[curRepsOffset + 1] = reps[prevRepsOffset + 1];
+			reps[curRepsOffset + 2] = reps[prevRepsOffset + 2];
+			reps[curRepsOffset + 3] = reps[prevRepsOffset + 3];
 		} else {
 			let back: number;
 			if (this.opts.prev1IsLiteral[this.optCur] !== 0 && this.opts.hasPrev2[this.optCur] !== 0) {
@@ -443,8 +451,13 @@ export class LzmaEncoderNormal extends LzmaEncoder {
 					this.opts.reps[this.optCur * REPS + rep] = this.opts.reps[optPrev * REPS + rep];
 				}
 			} else {
-				this.opts.reps[this.optCur * REPS] = back - REPS;
-				this.opts.reps.copyWithin(this.optCur * REPS + 1, optPrev * REPS, optPrev * REPS + REPS - 1);
+				const reps = this.opts.reps;
+				const curRepsOffset = this.optCur * REPS;
+				const prevRepsOffset = optPrev * REPS;
+				reps[curRepsOffset] = back - REPS;
+				reps[curRepsOffset + 1] = reps[prevRepsOffset];
+				reps[curRepsOffset + 2] = reps[prevRepsOffset + 1];
+				reps[curRepsOffset + 3] = reps[prevRepsOffset + 2];
 			}
 		}
 	}
