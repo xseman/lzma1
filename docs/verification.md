@@ -341,6 +341,9 @@ differently from its header constructor:
   `(2 * 0x300) << 12` is below 2^23, so the shift does not wrap. The raw Java
   constructor takes no limit; the library checks `memoryLimitKb` before it
   allocates anything, as the Java header constructor checks its limit.
+- _Recorded cases._ `fixtures/raw-malformed.json` holds the Java decoder's
+  outcome for the unchanged, truncated, bit-flipped and resized bodies of four
+  `.lzma` fixtures, and the library's outcome has to match it on every case.
 
 Nothing else changes. `start()` is the method `decode` already called, now
 public. `decompressData` takes the properties as an optional `header` and passes
@@ -364,7 +367,10 @@ with two deviations, both about the dictionary size:
 
 `getMemoryUsageKb` rounds with `Math.ceil` as `getLzma1MemoryUsageKb`
 does, so its estimate equals the Java code's up to `DICT_SIZE_MAX` and stays
-exact above it.
+exact above it. The `.lzma2` fixtures, XZ for Java's LZMA2 output for nineteen
+corpus cells, decode to their inputs, and on the raw LZMA2 cases of
+`fixtures/raw-malformed.json` the library's outcome matches the Java decoder's
+on every case.
 
 Nothing else changes for `.lzma` data. `buf`, `pos`, `start`, `wrapped` and
 `onBufferEnd` of `LzDecoder` lose `private`, which changes no emitted code, and

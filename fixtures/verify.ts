@@ -19,7 +19,9 @@ import {
 	type Library,
 	loadMalformedRecords,
 	loadManifest,
+	loadRawMalformedRecords,
 	malformedChecks,
+	rawMalformedChecks,
 	recordChecks,
 	strictMalformedChecks,
 } from "./identity.ts";
@@ -33,11 +35,13 @@ const library: Library = await import(pathToFileURL(path.join(repoRoot, "lib", "
 
 const manifest = loadManifest();
 const records = loadMalformedRecords();
+const rawRecords = loadRawMalformedRecords();
 const groups: [string, IdentityCheck[]][] = [
-	["fixture records", recordChecks(manifest, records)],
+	["fixture records", recordChecks(manifest, records, rawRecords)],
 	["byte identity with XZ for Java", cellChecks(library, manifest)],
 	["malformed streams match recorded decoder expectations", malformedChecks(library, manifest, records)],
 	["malformed streams in strict mode", strictMalformedChecks(library, manifest, records)],
+	["raw streams match the Java decoder", rawMalformedChecks(library, manifest, rawRecords)],
 ];
 
 let failures = 0;

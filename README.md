@@ -361,7 +361,9 @@ The encoder's output is byte-identical to [XZ for Java][xz-java] at commit
 [`6925f81`](https://github.com/tukaani-project/xz-java/commit/6925f81244a99d0ea4f3fd021938e2ee1e6de2eb)
 on a corpus of inputs and encoder settings. The decoder handles a set of
 corrupted streams the same way, except for two documented kinds of corrupt
-input that it accepts where XZ for Java rejects them. CI checks both.
+input that it accepts where XZ for Java rejects them. The raw LZMA1 and LZMA2
+decoders handle their own set of streams exactly as XZ for Java does. CI checks
+all three.
 [fixtures/README.md](fixtures/README.md) describes the corpus and how to
 regenerate it.
 

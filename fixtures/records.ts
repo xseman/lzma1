@@ -14,6 +14,10 @@ import {
 	isBuilderName,
 } from "./inputs.ts";
 import type { MalformedOp } from "./malformed.ts";
+import type {
+	RawFormat,
+	RawOp,
+} from "./raw-malformed.ts";
 
 export interface JavaPin {
 	project: string;
@@ -21,10 +25,14 @@ export interface JavaPin {
 	commit: string;
 }
 
-/** SHA-256 of each committed fixture of a cell; streaming cells have no plain form. */
+/**
+ * SHA-256 of each committed fixture of a cell; streaming cells have no
+ * plain form, and only the cells in `LZMA2_CELLS` have a raw LZMA2 form.
+ */
 export interface FixtureHashes {
 	plain?: string;
 	marker: string;
+	lzma2?: string;
 }
 
 export interface ManifestCell {
@@ -70,6 +78,19 @@ export interface MalformedRecords {
 	cases: MalformedRecord[];
 }
 
+/** A raw case and the Java decoder's outcome, which the library's must match. */
+export interface RawMalformedRecord {
+	id: string;
+	format: RawFormat;
+	source: string;
+	op: RawOp;
+	java: DecodeOutcome;
+}
+
+export interface RawMalformedRecords {
+	cases: RawMalformedRecord[];
+}
+
 export function parseManifest(json: unknown): Manifest {
 	const root = expectRecord(json, "manifest");
 	const java = expectRecord(root.java, "manifest.java");
@@ -95,6 +116,14 @@ export function parseMalformedRecords(json: unknown): MalformedRecords {
 	};
 }
 
+export function parseRawMalformedRecords(json: unknown): RawMalformedRecords {
+	const root = expectRecord(json, "raw-malformed");
+
+	return {
+		cases: expectArray(root.cases, "raw-malformed.cases").map((record, i) => parseRawMalformedRecord(record, `raw-malformed.cases[${i}]`)),
+	};
+}
+
 function parseManifestCell(json: unknown, where: string): ManifestCell {
 	const cell = expectRecord(json, where);
 	const hashes = expectRecord(cell.fixtureSha256, `${where}.fixtureSha256`);
@@ -113,6 +142,10 @@ function parseManifestCell(json: unknown, where: string): ManifestCell {
 
 	if (hashes.plain !== undefined) {
 		parsed.fixtureSha256.plain = expectSha256(hashes.plain, `${where}.fixtureSha256.plain`);
+	}
+
+	if (hashes.lzma2 !== undefined) {
+		parsed.fixtureSha256.lzma2 = expectSha256(hashes.lzma2, `${where}.fixtureSha256.lzma2`);
 	}
 
 	if ((parsed.stream === undefined) !== (parsed.fixtureSha256.plain !== undefined)) {
@@ -189,6 +222,43 @@ function parseMalformedOp(json: unknown, where: string): MalformedOp {
 	}
 
 	return { kind, field, value: expectOneOf(op.value, ["unknown", "2^63-1"] as const, `${where}.value`) };
+}
+
+function parseRawMalformedRecord(json: unknown, where: string): RawMalformedRecord {
+	const record = expectRecord(json, where);
+
+	return {
+		id: expectString(record.id, `${where}.id`),
+		format: expectOneOf(record.format, ["lzma1", "lzma2"] as const, `${where}.format`),
+		source: expectString(record.source, `${where}.source`),
+		op: parseRawOp(record.op, `${where}.op`),
+		java: parseDecodeOutcome(record.java, `${where}.java`),
+	};
+}
+
+function parseRawOp(json: unknown, where: string): RawOp {
+	const op = expectRecord(json, where);
+	const kind = expectOneOf(op.kind, ["truncate", "flipbit", "size", "chunk", "trailing"] as const, `${where}.kind`);
+	switch (kind) {
+		case "truncate":
+			return { kind, at: expectInteger(op.at, `${where}.at`) };
+		case "flipbit":
+			return { kind, at: expectInteger(op.at, `${where}.at`), bit: expectInteger(op.bit, `${where}.bit`) };
+		case "size":
+			return { kind, size: op.size === "unknown" ? "unknown" : expectInteger(op.size, `${where}.size`) };
+		case "trailing":
+			return { kind };
+		case "chunk":
+			break;
+	}
+
+	const at = expectInteger(op.at, `${where}.at`);
+	const field = expectOneOf(op.field, ["control", "props", "uncompressedSize", "compressedSize"] as const, `${where}.field`);
+	if (field === "control" || field === "props") {
+		return { kind, at, field, value: expectInteger(op.value, `${where}.value`) };
+	}
+
+	return { kind, at, field, delta: expectInteger(op.delta, `${where}.delta`) };
 }
 
 function parseDecodeOutcome(json: unknown, where: string): DecodeOutcome {

@@ -5,7 +5,8 @@
  * by Lasse Collin and Igor Pavlov.
  *
  * Contract adaptations, pinned by the recorded malformed-stream
- * expectations in `fixtures/malformed.json`:
+ * expectations in `fixtures/malformed.json` and
+ * `fixtures/raw-malformed.json`:
  * - `decode(outLimit, inLimit)` drives the loop by the number of bytes
  *   produced (`outPos`) and the input position, instead of the Java code's
  *   `LZDecoder` window limit, because the input arrives in chunks and the

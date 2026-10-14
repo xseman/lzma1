@@ -18,6 +18,12 @@ fixtures:
   differs from the library's known-size marker output in the 8 header bytes that
   hold the size, and nowhere else.
 
+The cells in `LZMA2_CELLS` (in `corpus.ts`) have a third fixture:
+
+- `<id>.lzma2`: the Java encoder's raw LZMA2 output (`LZMA2OutputStream`) for
+  the same input and settings. The library has no LZMA2 encoder, so these are
+  only decoded, with `decompressRawLzma2` and the cell's fitted dictionary size.
+
 One streaming cell (`stream-n-bt4-64-dict64k`) has only the marker form: it is
 compared against the library's chunked `Compress`, which also writes an
 unknown-size header, with an input larger than the dictionary so the encoder's
@@ -43,16 +49,29 @@ and the library's own outcome (`port`):
   range is clamped to the declared size instead of rejected. The output must
   equal the original input.
 
+`raw-malformed.json` does the same for the raw decoders (derivation in
+`raw-malformed.ts`). The raw LZMA1 cases are bodies of `.lzma` fixtures, passed
+with the header's properties, which the Java code decodes with the raw
+`LZMAInputStream` constructor and its relaxed end condition: the unchanged body,
+truncations, single-bit flips, and other uncompressed sizes. The raw LZMA2 cases
+come from `.lzma2` fixtures, which the Java code decodes with
+`LZMA2InputStream`: truncations, single-bit flips, changes to each chunk header,
+and bytes after the end. The raw decoders have no deviation classes. Their
+outcome must match the Java decoder's on every case.
+
 ## How the fixtures are checked
 
 `src/xz-java-identity_test.ts` runs the checks in `identity.ts` on Bun, as CI
 does, and `node fixtures/verify.ts` runs the same checks on Node (V8): every
-fixture's hash against `manifest.json`, `compress()` against every fixture byte
-for byte (each compressed twice in a row, so encoders reused from the pool are
-checked too), `decompress()` of every fixture against its input, and every
+fixture's hash against `manifest.json`, `compress()` against every `.lzma`
+fixture byte for byte (each compressed twice in a row, so encoders reused from
+the pool are checked too), `decompress()` of every `.lzma` fixture against its
+input, and every
 malformed case against its recorded outcome, with the expected count of each
 class. The malformed cases run a second time with `strict`, where the
-`end-marker-leniency` cases must get the Java decoder's outcome.
+`end-marker-leniency` cases must get the Java decoder's outcome. Every `.lzma2`
+fixture has to decode to its input, and every raw case has to match its
+recorded outcome, with the expected count per format and outcome.
 
 ## CI
 

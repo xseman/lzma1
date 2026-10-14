@@ -1,7 +1,8 @@
 import java.io.*;
 import java.nio.file.*;
 import org.tukaani.xz.*;
-// Usage: java -cp /tmp/xzj Enc in out dictSize lc lp pb mode(fast|normal) mf(hc4|bt4) nice depth
+// Usage: java -cp /tmp/xzj Enc in out dictSize lc lp pb mode(fast|normal) mf(hc4|bt4) nice depth [marker|lzma2]
+// "lzma2" writes raw LZMA2 (LZMA2OutputStream) instead of .lzma.
 public class Enc {
   public static void main(String[] a) throws Exception {
     byte[] in = Files.readAllBytes(Paths.get(a[0]));
@@ -13,9 +14,15 @@ public class Enc {
     o.setMatchFinder(a[7].equals("hc4") ? LZMA2Options.MF_HC4 : LZMA2Options.MF_BT4);
     o.setNiceLen(Integer.parseInt(a[8]));
     o.setDepthLimit(Integer.parseInt(a[9]));
-    boolean marker = a.length > 10 && a[10].equals("marker");
+    String variant = a.length > 10 ? a[10] : "plain";
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    try (LZMAOutputStream s = new LZMAOutputStream(bos, o, marker ? -1 : in.length)) { s.write(in); }
+    if (variant.equals("lzma2")) {
+      FinishableOutputStream s = o.getOutputStream(new FinishableWrapperOutputStream(bos));
+      s.write(in);
+      s.finish();
+    } else {
+      try (LZMAOutputStream s = new LZMAOutputStream(bos, o, variant.equals("marker") ? -1 : in.length)) { s.write(in); }
+    }
     Files.write(Paths.get(a[1]), bos.toByteArray());
   }
 }

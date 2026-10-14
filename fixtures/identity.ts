@@ -19,6 +19,8 @@ import {
 	type FixtureVariant,
 	fixtureVariants,
 	MALFORMED_SOURCES,
+	RAW_LZMA1_SOURCES,
+	RAW_LZMA2_SOURCES,
 } from "./corpus.ts";
 import { buildInput } from "./inputs.ts";
 import {
@@ -28,6 +30,11 @@ import {
 	type MalformedCase,
 } from "./malformed.ts";
 import {
+	deriveRawLzma1,
+	deriveRawLzma2,
+	type RawCase,
+} from "./raw-malformed.ts";
+import {
 	type DecodeOutcome,
 	type MalformedRecord,
 	type MalformedRecords,
@@ -35,6 +42,8 @@ import {
 	type ManifestCell,
 	parseMalformedRecords,
 	parseManifest,
+	parseRawMalformedRecords,
+	type RawMalformedRecords,
 } from "./records.ts";
 
 /** The library under test: `src/index.ts` in bun, the built `lib/index.js` in Node. */
@@ -56,6 +65,17 @@ export const MALFORMED_OUTCOME_COUNTS = {
 	"dict-size-clamp": 1,
 };
 
+/**
+ * Reviewed outcome counts of the raw set, which has to match the Java
+ * decoder case by case: the cases each format accepts and rejects.
+ */
+export const RAW_OUTCOME_COUNTS = {
+	"lzma1-ok": 5,
+	"lzma1-error": 237,
+	"lzma2-ok": 6,
+	"lzma2-error": 196,
+};
+
 const FIXTURES_DIR = import.meta.dirname;
 
 /** Header bytes 5..12 hold the uncompressed size, little-endian. */
@@ -70,7 +90,11 @@ export function loadMalformedRecords(): MalformedRecords {
 	return parseMalformedRecords(JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, "malformed.json"), "utf8")));
 }
 
-/** One check per corpus cell: hashes, compression in every form, decoding. */
+export function loadRawMalformedRecords(): RawMalformedRecords {
+	return parseRawMalformedRecords(JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, "raw-malformed.json"), "utf8")));
+}
+
+/** One check per corpus cell: hashes, compression in every `.lzma` form, decoding. */
 export function cellChecks(library: Library, manifest: Manifest): IdentityCheck[] {
 	const recorded = new Map(manifest.cells.map((cell) => [cell.id, cell]));
 
@@ -146,8 +170,30 @@ export function strictMalformedChecks(library: Library, manifest: Manifest, reco
 	}));
 }
 
+/** One check per raw case: the decoder's outcome against the Java decoder's. */
+export function rawMalformedChecks(library: Library, manifest: Manifest, records: RawMalformedRecords): IdentityCheck[] {
+	const cases = new Map(deriveCommittedRaw(manifest).map((rawCase) => [rawCase.id, rawCase]));
+
+	return records.cases.map((record) => ({
+		name: record.id,
+		run: async () => {
+			const rawCase = cases.get(record.id);
+			if (rawCase === undefined) {
+				return "recorded case is not derived from the committed fixtures";
+			}
+
+			const actual = decodeRawOutcome(library, rawCase);
+			if (!sameOutcome(record.java, actual, false)) {
+				return `expected ${JSON.stringify(record.java)}, got ${JSON.stringify(actual)}`;
+			}
+
+			return undefined;
+		},
+	}));
+}
+
 /** Checks of the records themselves, independent of the library. */
-export function recordChecks(manifest: Manifest, records: MalformedRecords): IdentityCheck[] {
+export function recordChecks(manifest: Manifest, records: MalformedRecords, rawRecords: RawMalformedRecords): IdentityCheck[] {
 	return [
 		{
 			name: "manifest cells match the corpus definition",
@@ -166,6 +212,14 @@ export function recordChecks(manifest: Manifest, records: MalformedRecords): Ide
 			run: async () => checkOutcomeCounts(records),
 		},
 		{
+			name: "recorded raw cases are exactly the derived ones",
+			run: async () => checkRawIds(manifest, rawRecords),
+		},
+		{
+			name: "raw outcome counts match the reviewed table",
+			run: async () => checkRawOutcomeCounts(rawRecords),
+		},
+		{
 			name: "the readme verification section cites the pinned commit",
 			run: async () => checkReadmePin(manifest),
 		},
@@ -182,6 +236,17 @@ async function checkCell(library: Library, cell: CorpusCell, record: ManifestCel
 		const fixture = readFixture(cell.id, variant);
 		if (sha256(fixture) !== record.fixtureSha256[variant]) {
 			return `${fixtureFileName(cell.id, variant)}: hash differs from manifest.json`;
+		}
+
+		// The library has no LZMA2 encoder; Java's LZMA2 output is decoded only.
+		if (variant === "lzma2") {
+			const decoded = library.decompressRawLzma2(fixture, { dictSize: record.fittedDictSize });
+			const decodeMismatch = describeDifference(decoded, input);
+			if (decodeMismatch !== undefined) {
+				return `${fixtureFileName(cell.id, variant)} decoded: ${decodeMismatch}`;
+			}
+
+			continue;
 		}
 
 		// Twice: the second call runs on the probability arrays and
@@ -323,6 +388,29 @@ function checkOutcomeCounts(records: MalformedRecords): string | undefined {
 	return expected === actual ? undefined : `reviewed ${expected}, recorded ${actual}`;
 }
 
+function checkRawIds(manifest: Manifest, records: RawMalformedRecords): string | undefined {
+	const derived = deriveCommittedRaw(manifest).map((rawCase) => rawCase.id).sort();
+	const recorded = records.cases.map((record) => record.id).sort();
+	if (derived.length !== recorded.length || derived.some((id, i) => id !== recorded[i])) {
+		return `derived ${derived.length} raw cases, recorded ${recorded.length}, or their ids differ`;
+	}
+
+	return undefined;
+}
+
+function checkRawOutcomeCounts(records: RawMalformedRecords): string | undefined {
+	const counts: Record<string, number> = {};
+	for (const record of records.cases) {
+		const key = `${record.format}-${record.java.status}`;
+		counts[key] = (counts[key] ?? 0) + 1;
+	}
+
+	const expected = JSON.stringify(RAW_OUTCOME_COUNTS, Object.keys(RAW_OUTCOME_COUNTS).sort());
+	const actual = JSON.stringify(counts, Object.keys(counts).sort());
+
+	return expected === actual ? undefined : `reviewed ${expected}, recorded ${actual}`;
+}
+
 /** Every full commit SHA in README.md's Verification section must be the pin. */
 function checkReadmePin(manifest: Manifest): string | undefined {
 	const readme = fs.readFileSync(path.join(FIXTURES_DIR, "..", "README.md"), "utf8");
@@ -357,6 +445,26 @@ function deriveCommittedMalformed(manifest: Manifest): MalformedCase[] {
 	return cases;
 }
 
+/** Re-derives the raw set from the committed fixtures, as `generate.ts` did. */
+function deriveCommittedRaw(manifest: Manifest): RawCase[] {
+	const cases: RawCase[] = [];
+	for (const source of RAW_LZMA1_SOURCES) {
+		const cell = manifest.cells.find((candidate) => candidate.id === source.replace(/\.marker$/, ""));
+		if (cell !== undefined) {
+			cases.push(...deriveRawLzma1(source, readFixtureBySource(source), cell.input.size));
+		}
+	}
+
+	for (const cellId of RAW_LZMA2_SOURCES) {
+		const cell = manifest.cells.find((candidate) => candidate.id === cellId);
+		if (cell !== undefined) {
+			cases.push(...deriveRawLzma2(cellId, readFixture(cellId, "lzma2"), cell.fittedDictSize));
+		}
+	}
+
+	return cases;
+}
+
 /** A malformed source names a fixture by its file stem (`<id>` or `<id>.marker`). */
 function readFixtureBySource(source: string): Uint8Array<ArrayBuffer> {
 	return source.endsWith(".marker") ? readFixture(source.slice(0, -".marker".length), "marker") : readFixture(source, "plain");
@@ -371,6 +479,17 @@ function readFixture(id: string, variant: FixtureVariant): Uint8Array<ArrayBuffe
 function decodeOutcome(library: Library, bytes: Uint8Array, strict = false): DecodeOutcome {
 	try {
 		const output = library.decompress(bytes, { strict });
+
+		return { status: "ok", length: output.length, sha256: sha256(output) };
+	} catch (error) {
+		// Recorded, not swallowed: a decoder error is an outcome to compare.
+		return { status: "error", error: error instanceof Error ? error.constructor.name : typeof error };
+	}
+}
+
+function decodeRawOutcome(library: Library, rawCase: RawCase): DecodeOutcome {
+	try {
+		const output = rawCase.format === "lzma1" ? library.decompressRawLzma1(rawCase.bytes, rawCase.options) : library.decompressRawLzma2(rawCase.bytes, rawCase.options);
 
 		return { status: "ok", length: output.length, sha256: sha256(output) };
 	} catch (error) {
