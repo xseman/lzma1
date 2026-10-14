@@ -12,7 +12,9 @@ import {
 import {
 	type CompressionMode,
 	type CompressionOptions,
+	type DecompressionOptions,
 	resolveOptions,
+	resolveStrict,
 } from "./options.js";
 
 // Resolved at construction time, so importing this module doesn't fail in
@@ -52,16 +54,17 @@ export class Compress extends TransformStreamBase<BinaryInput, Uint8Array> {
 }
 
 /**
- * Decompresses a stream of `.lzma` data.
+ * Decompresses a stream of `.lzma` data. `{ strict: true }` rejects an end
+ * marker before the declared size; an invalid option throws a `RangeError`.
  *
  * @example
  * const response = await fetch("data.lzma");
  * const text = await new Response(response.body!.pipeThrough(new Decompress())).text();
  */
 export class Decompress extends TransformStreamBase<BinaryInput, Uint8Array> {
-	constructor() {
+	constructor(options?: DecompressionOptions) {
 		let enqueue: (chunk: Uint8Array) => void;
-		const decoder = new AloneDecoder((chunk) => enqueue(chunk.slice()));
+		const decoder = new AloneDecoder((chunk) => enqueue(chunk.slice()), 0, false, resolveStrict(options));
 
 		super({
 			start(controller) {

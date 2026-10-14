@@ -528,3 +528,40 @@ describe("decoder reuse", () => {
 		}
 	});
 });
+
+describe("strict", () => {
+	const input = new TextEncoder().encode("An end marker before the declared size ends the data. ".repeat(10));
+	const compressed = compress(input);
+	const tooLarge = compressed.slice();
+	new DataView(tooLarge.buffer).setUint32(5, input.length + 100, true);
+	const unknownSize = compressed.slice();
+	unknownSize.fill(0xFF, 5, 13);
+
+	test("rejects an end marker before the declared size", () => {
+		expect(() => decompress(tooLarge, { strict: true })).toThrow("Corrupted input: end marker before the declared size");
+	});
+
+	test("accepts that marker without strict", () => {
+		const output = decompress(tooLarge);
+
+		expect(output).toEqual(input);
+	});
+
+	test.each([
+		["an end marker at the declared size", compressed],
+		["a known size without an end marker", compress(input, { endMarker: false })],
+		["an unknown size", unknownSize],
+	])("accepts %s", (_, data) => {
+		const output = decompress(data, { strict: true });
+
+		expect(output).toEqual(input);
+	});
+
+	test("applies to decompressString", () => {
+		expect(() => decompressString(tooLarge, { strict: true })).toThrow("end marker before the declared size");
+	});
+
+	test.each([1, "yes"])("rejects strict: %p", (strict) => {
+		expect(() => decompress(compressed, { strict } as never)).toThrow(RangeError);
+	});
+});

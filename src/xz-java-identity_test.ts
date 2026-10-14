@@ -8,7 +8,9 @@
  * - `decompress()` of every fixture reproduces the seeded input;
  * - on the malformed-stream set, the decoder's outcome matches the
  *   Java decoder's recorded outcome, except for the reviewed
- *   deviation classes, which carry the library's own recorded outcome.
+ *   deviation classes, which carry the library's own recorded outcome;
+ * - with `strict`, the same holds and `end-marker-leniency` cases get the
+ *   Java decoder's outcome.
  *
  * The checks live in `fixtures/identity.ts`, shared with
  * `fixtures/verify.ts`, which runs them on Node.
@@ -26,6 +28,7 @@ import {
 	loadManifest,
 	malformedChecks,
 	recordChecks,
+	strictMalformedChecks,
 } from "../fixtures/identity.ts";
 import * as library from "./index.js";
 
@@ -54,6 +57,14 @@ describe("byte identity with XZ for Java", () => {
 
 describe("malformed streams match recorded decoder expectations", () => {
 	test.each(malformedChecks(library, manifest, records).map((check) => [check.name, check] as const))("%s", async (_, check) => {
+		const mismatch = await check.run();
+
+		expect(mismatch).toBeUndefined();
+	});
+});
+
+describe("malformed streams in strict mode", () => {
+	test.each(strictMalformedChecks(library, manifest, records).map((check) => [check.name, check] as const))("%s", async (_, check) => {
 		const mismatch = await check.run();
 
 		expect(mismatch).toBeUndefined();

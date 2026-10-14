@@ -21,6 +21,7 @@ import {
 	loadManifest,
 	malformedChecks,
 	recordChecks,
+	strictMalformedChecks,
 } from "./identity.ts";
 
 const repoRoot = path.join(import.meta.dirname, "..");
@@ -36,6 +37,7 @@ const groups: [string, IdentityCheck[]][] = [
 	["fixture records", recordChecks(manifest, records)],
 	["byte identity with XZ for Java", cellChecks(library, manifest)],
 	["malformed streams match recorded decoder expectations", malformedChecks(library, manifest, records)],
+	["malformed streams in strict mode", strictMalformedChecks(library, manifest, records)],
 ];
 
 let failures = 0;

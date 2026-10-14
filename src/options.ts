@@ -1,5 +1,5 @@
 /**
- * Compression options and presets.
+ * Compression options and presets, and the decompression options.
  */
 
 import type { MatchFinderType } from "./lz-encoder.js";
@@ -155,6 +155,27 @@ export function fitDictSize(dictSize: number, inputSize: number): number {
 	}
 
 	return dictSize;
+}
+
+/** Options of `decompress`, `decompressString` and `Decompress`. */
+export interface DecompressionOptions {
+	/**
+	 * Reject an end marker before the size the header declares, default
+	 * false. By default the data ends at such a marker, because some
+	 * producers write a size that is too large. XZ for Java and xz reject
+	 * it.
+	 */
+	strict?: boolean;
+}
+
+/** Validates the decompression options. Returns `strict`. */
+export function resolveStrict(options: DecompressionOptions = {}): boolean {
+	const strict = options.strict ?? false;
+	if (typeof strict !== "boolean") {
+		throw new RangeError(`Invalid strict: ${strict} (expected a boolean)`);
+	}
+
+	return strict;
 }
 
 function checkInteger(name: string, value: number, min: number, max: number): void {

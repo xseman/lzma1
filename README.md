@@ -69,11 +69,11 @@ The library provides four main functions for compression and decompression:
 ```ts
 // For binary data
 compress(data: ArrayBuffer | ArrayBufferView, mode?: 1-9 | CompressionOptions): Uint8Array
-decompress(data: ArrayBuffer | ArrayBufferView): Uint8Array
+decompress(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOptions): Uint8Array
 
 // For string data
 compressString(data: string, mode?: 1-9 | CompressionOptions): Uint8Array
-decompressString(data: ArrayBuffer | ArrayBufferView): string
+decompressString(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOptions): string
 ```
 
 Strings are encoded as UTF-8. `decompressString` also decodes data compressed
@@ -189,6 +189,16 @@ Decompressing truncated or corrupted data throws an `Error`, e.g.
 The `.lzma` format has no checksum, so some corrupted data decodes without
 an error to different output.
 Invalid options throw a `RangeError`.
+
+The data has to end at the size in the header, with or without an end marker
+after it. An end marker before that size ends the data too, because some
+producers write a size that is too large. `strict` rejects it, as XZ for Java
+and xz do:
+
+```js
+decompress(data, { strict: true });
+new Decompress({ strict: true });
+```
 
 ### HTML example
 

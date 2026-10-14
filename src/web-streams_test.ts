@@ -116,6 +116,19 @@ describe("Decompress", () => {
 
 		await expect(promise).rejects.toThrow("Corrupted input: data exceeds the declared size");
 	});
+
+	test("rejects an end marker before the declared size with strict", async () => {
+		const tooLarge = compressed.slice();
+		new DataView(tooLarge.buffer).setUint32(5, input.length + 1, true);
+
+		const promise = collect(chunked(tooLarge, 64).pipeThrough(new Decompress({ strict: true })));
+
+		await expect(promise).rejects.toThrow("Corrupted input: end marker before the declared size");
+	});
+
+	test("rejects an invalid strict on construction", () => {
+		expect(() => new Decompress({ strict: 1 } as never)).toThrow(RangeError);
+	});
 });
 
 describe("Compress", () => {

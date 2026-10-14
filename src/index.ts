@@ -13,7 +13,9 @@ import {
 import {
 	type CompressionMode,
 	type CompressionOptions,
+	type DecompressionOptions,
 	DEFAULT_LEVEL,
+	resolveStrict,
 } from "./options.js";
 import {
 	decodeUtf8,
@@ -22,7 +24,7 @@ import {
 
 export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
-export type { CompressionMode, CompressionOptions } from "./options.js";
+export type { CompressionMode, CompressionOptions, DecompressionOptions } from "./options.js";
 export { Compress, Decompress } from "./web-streams.js";
 
 /**
@@ -57,11 +59,13 @@ export function compressString(
  * Decompresses `.lzma` data.
  *
  * @param data Compressed data
+ * @param options `strict` rejects an end marker before the declared size
  * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid
  * @throws {Error} If the data is truncated or corrupted
  */
-export function decompress(data: BinaryInput): Uint8Array {
-	return decompressData(toUint8Array(data));
+export function decompress(data: BinaryInput, options?: DecompressionOptions): Uint8Array {
+	return decompressData(toUint8Array(data), resolveStrict(options));
 }
 
 /**
@@ -69,9 +73,11 @@ export function decompress(data: BinaryInput): Uint8Array {
  * data compressed by lzma1 v0.3.0 and older is also supported.
  *
  * @param data Compressed data
+ * @param options `strict` rejects an end marker before the declared size
  * @returns Decompressed string
+ * @throws {RangeError} If an option is invalid
  * @throws {Error} If the data is truncated or corrupted
  */
-export function decompressString(data: BinaryInput): string {
-	return decodeUtf8(decompressData(toUint8Array(data)));
+export function decompressString(data: BinaryInput, options?: DecompressionOptions): string {
+	return decodeUtf8(decompressData(toUint8Array(data), resolveStrict(options)));
 }

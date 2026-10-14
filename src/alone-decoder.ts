@@ -48,6 +48,7 @@ export class AloneDecoder {
 	private done = false;
 	private readonly preallocateLimit: number;
 	private readonly reuse: boolean;
+	private readonly strict: boolean;
 
 	/**
 	 * True when the whole output fits into the dictionary buffer, which is
@@ -64,11 +65,13 @@ export class AloneDecoder {
 	 *        buffer is allocated at once
 	 * @param reuse Reuse probability arrays of earlier decoders. Only for
 	 *        synchronous one-shot decompression.
+	 * @param strict Reject an end marker before the declared size
 	 */
-	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false) {
+	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false, strict = false) {
 		this.sink = sink;
 		this.preallocateLimit = preallocateLimit;
 		this.reuse = reuse;
+		this.strict = strict;
 	}
 
 	/** Uncompressed size from the header, once it has been read. */
@@ -148,6 +151,11 @@ export class AloneDecoder {
 		if (endMarker) {
 			// An end marker before the declared size is accepted too, as in
 			// earlier versions: some producers write a size that is too large.
+			// `strict` rejects it. An unknown size is -1, so it is never early.
+			if (this.strict && lzma.outPos < size) {
+				throw new Error("Corrupted input: end marker before the declared size");
+			}
+
 			if (!rc.isFinished()) {
 				throw new Error("Corrupted input: invalid end marker");
 			}

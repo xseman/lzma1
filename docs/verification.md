@@ -206,7 +206,9 @@ bytes. The first two sometimes produced wrong bytes. Nothing else changes:
 
 One difference from the Java decoder remains at the end of a stream: an end
 marker before the declared size is accepted, because some producers write a size
-that is too large and the marker is how their data decodes. The fixtures record
+that is too large and the marker is how their data decodes. The `strict` option
+rejects it as the Java decoder does, and the identity checks decode the
+malformed set in both modes. The fixtures record
 every decoder outcome that differs from the Java decoder's, in two classes
 described in `fixtures/README.md`. `fixtures/generate.ts` stops on any other
 difference.

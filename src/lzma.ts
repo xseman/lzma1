@@ -44,8 +44,11 @@ export function compressData(data: Uint8Array, options: CompressionMode | Compre
 /** Largest declared output size that is allocated at once when decompressing. */
 const PREALLOCATE_LIMIT = 64 << 20;
 
-/** Decompresses `.lzma` data. */
-export function decompressData(data: Uint8Array): Uint8Array {
+/**
+ * Decompresses `.lzma` data. `strict` rejects an end marker before the
+ * declared size.
+ */
+export function decompressData(data: Uint8Array, strict = false): Uint8Array {
 	let out: OutputBuffer | undefined;
 	let last: Uint8Array | undefined;
 
@@ -62,6 +65,7 @@ export function decompressData(data: Uint8Array): Uint8Array {
 		},
 		PREALLOCATE_LIMIT,
 		true,
+		strict,
 	);
 
 	decoder.write(data);

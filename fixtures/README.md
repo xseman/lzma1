@@ -37,7 +37,8 @@ and the library's own outcome (`port`):
 
 - `end-marker-leniency`: an end marker before the declared size is accepted;
   some producers write a size that is too large, and the marker is the recovery
-  mechanism. The output must equal the original input.
+  mechanism. The output must equal the original input. The `strict` option turns
+  this leniency off.
 - `dict-size-clamp`: a header dictionary size beyond the Java code's supported
   range is clamped to the declared size instead of rejected. The output must
   equal the original input.
@@ -50,7 +51,8 @@ fixture's hash against `manifest.json`, `compress()` against every fixture byte
 for byte (each compressed twice in a row, so encoders reused from the pool are
 checked too), `decompress()` of every fixture against its input, and every
 malformed case against its recorded outcome, with the expected count of each
-class.
+class. The malformed cases run a second time with `strict`, where the
+`end-marker-leniency` cases must get the Java decoder's outcome.
 
 ## CI
 

@@ -114,6 +114,38 @@ export function malformedChecks(library: Library, manifest: Manifest, records: M
 	}));
 }
 
+/**
+ * The same cases decoded with `strict`, which rejects an end marker before
+ * the declared size: `end-marker-leniency` cases must get the Java
+ * decoder's outcome, and every other case the same outcome as without it.
+ */
+export function strictMalformedChecks(library: Library, manifest: Manifest, records: MalformedRecords): IdentityCheck[] {
+	const cases = new Map(deriveCommittedMalformed(manifest).map((malformedCase) => [malformedCase.id, malformedCase]));
+
+	return records.cases.map((record) => ({
+		name: record.id,
+		run: async () => {
+			const malformedCase = cases.get(record.id);
+			if (malformedCase === undefined) {
+				return "recorded case is not derived from the committed fixtures";
+			}
+
+			const lenient = record.deviation !== undefined && record.deviation !== "end-marker-leniency";
+			const expected = lenient ? record.port : record.java;
+			if (expected === undefined) {
+				return "deviation record without a port outcome";
+			}
+
+			const actual = decodeOutcome(library, malformedCase.bytes, true);
+			if (!sameOutcome(expected, actual, lenient)) {
+				return `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`;
+			}
+
+			return undefined;
+		},
+	}));
+}
+
 /** Checks of the records themselves, independent of the library. */
 export function recordChecks(manifest: Manifest, records: MalformedRecords): IdentityCheck[] {
 	return [
@@ -336,9 +368,9 @@ function readFixture(id: string, variant: FixtureVariant): Uint8Array<ArrayBuffe
 	return new Uint8Array(fs.readFileSync(path.join(FIXTURES_DIR, "corpus", fixtureFileName(id, variant))));
 }
 
-function decodeOutcome(library: Library, bytes: Uint8Array): DecodeOutcome {
+function decodeOutcome(library: Library, bytes: Uint8Array, strict = false): DecodeOutcome {
 	try {
-		const output = library.decompress(bytes);
+		const output = library.decompress(bytes, { strict });
 
 		return { status: "ok", length: output.length, sha256: sha256(output) };
 	} catch (error) {
