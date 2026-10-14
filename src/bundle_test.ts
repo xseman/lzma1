@@ -14,8 +14,14 @@ import { fileURLToPath } from "node:url";
 
 const INDEX = fileURLToPath(new URL("index.ts", import.meta.url));
 
-/** Text only raw decoding contains. Minifiers keep strings and property names. */
-const RAW_ONLY = ["KiB of memory would be needed", "memoryLimitKb"];
+// Text only raw decoding contains. Minifiers keep strings and property names.
+const RAW = ["KiB of memory would be needed", "memoryLimitKb"];
+const LZMA2 = ["LZMA2", "getMemoryUsageKb"];
+
+// The LZMA2-only dictionary and range decoder functions. A bundle shows their
+// names only if they become methods of a class that decompress() uses too,
+// such as `LzDecoder` or `RangeDecoder`.
+const SHARED_METHODS = ["copyUncompressed", "resetDictionary", "prepareInputBuffer"];
 
 /** Bundles an app that imports `names`, minified like a production build. */
 async function bundle(names: string[]): Promise<string> {
@@ -40,15 +46,27 @@ describe("tree shaking", () => {
 	])("leaves raw decoding out of an app that imports %p", async (names) => {
 		const code = await bundle(names);
 
-		for (const text of RAW_ONLY) {
+		for (const text of [...RAW, ...LZMA2, ...SHARED_METHODS]) {
 			expect(code).not.toContain(text);
 		}
 	});
 
-	test("keeps raw decoding in an app that imports it", async () => {
+	test("keeps raw LZMA1 decoding and leaves LZMA2 out of an app that imports decompressRawLzma1", async () => {
 		const code = await bundle(["decompressRawLzma1"]);
 
-		for (const text of RAW_ONLY) {
+		for (const text of RAW) {
+			expect(code).toContain(text);
+		}
+
+		for (const text of LZMA2) {
+			expect(code).not.toContain(text);
+		}
+	});
+
+	test("keeps LZMA2 decoding in an app that imports decompressRawLzma2", async () => {
+		const code = await bundle(["decompressRawLzma2"]);
+
+		for (const text of [...RAW, ...LZMA2]) {
 			expect(code).toContain(text);
 		}
 	});

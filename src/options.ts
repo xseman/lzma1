@@ -8,6 +8,7 @@ import {
 	UNKNOWN_SIZE,
 } from "./header.js";
 import type { MatchFinderType } from "./lz-encoder.js";
+import { Lzma2Decoder } from "./lzma2-decoder.js";
 import { MemoryLimitError } from "./memory-limit.js";
 
 /**
@@ -215,6 +216,29 @@ export interface RawLzma1Options {
 	memoryLimitKb?: number;
 }
 
+/**
+ * Properties of raw LZMA2 data, the format inside `.xz` blocks and 7z
+ * LZMA2 entries.
+ */
+export interface RawLzma2Options {
+	/**
+	 * Dictionary size in bytes, 4 KiB to 4 GiB - 1. It comes from the
+	 * container's LZMA2 properties byte. The uncompressed size, if known and
+	 * at least 4 KiB, works too, since matches can't reach back before the
+	 * start of the data. A smaller size lowers the estimate checked against
+	 * `memoryLimitKb`.
+	 */
+	dictSize: number;
+	/**
+	 * Memory limit in KiB, default none. If decoding would need more, the
+	 * call throws a `MemoryLimitError` before it allocates anything. The
+	 * estimate counts the dictionary at `dictSize`, as XZ for Java does. It
+	 * doesn't count the output buffer, which `decompressRawLzma2` creates with
+	 * the first output, at 4 times the input length up to 16 MiB.
+	 */
+	memoryLimitKb?: number;
+}
+
 /** Largest dictionary size a container can declare: 4 GiB - 1. */
 const RAW_DICT_SIZE_MAX = 0xFFFFFFFF;
 
@@ -237,6 +261,19 @@ export function resolveRawLzma1Options(options: RawLzma1Options): LzmaHeader {
 	checkMemoryLimit(getLzma1MemoryUsageKb(dictSize, lc, lp), memoryLimitKb);
 
 	return { lc, lp, pb, dictSize, uncompressedSize: uncompressedSize ?? UNKNOWN_SIZE };
+}
+
+/**
+ * Validates the options of raw LZMA2 decoding and checks the memory limit.
+ * Returns the dictionary size.
+ */
+export function resolveRawLzma2Options(options: RawLzma2Options): number {
+	const { dictSize, memoryLimitKb } = options;
+
+	checkInteger("dictSize", dictSize, DICT_SIZE_MIN, RAW_DICT_SIZE_MAX);
+	checkMemoryLimit(Lzma2Decoder.getMemoryUsageKb(dictSize), memoryLimitKb);
+
+	return dictSize;
 }
 
 /**

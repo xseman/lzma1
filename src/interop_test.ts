@@ -1,7 +1,7 @@
 /**
  * Round-trip fuzzing and interoperability with the `xz` command line tool
- * (the reference LZMA implementation). The xz tests are skipped when `xz`
- * isn't installed.
+ * (the reference LZMA implementation) and with 7-Zip. The xz tests are
+ * skipped when `xz` isn't installed, the 7-Zip tests when `7z` isn't.
  */
 
 import {
@@ -10,16 +10,25 @@ import {
 	test,
 } from "bun:test";
 import { spawnSync } from "node:child_process";
+import {
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
 	compress,
 	type CompressionOptions,
 	decompress,
 	decompressRawLzma1,
+	decompressRawLzma2,
 	type RawLzma1Options,
 } from "./index.js";
 
 const hasXz = spawnSync("xz", ["--version"]).status === 0;
+const has7z = spawnSync("7z", ["i"]).status === 0;
 
 function xz(args: string[], input: Uint8Array): Uint8Array {
 	const result = spawnSync("xz", args, { input, maxBuffer: 1 << 28 });
@@ -219,7 +228,36 @@ function rawCorpus(): [string, Uint8Array][] {
 	];
 }
 
+/** Control bytes of the LZMA2 chunks in `data`, with the size bits of LZMA chunks cleared. */
+function chunkKinds(data: Uint8Array): number[] {
+	const kinds: number[] = [];
+	let pos = 0;
+
+	while (data[pos] !== 0x00) {
+		const control = data[pos];
+		if (control < 0x80) {
+			kinds.push(control);
+			pos += 3 + ((data[pos + 1] << 8) | data[pos + 2]) + 1;
+		} else {
+			kinds.push(control & 0xE0);
+			pos += (control >= 0xC0 ? 6 : 5) + ((data[pos + 3] << 8) | data[pos + 4]) + 1;
+		}
+	}
+
+	return kinds;
+}
+
 // Each preset with an explicit dictionary size, which raw data needs.
+const lzma2Filters: [string, number][] = [
+	["preset=0", 256 << 10],
+	["preset=6", 8 << 20],
+	["preset=9e", 64 << 20],
+	["preset=1", 4096],
+	["preset=6,lc=0,lp=4,pb=0", 1 << 16],
+	["preset=6,lc=4,lp=0,pb=4", 1 << 16],
+	["preset=3,mode=fast,mf=hc3", 1 << 20],
+];
+
 const lzma1Filters: [string, RawLzma1Options][] = [
 	["preset=0", { lc: 3, lp: 0, pb: 2, dictSize: 256 << 10 }],
 	["preset=6", { lc: 3, lp: 0, pb: 2, dictSize: 8 << 20 }],
@@ -243,10 +281,21 @@ function xzRaw(filter: string, input: Uint8Array, name: string): Uint8Array {
 	return output;
 }
 
+const lzma2Filter = (preset: string, dictSize: number) => `--lzma2=${preset},dict=${dictSize}`;
 const lzma1Filter = (preset: string, { lc, lp, pb, dictSize }: RawLzma1Options) => `--lzma1=${preset},dict=${dictSize},lc=${lc},lp=${lp},pb=${pb}`;
 
 describe.skipIf(!hasXz)("xz raw interoperability", () => {
 	for (const [name, input] of rawCorpus()) {
+		test(`decodes ${name} from xz --lzma2`, async () => {
+			for (const [preset, dictSize] of lzma2Filters) {
+				const compressed = xzRaw(lzma2Filter(preset, dictSize), input, name);
+
+				const output = decompressRawLzma2(compressed, { dictSize });
+
+				expect(output).toEqual(input);
+			}
+		});
+
 		test(`decodes ${name} from xz --lzma1`, async () => {
 			for (const [preset, options] of lzma1Filters) {
 				const compressed = xzRaw(lzma1Filter(preset, options), input, name);
@@ -259,4 +308,80 @@ describe.skipIf(!hasXz)("xz raw interoperability", () => {
 			}
 		});
 	}
+
+	test("xz output covers every kind of LZMA2 chunk", () => {
+		const kinds = new Set<number>();
+
+		for (const [name, input] of rawCorpus()) {
+			for (const [preset, dictSize] of lzma2Filters) {
+				for (const kind of chunkKinds(xzRaw(lzma2Filter(preset, dictSize), input, name))) kinds.add(kind);
+			}
+		}
+
+		expect([...kinds].sort((x, y) => x - y)).toEqual([0x01, 0x02, 0x80, 0xA0, 0xC0, 0xE0]);
+	});
+});
+
+/**
+ * Compresses `input` into a 7z archive and returns the packed stream of
+ * its one entry. Without header compression (`-mhc=off`), the packed
+ * streams start after the 32-byte signature header and end at the next
+ * header, whose offset is stored in bytes 12-19.
+ */
+function sevenZip(method: string, input: Uint8Array): Uint8Array {
+	const dir = mkdtempSync(join(tmpdir(), "lzma1-"));
+
+	try {
+		const archive = join(dir, "data.7z");
+		const result = spawnSync("7z", ["a", "-t7z", "-mhc=off", "-si", method, archive], { input });
+		if (result.status !== 0) {
+			throw new Error(`7z a ${method} failed: ${result.stdout}`);
+		}
+
+		const bytes = new Uint8Array(readFileSync(archive));
+		const nextHeaderOffset = Number(new DataView(bytes.buffer, bytes.byteOffset).getBigUint64(12, true));
+		return bytes.slice(32, 32 + nextHeaderOffset);
+	} finally {
+		rmSync(dir, { recursive: true, force: true });
+	}
+}
+
+describe.skipIf(!has7z)("7-Zip interoperability", () => {
+	const [, input] = rawCorpus().find(([name]) => name === "text, more noise, text")!;
+
+	test("decodes a 7z LZMA2 entry with a dictionary reset in every block", async () => {
+		const packed = sevenZip("-m0=lzma2:d=64k:c=128k", input);
+
+		const output = decompressRawLzma2(packed, { dictSize: 1 << 16 });
+
+		expect(chunkKinds(packed).filter((kind) => kind === 0xE0).length).toBeGreaterThan(2);
+		expect(output).toEqual(input);
+	});
+
+	test("decodes a 7z LZMA2 entry", () => {
+		const packed = sevenZip("-m0=lzma2:d=1m", input);
+
+		const output = decompressRawLzma2(packed, { dictSize: 1 << 20 });
+
+		expect(output).toEqual(input);
+	});
+
+	test("decodes a 7z LZMA entry, which has no end marker, given its size", async () => {
+		const options = { lc: 1, lp: 2, pb: 1, dictSize: 1 << 16, uncompressedSize: input.length };
+		const packed = sevenZip("-m0=lzma:d=64k:lc=1:lp=2:pb=1", input);
+
+		const output = decompressRawLzma1(packed, options);
+		const withoutSize = () => decompressRawLzma1(packed, { ...options, uncompressedSize: undefined });
+
+		expect(output).toEqual(input);
+		expect(withoutSize).toThrow("Truncated input");
+	});
+
+	test("decodes a 7z LZMA entry with an end marker", () => {
+		const packed = sevenZip("-m0=lzma:d=64k:eos", input);
+
+		const output = decompressRawLzma1(packed, { lc: 3, lp: 0, pb: 2, dictSize: 1 << 16 });
+
+		expect(output).toEqual(input);
+	});
 });

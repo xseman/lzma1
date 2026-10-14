@@ -26,7 +26,7 @@ import {
  * reads at most one byte per bit, and the longest symbol (a match with the
  * largest distance) is 48 bits.
  */
-const INPUT_MARGIN = 64;
+export const INPUT_MARGIN = 64;
 
 const DICT_SIZE_MIN = 1 << 12;
 

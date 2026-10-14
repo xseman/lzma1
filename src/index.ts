@@ -8,6 +8,7 @@ import {
 	type BinaryInput,
 	compressData,
 	decompressData,
+	decompressRawLzma2Data,
 	toUint8Array,
 } from "./lzma.js";
 import {
@@ -16,7 +17,9 @@ import {
 	type DecompressionOptions,
 	DEFAULT_LEVEL,
 	type RawLzma1Options,
+	type RawLzma2Options,
 	resolveRawLzma1Options,
+	resolveRawLzma2Options,
 	resolveStrict,
 } from "./options.js";
 import {
@@ -27,7 +30,7 @@ import {
 export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
 export { MemoryLimitError } from "./memory-limit.js";
-export type { CompressionMode, CompressionOptions, DecompressionOptions, RawLzma1Options } from "./options.js";
+export type { CompressionMode, CompressionOptions, DecompressionOptions, RawLzma1Options, RawLzma2Options } from "./options.js";
 export { Compress, Decompress } from "./web-streams.js";
 
 /**
@@ -102,4 +105,19 @@ export function decompressRawLzma1(data: BinaryInput, options: RawLzma1Options):
 	// Strict: raw data has no earlier producers to stay compatible with, and
 	// XZ for Java rejects an end marker before the known size.
 	return decompressData(toUint8Array(data), true, resolveRawLzma1Options(options));
+}
+
+/**
+ * Decompresses raw LZMA2 data, the format inside `.xz` blocks and 7z LZMA2
+ * entries. Its dictionary size comes from the container.
+ *
+ * @param data Compressed data
+ * @param options Dictionary size and a memory limit
+ * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid
+ * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb`
+ * @throws {Error} If the data is truncated or corrupted
+ */
+export function decompressRawLzma2(data: BinaryInput, options: RawLzma2Options): Uint8Array {
+	return decompressRawLzma2Data(toUint8Array(data), resolveRawLzma2Options(options));
 }

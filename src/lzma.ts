@@ -4,6 +4,7 @@ import {
 	type LzmaHeader,
 	UNKNOWN_SIZE,
 } from "./header.js";
+import { Lzma2Decoder } from "./lzma2-decoder.js";
 import {
 	type CompressionMode,
 	type CompressionOptions,
@@ -83,6 +84,22 @@ export function decompressData(data: Uint8Array, strict = false, header?: LzmaHe
 		// The output was decoded in place into one buffer.
 		return last === undefined ? new Uint8Array(0) : new Uint8Array(last.buffer, 0, last.byteOffset + last.length);
 	}
+
+	return out?.finish() ?? new Uint8Array(0);
+}
+
+/** Decompresses raw LZMA2 data with the given dictionary size. */
+export function decompressRawLzma2Data(data: Uint8Array, dictSize: number): Uint8Array {
+	let out: OutputBuffer | undefined;
+
+	// LZMA2 declares no size. The first output creates the buffer from a
+	// guess, capped as for a declared size, so empty output allocates nothing.
+	const decoder = new Lzma2Decoder(dictSize, (chunk) => {
+		out ??= new OutputBuffer(Math.min(data.length * 4, 1 << 24));
+		out.write(chunk);
+	});
+	decoder.write(data);
+	decoder.end();
 
 	return out?.finish() ?? new Uint8Array(0);
 }

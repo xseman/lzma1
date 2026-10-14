@@ -12,13 +12,17 @@
  *   output goes to a sink. `outPos` also provides the position bits
  *   (`posState` and the literal subcoder index). The Java code reads them
  *   from `LZDecoder.getPos()`, its position in a circular dictionary
- *   buffer that `LZMAInputStream.getDictSize` rounds up to a multiple of
- *   16 for exactly this purpose, so that position equals `outPos` modulo
- *   16. The position masks keep at most the low 4 bits (`pb`, `lp` <= 4),
- *   so the two agree for every dictionary size.
+ *   buffer that `LZMAInputStream.getDictSize` and
+ *   `LZMA2InputStream.getDictSize` round up to a multiple of 16 for exactly
+ *   this purpose, so that position equals `outPos` modulo 16. LZMA2 sets
+ *   `outPos` to the bytes since the last dictionary reset, where
+ *   `LZDecoder.reset` puts the Java position back to 0. The position masks
+ *   keep at most the low 4 bits (`pb`, `lp` <= 4), so the two agree for
+ *   every dictionary size.
  * - The end marker returns `true` instead of surfacing as the error the
  *   Java code's `lz.repeat` raises for it; a match that would cross the
- *   declared size is an error.
+ *   output limit, the declared size or the end of an LZMA2 chunk, is an
+ *   error.
  */
 
 import type { LzDecoder } from "./lz-decoder.js";
@@ -66,7 +70,7 @@ export class LzmaDecoder extends LzmaCoder {
 	private readonly matchLenDecoder = new LengthDecoder(this.probs, MATCH_LEN);
 	private readonly repLenDecoder = new LengthDecoder(this.probs, REP_LEN);
 
-	/** Number of bytes decoded so far. */
+	/** Bytes decoded so far; for LZMA2, since the last dictionary reset. */
 	outPos = 0;
 
 	/**
@@ -90,8 +94,8 @@ export class LzmaDecoder extends LzmaCoder {
 	}
 
 	/**
-	 * Decodes symbols until `outLimit` bytes have been produced or the
-	 * input position passes `inLimit`.
+	 * Decodes symbols until `outPos` reaches `outLimit` or the input
+	 * position passes `inLimit`.
 	 *
 	 * @returns `true` if the end marker was decoded
 	 */
