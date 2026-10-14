@@ -59,20 +59,6 @@ import {
 /** Memory limit (KiB) passed to the Java decoder for the malformed set. */
 const DECODER_MEM_LIMIT_KIB = 512 * 1024;
 
-/**
- * Malformed cases the library accepts at the declared length with output
- * that differs from the original input, where the Java decoder reports an
- * error: the decoder stops at the declared size without the Java code's
- * final range-coder check. Each member was reviewed individually; a
- * regeneration that finds a new one stops instead of extending the class.
- */
-const ACCEPTED_CORRUPTION: string[] = [
-	// A body bit flip that leaves enough valid symbols to fill the declared
-	// 100 bytes; the Java code then hits the end of input while finishing
-	// the range coder.
-	"base-100-n-bt4-64@flip32.0",
-];
-
 const fixturesDir = import.meta.dirname;
 const repoRoot = path.join(fixturesDir, "..");
 const manifestPath = path.join(fixturesDir, "manifest.json");
@@ -350,11 +336,6 @@ function classifyMalformed(cases: MalformedCase[], outcomes: DecodeOutcome[]): M
 		throw new Error(`${unclassified.length} unclassified deviations:\n${unclassified.join("\n")}`);
 	}
 
-	const missing = ACCEPTED_CORRUPTION.filter((id) => !records.some((record) => record.id === id && record.deviation === "accepted-corruption"));
-	if (missing.length > 0) {
-		throw new Error(`listed accepted-corruption cases no longer deviate that way: ${missing.join(", ")}`);
-	}
-
 	process.stdout.write(`malformed: ${cases.length} cases, ${cases.length - records.filter((record) => record.deviation).length} matching the Java outcome, deviations ${JSON.stringify(Object.fromEntries(perClass))}\n`);
 
 	return records;
@@ -369,9 +350,8 @@ function sameOutcome(java: DecodeOutcome, port: DecodeOutcome): boolean {
 }
 
 /**
- * The reviewed deviation classes. Every class but `accepted-corruption`
- * requires the library's output to equal the original input byte for
- * byte; `accepted-corruption` admits only its listed members.
+ * The reviewed deviation classes. Each requires the library's output to
+ * equal the original input byte for byte.
  */
 function classifyDeviation(malformedCase: MalformedCase, java: DecodeOutcome, port: DecodeOutcome): DeviationClass | undefined {
 	if (java.status !== "error" || port.status !== "ok") {
@@ -380,9 +360,8 @@ function classifyDeviation(malformedCase: MalformedCase, java: DecodeOutcome, po
 
 	const cellId = malformedCase.source.replace(/\.marker$/, "");
 	const input = inputs.get(cellId);
-	const fixture = fixtures.get(malformedCase.source);
-	if (input === undefined || fixture === undefined) {
-		throw new Error(`malformed source ${malformedCase.source} has no recorded input or fixture`);
+	if (input === undefined) {
+		throw new Error(`malformed source ${malformedCase.source} has no recorded input`);
 	}
 
 	const restoresInput = port.length === input.length && port.sha256 === sha256(input);
@@ -394,25 +373,10 @@ function classifyDeviation(malformedCase: MalformedCase, java: DecodeOutcome, po
 		return "end-marker-leniency";
 	}
 
-	// Decoding stops once the declared size is produced, without the
-	// Java code's check of the range coder's final state; corruption
-	// confined to the trailing bytes, or to the whole body when the
-	// declared size is 0, leaves the output intact.
-	const trailing = (op.kind === "flipbit" || op.kind === "truncate") && op.at >= Math.max(13, fixture.length - 8);
-	if (trailing && restoresInput) {
-		return "trailing-state-leniency";
-	}
-
 	// A header dictionary size beyond the Java code's supported range is
 	// clamped to the declared size instead of rejected.
 	if (op.kind === "header" && op.field === "dictSize" && restoresInput) {
 		return "dict-size-clamp";
-	}
-
-	// The same missing final check, where the corruption changed the
-	// output: accepted at the declared length with wrong bytes.
-	if (ACCEPTED_CORRUPTION.includes(malformedCase.id) && port.length === input.length && !restoresInput) {
-		return "accepted-corruption";
 	}
 
 	return undefined;

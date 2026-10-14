@@ -48,7 +48,8 @@ export interface CompressionOptions {
 	 * Not safe for decoders of raw LZMA data or streams that don't know the
 	 * size (e.g. `xz --format=raw`, Python's `FORMAT_RAW`): without the marker
 	 * they report an error or decode past the end. Strict decoders that know
-	 * the size may reject a marker, e.g. XZ for Java's `LZMAInputStream`.
+	 * the size may reject a marker, e.g. XZ for Java's raw `LZMAInputStream`
+	 * constructor without `enableRelaxedEndCondition()`.
 	 *
 	 * Requires a known size: `Compress` throws a `RangeError` for `false`.
 	 */

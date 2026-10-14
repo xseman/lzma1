@@ -51,11 +51,9 @@ export interface IdentityCheck {
  * has to change this table deliberately.
  */
 export const MALFORMED_OUTCOME_COUNTS = {
-	"matches-java": 559,
-	"trailing-state-leniency": 16,
+	"matches-java": 576,
 	"end-marker-leniency": 2,
 	"dict-size-clamp": 1,
-	"accepted-corruption": 1,
 };
 
 const FIXTURES_DIR = import.meta.dirname;

@@ -71,6 +71,51 @@ describe("Decompress", () => {
 		const promise = collect(chunked(bad, 100).pipeThrough(new Decompress()));
 		await expect(promise).rejects.toThrow("Corrupted input");
 	});
+
+	// Bytes 0-254 and a single 255 at 8191. No match or short rep can cover
+	// that position, so a literal starts there, as one starts every stream
+	// at 0. That literal fills the last slot of the dictionary buffer, which
+	// holds 1 byte for size 0 and 4096 bytes for size 8191.
+	const literalAt8191 = () => {
+		let x = 7;
+		const data = Uint8Array.from({ length: 9000 }, () => {
+			x ^= x << 13;
+			x ^= x >>> 17;
+			x ^= x << 5;
+			return (x >>> 0) % 255;
+		});
+		data[8191] = 255;
+		return data;
+	};
+
+	test.each([0, 8191])("hands out no byte past a declared size of %i before the error", async (size) => {
+		const bad = compress(literalAt8191(), { dictSize: 4096, endMarker: false });
+		new DataView(bad.buffer).setUint32(5, size, true);
+		const reader = chunked(bad, 7).pipeThrough(new Decompress()).getReader();
+		let received = 0;
+		const readAll = async () => {
+			for (let result = await reader.read(); !result.done; result = await reader.read()) {
+				received += result.value.length;
+			}
+		};
+
+		const promise = readAll();
+
+		await expect(promise).rejects.toThrow("Corrupted input: data exceeds the declared size");
+		expect(received).toBe(size);
+	});
+
+	test.each([1, 7, 64])("rejects a declared size smaller than the data in chunks of %i bytes", async (chunkSize) => {
+		// Distinct bytes at the end are literals, so the declared size ends
+		// between two symbols.
+		const literalEnd = new Uint8Array([...input, ...Array.from({ length: 16 }, (_, i) => 0xF0 + i)]);
+		const bad = compress(literalEnd);
+		new DataView(bad.buffer).setUint32(5, literalEnd.length - 1, true);
+
+		const promise = collect(chunked(bad, chunkSize).pipeThrough(new Decompress()));
+
+		await expect(promise).rejects.toThrow("Corrupted input: data exceeds the declared size");
+	});
 });
 
 describe("Compress", () => {

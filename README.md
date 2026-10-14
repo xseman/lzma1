@@ -153,7 +153,8 @@ find the end: raw LZMA decoders (`xz --format=raw`, Python's `FORMAT_RAW`)
 report an error or decode past the end without it. Omit it only when the data
 is decoded with its header (this library, `xz --format=lzma`, 7-Zip) or the
 size is known from elsewhere. Strict decoders that know the size may reject a
-marker, e.g. XZ for Java's `LZMAInputStream`.
+marker, e.g. XZ for Java's raw `LZMAInputStream` constructor without
+`enableRelaxedEndCondition()`.
 
 ### Streams
 
@@ -249,7 +250,7 @@ See [docs/benchmarks.md](docs/benchmarks.md), and [bench](bench) to run them.
 The encoder's output is byte-identical to [XZ for Java][xz-java] at commit
 [`6925f81`](https://github.com/tukaani-project/xz-java/commit/6925f81244a99d0ea4f3fd021938e2ee1e6de2eb)
 on a corpus of inputs and encoder settings. The decoder handles a set of
-corrupted streams the same way, except for four documented kinds of corrupt
+corrupted streams the same way, except for two documented kinds of corrupt
 input that it accepts where XZ for Java rejects them. CI checks both.
 [fixtures/README.md](fixtures/README.md) describes the corpus and how to
 regenerate it.

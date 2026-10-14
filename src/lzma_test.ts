@@ -343,11 +343,6 @@ describe("decompression errors", () => {
 		expect(() => decompress(unknownSize)).toThrow("Truncated input");
 	});
 
-	test("end marker is optional when the size is known", () => {
-		// The last bytes only complete the end marker.
-		expect(decompress(compressed.subarray(0, compressed.length - 1))).toEqual(input);
-	});
-
 	test("invalid properties byte", () => {
 		const bad = compressed.slice();
 		bad[0] = 225;
@@ -416,6 +411,55 @@ describe("decompression errors", () => {
 		const padded = new Uint8Array(compressed.length + 10);
 		padded.set(compressed);
 		expect(decompress(padded)).toEqual(input);
+	});
+});
+
+describe("end of the stream", () => {
+	// Distinct bytes at the end are literals, so a declared size one byte
+	// short ends between two symbols.
+	const text = new TextEncoder().encode("The range coder has to finish at the declared size. ".repeat(20));
+	const input = new Uint8Array([...text, ...Array.from({ length: 16 }, (_, i) => 0xF0 + i)]);
+	const withMarker = compress(input);
+	const withoutMarker = compress(input, { endMarker: false });
+	const forms = [["with", withMarker], ["without", withoutMarker]] as const;
+
+	test.each(forms)("accepts a known size %s an end marker", (_, compressed) => {
+		const output = decompress(compressed);
+
+		expect(output).toEqual(input);
+	});
+
+	test.each(forms)("rejects a declared size smaller than the data %s an end marker", (_, compressed) => {
+		const bad = compressed.slice();
+		new DataView(bad.buffer).setUint32(5, input.length - 1, true);
+
+		expect(() => decompress(bad)).toThrow("Corrupted input: data exceeds the declared size");
+	});
+
+	test("rejects an end marker cut short after the declared size", () => {
+		const truncated = withMarker.subarray(0, withMarker.length - 1);
+
+		expect(() => decompress(truncated)).toThrow("Truncated input");
+	});
+
+	test("rejects a corrupted last byte", () => {
+		const bad = withoutMarker.slice();
+		bad[bad.length - 1] ^= 0x01;
+
+		expect(() => decompress(bad)).toThrow();
+	});
+
+	test("rejects a declared size of 0 without the range coder bytes", () => {
+		const headerOnly = compress(new Uint8Array(0)).subarray(0, 13);
+
+		expect(() => decompress(headerOnly)).toThrow("Truncated input");
+	});
+
+	test("rejects data after a declared size of 0", () => {
+		const bad = withoutMarker.slice();
+		new DataView(bad.buffer).setUint32(5, 0, true);
+
+		expect(() => decompress(bad)).toThrow("Corrupted input: data exceeds the declared size");
 	});
 });
 

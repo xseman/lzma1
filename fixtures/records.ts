@@ -52,7 +52,7 @@ export type DecodeOutcome =
  * Reviewed classes of corrupt input on which the library's decoder is
  * more lenient than the Java code's (see fixtures/README.md).
  */
-export const DEVIATION_CLASSES = ["end-marker-leniency", "trailing-state-leniency", "dict-size-clamp", "accepted-corruption"] as const;
+export const DEVIATION_CLASSES = ["end-marker-leniency", "dict-size-clamp"] as const;
 
 export type DeviationClass = typeof DEVIATION_CLASSES[number];
 

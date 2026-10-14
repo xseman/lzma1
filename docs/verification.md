@@ -35,7 +35,9 @@ beyond the tests.
 The API code (`options.ts`, `lzma.ts`, `header.ts`, `index.ts`,
 `web-streams.ts`, `utf8.ts`, `output-buffer.ts`, `crc32.ts`, and the rest of
 `alone-encoder.ts` and `alone-decoder.ts`) is the library's own interface around
-the coders and is not derived from the Java code.
+the coders and is not derived from the Java code. The end check in
+`alone-decoder.ts` is the exception: it follows `LZMAInputStream`'s end
+condition, as "End of the stream" below describes.
 
 ## Translation
 
@@ -166,22 +168,48 @@ translation:
 - **`createEncoder` in alone-encoder.ts**: it carries only the known-size
   plumbing.
 
-### Semantic deviation
+### End of the stream
 
-The decoder does not check the range coder's final state when the declared size
-is reached. At that point `LZMAInputStream` requires a finished range coder
-(`code == 0`), or, in its relaxed mode, an end marker followed by a finished
-range coder, and otherwise rejects the stream. The library has `isFinished()`,
-but the API code does not call it there. So corruption after the last symbol
-needed for the declared size goes undetected, and a corrupt stream can be
-accepted at the declared length with wrong bytes where the Java decoder reports
-an error. A check at the declared size would close both without conflicting with
-the end-marker leniency, which ends at a marker before the declared size; it
-would change which inputs the library accepts.
+At the declared size, `AloneDecoder` applies the end condition of
+`LZMAInputStream` in its relaxed mode, which the Java code's `.lzma` header
+constructor turns on. The range coder must be finished (`code == 0`), or the
+next symbol must be an end marker after which it is finished. Anything else is
+an error. The decoder decodes that one symbol with an output limit one byte past
+the declared size, as the Java code does with `lz.setLimit(1)`. A literal or a
+short rep fills the extra byte and a longer match crosses the limit, so both
+throw, and the end marker returns before anything is written. A declared size of
+0 takes the same path, so its five range coder bytes are read and checked, as
+the Java constructor reads them before any output.
 
-The fixtures record every decoder outcome that differs from the Java decoder's,
-in four classes described in `fixtures/README.md`; this deviation accounts for
-two of them. `fixtures/generate.ts` stops on any other difference.
+This rejects three kinds of stream that the decoder used to accept at the
+declared length: corruption after the last symbol the declared size needs, a
+declared size smaller than the data, and a size-0 stream without its range coder
+bytes. The first two sometimes produced wrong bytes. Nothing else changes:
+
+- _Output._ Decoding up to the declared size is unchanged, and the check runs
+  after it, so every byte a stream produces is the byte it produced before.
+- _Nothing past the declared size._ Before it decodes the extra symbol, the
+  decoder passes every pending byte to the sink, and then it holds the sink
+  back. A byte that symbol writes never reaches a stream, as the Java code never
+  hands it out. In a contiguous output buffer it can overwrite the first byte
+  after a wrap, but only right before the decoder throws.
+- _Valid streams._ The encoder's output passes in both forms. Without a marker,
+  the range coder is finished at the declared size; with a known size and a
+  marker, as `compress()` writes by default, the extra symbol is the marker.
+- _Chunked input._ The extra symbol is decoded only when `INPUT_MARGIN` bytes are
+  left or the input has ended, like every other symbol. Otherwise the decoder
+  keeps the bytes and waits, so splitting the input anywhere gives the same
+  outcome.
+- _Probability pool._ A size-0 stream now reaches `release()` after its check,
+  like every finished stream, and the one-owner argument of the pool entry
+  covers it unchanged.
+
+One difference from the Java decoder remains at the end of a stream: an end
+marker before the declared size is accepted, because some producers write a size
+that is too large and the marker is how their data decodes. The fixtures record
+every decoder outcome that differs from the Java decoder's, in two classes
+described in `fixtures/README.md`. `fixtures/generate.ts` stops on any other
+difference.
 
 ### Java-to-JS hazard checklist
 
@@ -470,8 +498,7 @@ Argument:
   `start()`, which runs once per `AloneDecoder`, removes the entry from the pool
   before passing it to exactly one new decoder. So each array belongs to at most
   one decoder that can still use it, and no two decoders share probabilities. A
-  decoder that throws never returns its array, and a stream with declared size 0
-  finishes without decoding and without returning it; both only lose an array.
+  decoder that throws never returns its array, which only loses the array.
   Only decoders created with `reuse` (the synchronous one-shot path in
   `lzma.ts`) take from or give to the pool.
 - _Right size._ The lookup key is `probsSize(lc, lp)` for the new header, and

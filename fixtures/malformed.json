@@ -865,12 +865,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "accepted-corruption",
-			"port": {
-				"status": "ok",
-				"length": 100,
-				"sha256": "07f31b1d562880a1f5a162e2e91db98bd7ea27fa3fb531028c45349d31eead5b"
 			}
 		},
 		{
@@ -884,12 +878,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 100,
-				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
 			}
 		},
 		{
@@ -903,12 +891,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 100,
-				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
 			}
 		},
 		{
@@ -922,12 +904,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 100,
-				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
 			}
 		},
 		{
@@ -2500,12 +2476,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 5000,
-				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
 			}
 		},
 		{
@@ -4053,12 +4023,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 5000,
-				"sha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041"
 			}
 		},
 		{
@@ -5606,12 +5570,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 70000,
-				"sha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d"
 			}
 		},
 		{
@@ -5780,12 +5738,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -5798,12 +5750,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -5816,12 +5762,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -5834,12 +5774,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -5852,12 +5786,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -6045,12 +5973,6 @@
 			"java": {
 				"status": "error",
 				"error": "CorruptedInputException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -6064,12 +5986,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -6083,12 +5999,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -6102,12 +6012,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
@@ -6121,12 +6025,6 @@
 			"java": {
 				"status": "error",
 				"error": "EOFException"
-			},
-			"deviation": "trailing-state-leniency",
-			"port": {
-				"status": "ok",
-				"length": 0,
-				"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 			}
 		},
 		{
