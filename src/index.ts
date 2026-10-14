@@ -31,6 +31,7 @@ export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
 export { MemoryLimitError } from "./memory-limit.js";
 export type { CompressionMode, CompressionOptions, DecompressionOptions, RawLzma1Options, RawLzma2Options } from "./options.js";
+export { DecompressRawLzma1, DecompressRawLzma2 } from "./raw-web-streams.js";
 export { Compress, Decompress } from "./web-streams.js";
 
 /**

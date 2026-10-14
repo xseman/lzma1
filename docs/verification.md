@@ -34,14 +34,14 @@ beyond the tests.
 | `createEncoder` in `src/alone-encoder.ts` | `lzma/LZMAEncoder.getInstance`, `lz/LZEncoder.getInstance`                                                           |
 
 The API code (`options.ts`, `lzma.ts`, `header.ts`, `index.ts`,
-`web-streams.ts`, `utf8.ts`, `output-buffer.ts`, `crc32.ts`, `memory-limit.ts`,
-and the rest of `alone-encoder.ts` and `alone-decoder.ts`) is the library's own
-interface around the coders and is not derived from the Java code, except in
-three places. The end check in `alone-decoder.ts` follows `LZMAInputStream`'s
-end condition, as "End of the stream" below describes. `getLzma1MemoryUsageKb`
-and `getDictSize` in `options.ts` are `LZMAInputStream.getMemoryUsage` and its
-rounding, as "Raw LZMA1" describes. `MemoryLimitError`'s message is
-`MemoryLimitException`'s.
+`web-streams.ts`, `raw-web-streams.ts`, `utf8.ts`, `output-buffer.ts`,
+`crc32.ts`, `memory-limit.ts`, and the rest of `alone-encoder.ts` and
+`alone-decoder.ts`) is the library's own interface around the coders and is not
+derived from the Java code, except in three places. The end check in
+`alone-decoder.ts` follows `LZMAInputStream`'s end condition, as "End of the
+stream" below describes. `getLzma1MemoryUsageKb` and `getDictSize` in
+`options.ts` are `LZMAInputStream.getMemoryUsage` and its rounding, as "Raw
+LZMA1" describes. `MemoryLimitError`'s message is `MemoryLimitException`'s.
 
 ## Translation
 

@@ -238,6 +238,14 @@ A stream's size isn't known in advance, so the header marks it as unknown and
 the data always ends with an end marker: `new Compress({ endMarker: false })`
 throws a `RangeError`.
 
+`DecompressRawLzma1` and `DecompressRawLzma2` decode raw data in a stream and
+take the same options as the functions. Invalid options and a dictionary over
+the memory limit throw from the constructor.
+
+```js
+const output = response.body.pipeThrough(new DecompressRawLzma2({ dictSize: 1 << 20 }));
+```
+
 In TypeScript, their types need `TransformStream` from the `DOM` lib or
 `@types/node` (or `skipLibCheck`).
 

@@ -19,7 +19,7 @@ import {
 
 // Resolved at construction time, so importing this module doesn't fail in
 // runtimes without Web Streams.
-const TransformStreamBase: typeof TransformStream = globalThis.TransformStream
+export const TransformStreamBase: typeof TransformStream = globalThis.TransformStream
 	?? (class {
 		constructor() {
 			throw new Error("TransformStream is not available in this runtime");
@@ -63,19 +63,31 @@ export class Compress extends TransformStreamBase<BinaryInput, Uint8Array> {
  */
 export class Decompress extends TransformStreamBase<BinaryInput, Uint8Array> {
 	constructor(options?: DecompressionOptions) {
-		let enqueue: (chunk: Uint8Array) => void;
-		const decoder = new AloneDecoder((chunk) => enqueue(chunk.slice()), 0, false, resolveStrict(options));
-
-		super({
-			start(controller) {
-				enqueue = (chunk) => controller.enqueue(chunk);
-			},
-			transform(chunk) {
-				decoder.write(toUint8Array(chunk));
-			},
-			flush() {
-				decoder.end();
-			},
-		});
+		super(createDecoderTransformer((sink) => new AloneDecoder(sink, 0, false, resolveStrict(options))));
 	}
+}
+
+/** Decoder that takes its input in pieces, then checks that it is complete. */
+export interface StreamDecoder {
+	write(chunk: Uint8Array): void;
+	end(): void;
+}
+
+export function createDecoderTransformer(
+	create: (sink: (chunk: Uint8Array) => void) => StreamDecoder,
+): Transformer<BinaryInput, Uint8Array> {
+	let enqueue: (chunk: Uint8Array) => void;
+	const decoder = create((chunk) => enqueue(chunk.slice()));
+
+	return {
+		start(controller) {
+			enqueue = (chunk) => controller.enqueue(chunk);
+		},
+		transform(chunk) {
+			decoder.write(toUint8Array(chunk));
+		},
+		flush() {
+			decoder.end();
+		},
+	};
 }

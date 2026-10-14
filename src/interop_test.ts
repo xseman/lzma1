@@ -22,7 +22,9 @@ import {
 	compress,
 	type CompressionOptions,
 	decompress,
+	DecompressRawLzma1,
 	decompressRawLzma1,
+	DecompressRawLzma2,
 	decompressRawLzma2,
 	type RawLzma1Options,
 } from "./index.js";
@@ -228,6 +230,24 @@ function rawCorpus(): [string, Uint8Array][] {
 	];
 }
 
+function chunked(data: Uint8Array, chunkSize: number): ReadableStream<Uint8Array> {
+	let pos = 0;
+	return new ReadableStream({
+		pull(controller) {
+			if (pos >= data.length) {
+				controller.close();
+				return;
+			}
+			controller.enqueue(data.slice(pos, pos + chunkSize));
+			pos += chunkSize;
+		},
+	});
+}
+
+async function collect(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> {
+	return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
 /** Control bytes of the LZMA2 chunks in `data`, with the size bits of LZMA chunks cleared. */
 function chunkKinds(data: Uint8Array): number[] {
 	const kinds: number[] = [];
@@ -291,8 +311,10 @@ describe.skipIf(!hasXz)("xz raw interoperability", () => {
 				const compressed = xzRaw(lzma2Filter(preset, dictSize), input, name);
 
 				const output = decompressRawLzma2(compressed, { dictSize });
+				const streamed = await collect(chunked(compressed, 4093).pipeThrough(new DecompressRawLzma2({ dictSize })));
 
 				expect(output).toEqual(input);
+				expect(streamed).toEqual(input);
 			}
 		});
 
@@ -302,9 +324,11 @@ describe.skipIf(!hasXz)("xz raw interoperability", () => {
 
 				const output = decompressRawLzma1(compressed, options);
 				const withSize = decompressRawLzma1(compressed, { ...options, uncompressedSize: input.length });
+				const streamed = await collect(chunked(compressed, 4093).pipeThrough(new DecompressRawLzma1(options)));
 
 				expect(output).toEqual(input);
 				expect(withSize).toEqual(input);
+				expect(streamed).toEqual(input);
 			}
 		});
 	}
@@ -353,9 +377,11 @@ describe.skipIf(!has7z)("7-Zip interoperability", () => {
 		const packed = sevenZip("-m0=lzma2:d=64k:c=128k", input);
 
 		const output = decompressRawLzma2(packed, { dictSize: 1 << 16 });
+		const streamed = await collect(chunked(packed, 999).pipeThrough(new DecompressRawLzma2({ dictSize: 1 << 16 })));
 
 		expect(chunkKinds(packed).filter((kind) => kind === 0xE0).length).toBeGreaterThan(2);
 		expect(output).toEqual(input);
+		expect(streamed).toEqual(input);
 	});
 
 	test("decodes a 7z LZMA2 entry", () => {
@@ -371,9 +397,11 @@ describe.skipIf(!has7z)("7-Zip interoperability", () => {
 		const packed = sevenZip("-m0=lzma:d=64k:lc=1:lp=2:pb=1", input);
 
 		const output = decompressRawLzma1(packed, options);
+		const streamed = await collect(chunked(packed, 999).pipeThrough(new DecompressRawLzma1(options)));
 		const withoutSize = () => decompressRawLzma1(packed, { ...options, uncompressedSize: undefined });
 
 		expect(output).toEqual(input);
+		expect(streamed).toEqual(input);
 		expect(withoutSize).toThrow("Truncated input");
 	});
 
