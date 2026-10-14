@@ -15,6 +15,8 @@ import {
 	compress,
 	type CompressionOptions,
 	decompress,
+	decompressRawLzma1,
+	type RawLzma1Options,
 } from "./index.js";
 
 const hasXz = spawnSync("xz", ["--version"]).status === 0;
@@ -179,4 +181,82 @@ describe.skipIf(!hasXz)("xz interoperability", () => {
 			+ xz(["--compress", "--format=lzma", "--stdout", "-6"], text).length;
 		expect(ours).toBeLessThan(theirs * 1.02);
 	});
+});
+
+/** Bytes that xz can't compress, so it stores them in uncompressed LZMA2 chunks. */
+function noise(size: number, seed: number): Uint8Array {
+	let x = seed;
+	return Uint8Array.from({ length: size }, () => {
+		x ^= x << 13;
+		x ^= x >>> 17;
+		x ^= x << 5;
+		return x & 0xFF;
+	});
+}
+
+function concat(...parts: Uint8Array[]): Uint8Array {
+	const result = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
+	let pos = 0;
+	for (const part of parts) {
+		result.set(part, pos);
+		pos += part.length;
+	}
+	return result;
+}
+
+/** The corpus plus inputs that make xz write every kind of LZMA2 chunk. */
+function rawCorpus(): [string, Uint8Array][] {
+	const [, text] = corpus()[2];
+	const random = noise(200_000, 7);
+
+	return [
+		...corpus(),
+		["noise", random.subarray(0, 50_000)],
+		["noise then text", concat(random.subarray(0, 150_000), text)],
+		["text, noise, text", concat(text, random.subarray(0, 100_000), text)],
+		["text, more noise, text", concat(text, random, text)],
+		["2.5 MB of text", concat(...Array.from({ length: 25 }, () => text))],
+	];
+}
+
+// Each preset with an explicit dictionary size, which raw data needs.
+const lzma1Filters: [string, RawLzma1Options][] = [
+	["preset=0", { lc: 3, lp: 0, pb: 2, dictSize: 256 << 10 }],
+	["preset=6", { lc: 3, lp: 0, pb: 2, dictSize: 8 << 20 }],
+	["preset=6", { lc: 0, lp: 4, pb: 0, dictSize: 1 << 16 }],
+	["preset=9e", { lc: 4, lp: 0, pb: 4, dictSize: 4096 }],
+	["preset=1,mode=fast,mf=hc3", { lc: 1, lp: 2, pb: 1, dictSize: 1 << 20 }],
+];
+
+const xzRawOutputs = new Map<string, Uint8Array>();
+
+/** Output of `xz --format=raw` with `filter`, cached because several tests need it. */
+function xzRaw(filter: string, input: Uint8Array, name: string): Uint8Array {
+	const key = `${filter} ${name}`;
+	const cached = xzRawOutputs.get(key);
+	if (cached !== undefined) {
+		return cached;
+	}
+
+	const output = xz(["--compress", "--format=raw", "--stdout", filter], input);
+	xzRawOutputs.set(key, output);
+	return output;
+}
+
+const lzma1Filter = (preset: string, { lc, lp, pb, dictSize }: RawLzma1Options) => `--lzma1=${preset},dict=${dictSize},lc=${lc},lp=${lp},pb=${pb}`;
+
+describe.skipIf(!hasXz)("xz raw interoperability", () => {
+	for (const [name, input] of rawCorpus()) {
+		test(`decodes ${name} from xz --lzma1`, async () => {
+			for (const [preset, options] of lzma1Filters) {
+				const compressed = xzRaw(lzma1Filter(preset, options), input, name);
+
+				const output = decompressRawLzma1(compressed, options);
+				const withSize = decompressRawLzma1(compressed, { ...options, uncompressedSize: input.length });
+
+				expect(output).toEqual(input);
+				expect(withSize).toEqual(input);
+			}
+		});
+	}
 });

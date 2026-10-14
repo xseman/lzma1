@@ -3,8 +3,9 @@
 <h1>lzma1</h1>
 
 A TypeScript implementation of the Lempel-Ziv-Markov chain algorithm (LZMA)
-for the `.lzma` format, ported from [XZ for Java][xz-java]. It started as a
-[fork][fork-link] of [Nathan Rugg's][fork-author] LZMA-JS package.
+for the `.lzma` format, ported from [XZ for Java][xz-java]. It also decodes
+the raw LZMA1 data inside 7z archives. It started as a [fork][fork-link] of
+[Nathan Rugg's][fork-author] LZMA-JS package.
 
 </div>
 
@@ -26,11 +27,14 @@ standard APIs.
 ## Features
 
 - Encode and decode `.lzma` data, interoperable with `xz`, 7-Zip and LZMA SDK
+- Decode raw LZMA1 data, as 7z stores it, given the properties from the
+  container
 - Strings (UTF-8) and binary data (`ArrayBuffer` or any typed array)
 - Compression levels 1-9 or fine-grained options (dictionary size,
   `lc`/`lp`/`pb`, ...)
 - Web Streams (`TransformStream`) for compressing and decompressing streams
 - Errors on truncated input and on most corrupted input
+- A memory limit for untrusted raw data, in KiB like XZ for Java's
 - No dependencies, runs in browsers, workers, Node.js, Deno and Bun
 
 ## Installation
@@ -64,7 +68,8 @@ npm install lzma1
 
 ## Quick start
 
-The library provides four main functions for compression and decompression:
+Four functions compress and decompress the `.lzma` format, and one decodes raw
+LZMA1 data:
 
 ```ts
 // For binary data
@@ -74,6 +79,9 @@ decompress(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOptions):
 // For string data
 compressString(data: string, mode?: 1-9 | CompressionOptions): Uint8Array
 decompressString(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOptions): string
+
+// For raw LZMA1 data without a .lzma header, e.g. from 7z
+decompressRawLzma1(data: ArrayBuffer | ArrayBufferView, options: RawLzma1Options): Uint8Array
 ```
 
 Strings are encoded as UTF-8. `decompressString` also decodes data compressed
@@ -156,6 +164,45 @@ size is known from elsewhere. Strict decoders that know the size may reject a
 marker, e.g. XZ for Java's raw `LZMAInputStream` constructor without
 `enableRelaxedEndCondition()`.
 
+### Raw LZMA1
+
+7z archives store LZMA data without the `.lzma` header and keep its properties
+in their own header. Pass those properties to `decompressRawLzma1`. This library
+doesn't parse the 7z container.
+
+```js
+import { decompressRawLzma1 } from "lzma1";
+
+// A 7z LZMA entry. Its 5-byte coder properties are the byte
+// (pb * 5 + lp) * 9 + lc and the dictionary size, 32-bit little-endian.
+const file = decompressRawLzma1(packed, {
+	lc: 3, // literal context bits, 0-8
+	lp: 0, // literal position bits, 0-4
+	pb: 2, // position bits, 0-4
+	dictSize: 1 << 24, // dictionary size in bytes
+	uncompressedSize: 123_456, // optional, the size from the 7z header
+	memoryLimitKb: 65_536, // optional
+});
+```
+
+Raw LZMA1 needs the uncompressed size or an end marker. 7-Zip writes no end
+marker by default, so pass the size from the 7z header.
+`xz --format=raw --lzma1` always writes one. With a known size, the data has to
+end there, with or without an end marker, as with `decompress`. An end marker
+before that size is an error, as with `strict`.
+
+The dictionary size comes from the container, and a corrupt or hostile header
+can claim up to 4 GiB. `memoryLimitKb` works like XZ for Java's `memoryLimit`.
+The decoder estimates its memory in KiB from the dictionary size, `lc` and `lp`,
+and throws a `MemoryLimitError` before it allocates anything if the estimate is
+over the limit. The error's `memoryNeededKb` and `memoryLimitKb` fields hold
+both numbers. The estimate counts the dictionary at the size given. The
+dictionary buffer starts at 64 KiB at most and doubles only as output arrives,
+so a huge claimed dictionary costs nothing until the output grows. A known size
+changes that: `decompressRawLzma1` then allocates up to 64 MiB at once from it,
+for the dictionary or for the output, as `decompress` does with the size in the
+`.lzma` header. The estimate doesn't count the output.
+
 ### Streams
 
 `Compress` and `Decompress` are `TransformStream`s, used like the built-in
@@ -187,8 +234,10 @@ In TypeScript, their types need `TransformStream` from the `DOM` lib or
 Decompressing truncated or corrupted data throws an `Error`, e.g.
 `"Truncated input"` or `"Corrupted input: match distance is too large"`.
 The `.lzma` format has no checksum, so some corrupted data decodes without
-an error to different output.
-Invalid options throw a `RangeError`.
+an error to different output. Raw LZMA1 data has none either; 7z keeps its
+checksums in the container.
+Invalid options throw a `RangeError`, and a dictionary over `memoryLimitKb`
+throws a `MemoryLimitError`.
 
 The data has to end at the size in the header, with or without an end marker
 after it. An end marker before that size ends the data too, because some

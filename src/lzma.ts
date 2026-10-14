@@ -1,6 +1,9 @@
 import { AloneDecoder } from "./alone-decoder.js";
 import { AloneEncoder } from "./alone-encoder.js";
-import { UNKNOWN_SIZE } from "./header.js";
+import {
+	type LzmaHeader,
+	UNKNOWN_SIZE,
+} from "./header.js";
 import {
 	type CompressionMode,
 	type CompressionOptions,
@@ -45,10 +48,11 @@ export function compressData(data: Uint8Array, options: CompressionMode | Compre
 const PREALLOCATE_LIMIT = 64 << 20;
 
 /**
- * Decompresses `.lzma` data. `strict` rejects an end marker before the
- * declared size.
+ * Decompresses `.lzma` data, or raw LZMA1 data when `header` holds its
+ * properties and size. `strict` rejects an end marker before the declared
+ * size.
  */
-export function decompressData(data: Uint8Array, strict = false): Uint8Array {
+export function decompressData(data: Uint8Array, strict = false, header?: LzmaHeader): Uint8Array {
 	let out: OutputBuffer | undefined;
 	let last: Uint8Array | undefined;
 
@@ -67,6 +71,10 @@ export function decompressData(data: Uint8Array, strict = false): Uint8Array {
 		true,
 		strict,
 	);
+
+	if (header) {
+		decoder.start(header);
+	}
 
 	decoder.write(data);
 	decoder.end();

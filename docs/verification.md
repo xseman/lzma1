@@ -33,11 +33,14 @@ beyond the tests.
 | `createEncoder` in `src/alone-encoder.ts` | `lzma/LZMAEncoder.getInstance`, `lz/LZEncoder.getInstance`               |
 
 The API code (`options.ts`, `lzma.ts`, `header.ts`, `index.ts`,
-`web-streams.ts`, `utf8.ts`, `output-buffer.ts`, `crc32.ts`, and the rest of
-`alone-encoder.ts` and `alone-decoder.ts`) is the library's own interface around
-the coders and is not derived from the Java code. The end check in
-`alone-decoder.ts` is the exception: it follows `LZMAInputStream`'s end
-condition, as "End of the stream" below describes.
+`web-streams.ts`, `utf8.ts`, `output-buffer.ts`, `crc32.ts`, `memory-limit.ts`,
+and the rest of `alone-encoder.ts` and `alone-decoder.ts`) is the library's own
+interface around the coders and is not derived from the Java code, except in
+three places. The end check in `alone-decoder.ts` follows `LZMAInputStream`'s
+end condition, as "End of the stream" below describes. `getLzma1MemoryUsageKb`
+and `getDictSize` in `options.ts` are `LZMAInputStream.getMemoryUsage` and its
+rounding, as "Raw LZMA1" describes. `MemoryLimitError`'s message is
+`MemoryLimitException`'s.
 
 ## Translation
 
@@ -161,7 +164,9 @@ translation:
 - **lz-decoder.ts** (`LZDecoder.java`): an adaptation to the library's interface
   rather than a translation: a growing buffer with a sink replaces the fixed
   dictionary flushed by the caller; `repeat`'s distance validation against the
-  written history matches the Java code's `dist >= full` check in outcome kind;
+  written history matches the Java code's `dist >= full` check in outcome kind,
+  except in the gap the Java code's 16-byte rounding of the dictionary adds (see
+  "Raw LZMA1");
   `pendingLen` is unnecessary since the only output limit is the declared size,
   enforced in `lzma-decoder.ts`. The `copyWithin` fast path for non-overlapping
   long copies preserves output by the same forward-copy semantics.
@@ -213,6 +218,62 @@ every decoder outcome that differs from the Java decoder's, in two classes
 described in `fixtures/README.md`. `fixtures/generate.ts` stops on any other
 difference.
 
+### Raw LZMA1
+
+`decompressRawLzma1` decodes what `LZMAInputStream`'s raw constructor
+`LZMAInputStream(in, uncompSize, lc, lp, pb, dictSize, presetDict)` decodes
+without a preset dictionary, with the relaxed end condition turned on when the
+size is known. It runs the `.lzma` path: `AloneDecoder.start()` takes the
+properties and the size that `decode` would read from a header, and the decoder
+is strict. For the same properties, size and data, it therefore behaves as on a
+`.lzma` stream with that header in strict mode, and the arguments for that path
+carry over. What remains to compare is the part the Java constructor does
+differently from its header constructor:
+
+- _Validation._ `lc` 0-8, `lp` 0-4 and `pb` 0-4 are the ranges the Java
+  constructor accepts. An unknown size is an omitted `uncompressedSize` here and
+  -1 in the Java code. The library differs from the Java constructor in three
+  places, the deviations of raw LZMA1:
+  - It accepts dictionary sizes up to `2^32 - 1`, the most a container can
+    store, where the Java code throws an `IllegalArgumentException` above
+    `DICT_SIZE_MAX` (`0x7FFFFFF0`). It allocates no more for them: the
+    dictionary is capped by a known size and grows with the output either way.
+  - It takes a known size up to `2^53 - 1` and throws a `RangeError` above it,
+    where the Java code takes any `long`. The `.lzma` header has the same cap.
+  - The Java code rounds the dictionary up to a multiple of 16 bytes
+    (`getDictSize`), and `repeat` accepts distances up to that rounded size.
+    Here the dictionary is the size given, at least 4 KiB, without the
+    rounding. In data longer than a dictionary
+    whose size is not a multiple of 16, a distance between the two sizes is an
+    error here and accepted by the Java code. An encoder never writes one,
+    because its distances stay below the dictionary size it declares. The
+    `.lzma` path has the same difference.
+- _End of the data._ With a known size, the relaxed end condition applies at
+  that size (previous section). An end marker before it is an error in every
+  mode of the Java code, where it reaches the `remainingSize != -1` rethrow, and
+  it is an error here because the decoder is strict. With an unknown size, the
+  data has to end with a marker in both.
+- _Size 0._ The Java constructor reads the five range coder bytes and checks the
+  end condition. So does the library, because a size of 0 takes the general
+  path (previous section).
+- _Memory estimate._ `getLzma1MemoryUsageKb` is
+  `LZMAInputStream.getMemoryUsage(dictSize, lc, lp)`, with a `Kb` suffix for the
+  unit, as on `memoryLimitKb`. Both compute
+  `10 + getDictSize(dictSize) / 1024 + ((2 * 0x300) << (lc + lp)) / 1024`, where
+  `getDictSize` rounds `max(dictSize, 4096)` up to a multiple of 16. Java's
+  `(d + 15) & ~15` equals `Math.ceil(d / 16) * 16` for every `d` up to
+  `DICT_SIZE_MAX`, and Java's division of non-negative ints is `Math.floor`, so
+  the estimates are equal wherever the Java code gives one. Above
+  `DICT_SIZE_MAX`, `Math.ceil` stays exact where `& ~15` would turn negative.
+  `(2 * 0x300) << 12` is below 2^23, so the shift does not wrap. The raw Java
+  constructor takes no limit; the library checks `memoryLimitKb` before it
+  allocates anything, as the Java header constructor checks its limit.
+
+Nothing else changes. `start()` is the method `decode` already called, now
+public. `decompressData` takes the properties as an optional `header` and passes
+it to `start()` before the data; without one it runs as before, so `.lzma` data
+takes the same path.
+
 ### Java-to-JS hazard checklist
 
 - **Signed versus unsigned shifts:** every Java `>>>` kept as `>>>`; `>>` only
@@ -232,9 +293,10 @@ difference.
   Java's `& 0xFF` masks are implicit; byte equality comparisons are unaffected
   by Java's signed bytes; BT4 and HC4's ordered comparison uses the unsigned
   values directly, as Java's masked values do.
-- **Integer division:** Java `/` on ints appears only in constants and table
-  setup where the operands divide exactly; `Math.floor(low / 2^32)` implements
-  `low >>> 32` for the 33-bit `low`.
+- **Integer division:** Java `/` on ints appears in constants and table setup,
+  where the operands divide exactly, and in the memory estimate, where
+  `Math.floor` of a non-negative quotient is Java's truncating division.
+  `Math.floor(low / 2^32)` implements `low >>> 32` for the 33-bit `low`.
 - **Typed-array narrowing:** probability stores rely on `Uint16Array` masking
   exactly like Java's `(short)` casts (the values stay in 0..2047 anyway);
   `reps`, `Matches` and price tables on `Int32Array` wrap like Java ints, and
@@ -501,8 +563,9 @@ Argument:
   before passing it to exactly one new decoder. So each array belongs to at most
   one decoder that can still use it, and no two decoders share probabilities. A
   decoder that throws never returns its array, which only loses the array.
-  Only decoders created with `reuse` (the synchronous one-shot path in
-  `lzma.ts`) take from or give to the pool.
+  Only decoders created with `reuse`, which `decompressData` in `lzma.ts`
+  creates for synchronous one-shot decoding of `.lzma` and raw LZMA1 data, take
+  from or give to the pool.
 - _Right size._ The lookup key is `probsSize(lc, lp)` for the new header, and
   entries are stored under their own length, so a reused array has exactly the
   length a new allocation would have. Headers with different `(lc, lp)` but the

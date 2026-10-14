@@ -1,8 +1,14 @@
 /**
- * Compression options and presets, and the decompression options.
+ * Compression options and presets, the decompression options, and the
+ * options of raw decoding.
  */
 
+import {
+	type LzmaHeader,
+	UNKNOWN_SIZE,
+} from "./header.js";
 import type { MatchFinderType } from "./lz-encoder.js";
+import { MemoryLimitError } from "./memory-limit.js";
 
 /**
  * LZMA compression level (1-9).
@@ -176,6 +182,95 @@ export function resolveStrict(options: DecompressionOptions = {}): boolean {
 	}
 
 	return strict;
+}
+
+/**
+ * Properties of raw LZMA1 data, which has no `.lzma` header. They come from
+ * the container, e.g. the coder properties of a 7z entry.
+ */
+export interface RawLzma1Options {
+	/** Literal context bits, 0-8. */
+	lc: number;
+	/** Literal position bits, 0-4. */
+	lp: number;
+	/** Position bits, 0-4. */
+	pb: number;
+	/** Dictionary size in bytes, 0 to 4 GiB - 1. */
+	dictSize: number;
+	/**
+	 * Uncompressed size in bytes, default unknown. When it is known, the
+	 * data has to end after that many bytes, with or without an end marker,
+	 * and the dictionary is no larger than this size. When it is unknown,
+	 * the data has to end with an end marker.
+	 */
+	uncompressedSize?: number;
+	/**
+	 * Memory limit in KiB, default none. If decoding would need more, the
+	 * call throws a `MemoryLimitError` before it allocates anything. The
+	 * estimate counts the dictionary at `dictSize` and the probabilities of
+	 * `lc` and `lp`, as XZ for Java does. It doesn't count the output buffer,
+	 * which `decompressRawLzma1` sizes from `uncompressedSize`, up to 16 MiB
+	 * at first, or at 4 times the input length when the size is unknown.
+	 */
+	memoryLimitKb?: number;
+}
+
+/** Largest dictionary size a container can declare: 4 GiB - 1. */
+const RAW_DICT_SIZE_MAX = 0xFFFFFFFF;
+
+/**
+ * Validates the options of raw LZMA1 decoding and checks the memory limit.
+ * Returns the properties in the shape of a `.lzma` header.
+ */
+export function resolveRawLzma1Options(options: RawLzma1Options): LzmaHeader {
+	const { lc, lp, pb, dictSize, uncompressedSize, memoryLimitKb } = options;
+
+	checkInteger("lc", lc, 0, 8);
+	checkInteger("lp", lp, 0, 4);
+	checkInteger("pb", pb, 0, 4);
+	checkInteger("dictSize", dictSize, 0, RAW_DICT_SIZE_MAX);
+
+	if (uncompressedSize !== undefined) {
+		checkInteger("uncompressedSize", uncompressedSize, 0, Number.MAX_SAFE_INTEGER);
+	}
+
+	checkMemoryLimit(getLzma1MemoryUsageKb(dictSize, lc, lp), memoryLimitKb);
+
+	return { lc, lp, pb, dictSize, uncompressedSize: uncompressedSize ?? UNKNOWN_SIZE };
+}
+
+/**
+ * Approximate memory needed to decode raw LZMA1 data, in KiB, as XZ for
+ * Java's `LZMAInputStream.getMemoryUsage` computes it. It counts the
+ * dictionary at the given size, before it is reduced to the uncompressed
+ * size.
+ */
+function getLzma1MemoryUsageKb(dictSize: number, lc: number, lp: number): number {
+	// Roughly 10 KiB for the base state, the dictionary buffer, and 0x300
+	// two-byte probabilities for each of the 2^(lc + lp) literal coders.
+	return 10 + Math.floor(getDictSize(Math.max(dictSize, DICT_SIZE_MIN)) / 1024) + Math.floor(((2 * 0x300) << (lc + lp)) / 1024);
+}
+
+/**
+ * Dictionary size rounded up to a multiple of 16, as XZ for Java allocates
+ * it, so the estimates match its numbers.
+ */
+function getDictSize(dictSize: number): number {
+	// Not `(dictSize + 15) & ~15`, which turns sizes of 2 GiB and up negative.
+	return Math.ceil(dictSize / 16) * 16;
+}
+
+/** Throws a `MemoryLimitError` if `memoryNeededKb` exceeds `memoryLimitKb`. */
+function checkMemoryLimit(memoryNeededKb: number, memoryLimitKb: number | undefined): void {
+	if (memoryLimitKb === undefined) {
+		return;
+	}
+
+	checkInteger("memoryLimitKb", memoryLimitKb, 0, Number.MAX_SAFE_INTEGER);
+
+	if (memoryNeededKb > memoryLimitKb) {
+		throw new MemoryLimitError(memoryNeededKb, memoryLimitKb);
+	}
 }
 
 function checkInteger(name: string, value: number, min: number, max: number): void {

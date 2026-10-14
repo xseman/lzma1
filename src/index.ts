@@ -15,6 +15,8 @@ import {
 	type CompressionOptions,
 	type DecompressionOptions,
 	DEFAULT_LEVEL,
+	type RawLzma1Options,
+	resolveRawLzma1Options,
 	resolveStrict,
 } from "./options.js";
 import {
@@ -24,7 +26,8 @@ import {
 
 export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
-export type { CompressionMode, CompressionOptions, DecompressionOptions } from "./options.js";
+export { MemoryLimitError } from "./memory-limit.js";
+export type { CompressionMode, CompressionOptions, DecompressionOptions, RawLzma1Options } from "./options.js";
 export { Compress, Decompress } from "./web-streams.js";
 
 /**
@@ -80,4 +83,23 @@ export function decompress(data: BinaryInput, options?: DecompressionOptions): U
  */
 export function decompressString(data: BinaryInput, options?: DecompressionOptions): string {
 	return decodeUtf8(decompressData(toUint8Array(data), resolveStrict(options)));
+}
+
+/**
+ * Decompresses raw LZMA1 data, which has no `.lzma` header. Its properties
+ * come from the container, e.g. a 7z archive. An end marker before a known
+ * size is an error, as with `strict`.
+ *
+ * @param data Compressed data
+ * @param options Properties of the data, its uncompressed size if known,
+ *        and a memory limit
+ * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid
+ * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb`
+ * @throws {Error} If the data is truncated or corrupted
+ */
+export function decompressRawLzma1(data: BinaryInput, options: RawLzma1Options): Uint8Array {
+	// Strict: raw data has no earlier producers to stay compatible with, and
+	// XZ for Java rejects an end marker before the known size.
+	return decompressData(toUint8Array(data), true, resolveRawLzma1Options(options));
 }

@@ -1,5 +1,7 @@
 /**
- * Decoder for the `.lzma` format: header followed by raw LZMA data.
+ * Decoder for the `.lzma` format: header followed by raw LZMA data. It also
+ * decodes raw LZMA data without the header when the properties come from
+ * elsewhere, such as a 7z archive: `start()` takes them before the data.
  *
  * Input may arrive in chunks. Decoding pauses whenever fewer than
  * `INPUT_MARGIN` bytes are left, so a symbol never runs out of input halfway.
@@ -180,7 +182,11 @@ export class AloneDecoder {
 		}
 	}
 
-	private start(header: LzmaHeader): void {
+	/**
+	 * Sets the properties and the size. `decode` calls it with the `.lzma`
+	 * header; for raw data, which has none, the caller does before `write`.
+	 */
+	start(header: LzmaHeader): void {
 		this.header = header;
 
 		let dictSize = Math.max(header.dictSize, DICT_SIZE_MIN);

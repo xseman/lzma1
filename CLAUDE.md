@@ -1,7 +1,8 @@
 # lzma1
 
-LZMA for the `.lzma` format in TypeScript, ported from XZ for Java. No
-dependencies, web standard APIs only. Read `README.md` for the API.
+LZMA for the `.lzma` format in TypeScript, ported from XZ for Java; it also
+decodes raw LZMA1 data. No dependencies, web standard APIs only. Read
+`README.md` for the API.
 
 ## Commands
 
