@@ -1,0 +1,28 @@
+These files come unchanged from XZ Utils:
+
+    Repository: https://github.com/tukaani-project/xz
+    Path:       tests/files
+    Commit:     3b1efb04d17c3a9ef7f473d73af13f1531428ffe
+
+README is the upstream description of each file and of how a decoder has
+to react to it. This copy holds only the .lzma files and the .xz files
+that test LZMA2 itself. xz-utils_test.ts in the parent directory uses them.
+
+XZ Utils' COPYING puts the test files in its 'tests' directory under the
+BSD Zero Clause License (0BSD). tests/files/README says the same: "All the
+test files and this README may be distributed under the terms of the BSD
+Zero Clause License (0BSD)."
+
+Copyright (C) The XZ Utils authors and contributors
+
+Permission to use, copy, modify, and/or distribute this
+software for any purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL
+THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
