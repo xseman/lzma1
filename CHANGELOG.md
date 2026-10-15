@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.6.1](https://github.com/xseman/lzma1/compare/v0.6.0...v0.6.1) (2026-10-15)
+
+
+### Features
+
+* add raw lzma1 and lzma2 decoding ([e1805f0](https://github.com/xseman/lzma1/commit/e1805f0fb81d59ff87ee9770cf680022b26dabb9))
+* add strict decoding that rejects an early end marker ([f4c7efb](https://github.com/xseman/lzma1/commit/f4c7efb5c1def9dc0dba63ba9a287738c057bed5))
+* add web streams for raw lzma1 and lzma2 ([7fb82f5](https://github.com/xseman/lzma1/commit/7fb82f5acc8fcb0e9e6f2cb9f1edd5ec18d65f07))
+* decode raw lzma2 streams ([c0502b2](https://github.com/xseman/lzma1/commit/c0502b25dae2e4e9b870f94ac9357b76908fe85b))
+
+
+### Bug Fixes
+
+* check the range coder's final state at the declared size ([21c9fc0](https://github.com/xseman/lzma1/commit/21c9fc0b2a7984e32e26f346ecf6887c6082acfc))
+
+
+### Testing
+
+* check the decoders against the xz-utils test files ([83221f5](https://github.com/xseman/lzma1/commit/83221f546a659335b70d64a2a81212020fdde6ed))
+* record XZ for Java's outcomes for raw lzma1 and lzma2 ([b938542](https://github.com/xseman/lzma1/commit/b93854263bb77ad87e0eadd92a063be039b17137))
+
 ## [0.6.0](https://github.com/xseman/lzma1/compare/v0.4.0...v0.6.0) (2026-10-13)
 
 
