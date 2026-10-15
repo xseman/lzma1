@@ -12,7 +12,10 @@
  *
  * Contract adaptations: instead of an input stream, the input arrives in
  * chunks (`setInput`) and running out of it throws, so a truncated stream
- * is detected like the Java code's read past the end of the stream.
+ * is detected like the Java code's read past the end of the stream. An
+ * LZMA2 chunk is a buffer with spare bytes after its data, and a read into
+ * them makes the chunk fail, at the latest at its end check in
+ * `lzma2-decoder.ts`.
  */
 
 import {

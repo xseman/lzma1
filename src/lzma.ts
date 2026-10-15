@@ -1,6 +1,10 @@
 import { AloneDecoder } from "./alone-decoder.js";
 import { AloneEncoder } from "./alone-encoder.js";
-import { UNKNOWN_SIZE } from "./header.js";
+import {
+	type LzmaHeader,
+	UNKNOWN_SIZE,
+} from "./header.js";
+import { Lzma2Decoder } from "./lzma2-decoder.js";
 import {
 	type CompressionMode,
 	type CompressionOptions,
@@ -44,8 +48,12 @@ export function compressData(data: Uint8Array, options: CompressionMode | Compre
 /** Largest declared output size that is allocated at once when decompressing. */
 const PREALLOCATE_LIMIT = 64 << 20;
 
-/** Decompresses `.lzma` data. */
-export function decompressData(data: Uint8Array): Uint8Array {
+/**
+ * Decompresses `.lzma` data, or raw LZMA1 data when `header` holds its
+ * properties and size. `strict` rejects an end marker before the declared
+ * size.
+ */
+export function decompressData(data: Uint8Array, strict = false, header?: LzmaHeader): Uint8Array {
 	let out: OutputBuffer | undefined;
 	let last: Uint8Array | undefined;
 
@@ -62,7 +70,12 @@ export function decompressData(data: Uint8Array): Uint8Array {
 		},
 		PREALLOCATE_LIMIT,
 		true,
+		strict,
 	);
+
+	if (header) {
+		decoder.start(header);
+	}
 
 	decoder.write(data);
 	decoder.end();
@@ -71,6 +84,22 @@ export function decompressData(data: Uint8Array): Uint8Array {
 		// The output was decoded in place into one buffer.
 		return last === undefined ? new Uint8Array(0) : new Uint8Array(last.buffer, 0, last.byteOffset + last.length);
 	}
+
+	return out?.finish() ?? new Uint8Array(0);
+}
+
+/** Decompresses raw LZMA2 data with the given dictionary size. */
+export function decompressRawLzma2Data(data: Uint8Array, dictSize: number): Uint8Array {
+	let out: OutputBuffer | undefined;
+
+	// LZMA2 declares no size. The first output creates the buffer from a
+	// guess, capped as for a declared size, so empty output allocates nothing.
+	const decoder = new Lzma2Decoder(dictSize, (chunk) => {
+		out ??= new OutputBuffer(Math.min(data.length * 4, 1 << 24));
+		out.write(chunk);
+	});
+	decoder.write(data);
+	decoder.end();
 
 	return out?.finish() ?? new Uint8Array(0);
 }

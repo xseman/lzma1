@@ -10,19 +10,23 @@
  * Ported from XZ for Java (0BSD), `src/org/tukaani/xz/lz/LZDecoder.java`,
  * by Lasse Collin and Igor Pavlov; the fixed dictionary buffer flushed by
  * the caller became this growing buffer with a sink, and the Java code's
- * mid-match output limit (`pendingLen`) is not needed, because the limit
- * here is the whole declared size, which `LzmaDecoder` enforces before
- * each match.
+ * mid-match output limit (`pendingLen`) is not needed, because
+ * `LzmaDecoder` enforces its output limit, the declared size or the end of
+ * an LZMA2 chunk, before each match.
  */
 export class LzDecoder {
-	private buf: Uint8Array;
+	// Not private: `copyUncompressed` and `resetDictionary` in
+	// lzma2-decoder.ts use them. As methods here they would ship in every
+	// bundle, and as a subclass they make LZMA2 decoding about 10% slower on
+	// Node.
+	buf: Uint8Array;
 	private readonly maxSize: number;
 	private readonly sink: (chunk: Uint8Array) => void;
 	/** Next write position. */
-	private pos = 0;
+	pos = 0;
 	/** Start of the bytes not yet passed to the sink. */
-	private start = 0;
-	private wrapped = false;
+	start = 0;
+	wrapped = false;
 
 	/**
 	 * @param dictSize Largest distance a match may reach back
@@ -95,7 +99,8 @@ export class LzDecoder {
 		this.start = this.pos;
 	}
 
-	private onBufferEnd(): void {
+	/** Grows the buffer, or passes its bytes to the sink and wraps around. */
+	onBufferEnd(): void {
 		if (!this.wrapped && this.buf.length < this.maxSize) {
 			const grown = new Uint8Array(Math.min(this.buf.length * 2, this.maxSize));
 			grown.set(this.buf);

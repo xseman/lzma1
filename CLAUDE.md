@@ -1,7 +1,8 @@
 # lzma1
 
-LZMA for the `.lzma` format in TypeScript, ported from XZ for Java. No
-dependencies, web standard APIs only. Read `README.md` for the API.
+LZMA for the `.lzma` format in TypeScript, ported from XZ for Java; it also
+decodes raw LZMA1 and LZMA2 data. No dependencies, web standard APIs only.
+Read `README.md` for the API.
 
 ## Commands
 
@@ -30,7 +31,8 @@ generator.
   `xz-java-identity_test.ts` checks it. The interoperability tests complement
   this check and do not replace it.
 - `fixtures/` holds that corpus: inputs, XZ for Java's output for them,
-  malformed streams with their recorded outcomes, and the generator. Never
+  malformed streams and raw LZMA1 and LZMA2 cases with their recorded outcomes,
+  and the generator. Never
   regenerate XZ for Java's fixture bytes to make a failing identity test pass; a
   failure means the port diverged. A fixture change needs an explicit reason (a
   new pin, a generator correction, a corpus extension), and a new class of
@@ -58,10 +60,10 @@ Run `bun run fmt` and don't hand-format what dprint owns (quotes, semicolons,
 commas, indentation, vertical imports).
 
 Ported files (`bt4`, `hc4`, `hash234`, `lz-*`, `lzma-coder`, `lzma-decoder`,
-`lzma-encoder*`, `range-*`, and `createEncoder` in `alone-encoder`) keep the XZ
-for Java structure, names and parameter lists so they can be compared with
-upstream; don't reshape them only to satisfy the rules below. The rules apply
-to new code; existing code is not churned to match them.
+`lzma2-decoder`, `lzma-encoder*`, `range-*`, and `createEncoder` in
+`alone-encoder`) keep the XZ for Java structure, names and parameter lists so
+they can be compared with upstream; don't reshape them only to satisfy the rules
+below. The rules apply to new code; existing code is not churned to match them.
 
 Every change to the coders comes with a written argument in
 `docs/verification.md`. A change of representation is a behavior-preserving

@@ -12,12 +12,14 @@ import {
 import {
 	type CompressionMode,
 	type CompressionOptions,
+	type DecompressionOptions,
 	resolveOptions,
+	resolveStrict,
 } from "./options.js";
 
 // Resolved at construction time, so importing this module doesn't fail in
 // runtimes without Web Streams.
-const TransformStreamBase: typeof TransformStream = globalThis.TransformStream
+export const TransformStreamBase: typeof TransformStream = globalThis.TransformStream
 	?? (class {
 		constructor() {
 			throw new Error("TransformStream is not available in this runtime");
@@ -52,27 +54,40 @@ export class Compress extends TransformStreamBase<BinaryInput, Uint8Array> {
 }
 
 /**
- * Decompresses a stream of `.lzma` data.
+ * Decompresses a stream of `.lzma` data. `{ strict: true }` rejects an end
+ * marker before the declared size; an invalid option throws a `RangeError`.
  *
  * @example
  * const response = await fetch("data.lzma");
  * const text = await new Response(response.body!.pipeThrough(new Decompress())).text();
  */
 export class Decompress extends TransformStreamBase<BinaryInput, Uint8Array> {
-	constructor() {
-		let enqueue: (chunk: Uint8Array) => void;
-		const decoder = new AloneDecoder((chunk) => enqueue(chunk.slice()));
-
-		super({
-			start(controller) {
-				enqueue = (chunk) => controller.enqueue(chunk);
-			},
-			transform(chunk) {
-				decoder.write(toUint8Array(chunk));
-			},
-			flush() {
-				decoder.end();
-			},
-		});
+	constructor(options?: DecompressionOptions) {
+		super(createDecoderTransformer((sink) => new AloneDecoder(sink, 0, false, resolveStrict(options))));
 	}
+}
+
+/** Decoder that takes its input in pieces, then checks that it is complete. */
+export interface StreamDecoder {
+	write(chunk: Uint8Array): void;
+	end(): void;
+}
+
+export function createDecoderTransformer(
+	create: (sink: (chunk: Uint8Array) => void) => StreamDecoder,
+): Transformer<BinaryInput, Uint8Array> {
+	let enqueue: (chunk: Uint8Array) => void;
+	const decoder = create((chunk) => enqueue(chunk.slice()));
+
+	return {
+		start(controller) {
+			enqueue = (chunk) => controller.enqueue(chunk);
+		},
+		transform(chunk) {
+			decoder.write(toUint8Array(chunk));
+		},
+		flush() {
+			decoder.end();
+		},
+	};
 }

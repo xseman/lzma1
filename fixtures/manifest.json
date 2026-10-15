@@ -4,7 +4,7 @@
 		"repository": "https://github.com/tukaani-project/xz-java",
 		"commit": "6925f81244a99d0ea4f3fd021938e2ee1e6de2eb"
 	},
-	"javaVersion": "openjdk version \"21.0.12.1\" 2026-08-18",
+	"javaVersion": "openjdk version \"17.0.20.1\" 2026-08-18",
 	"decoderMemLimitKiB": 524288,
 	"cells": [
 		{
@@ -220,7 +220,8 @@
 			"inputSha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719",
 			"fixtureSha256": {
 				"marker": "a099c2ae936a90c90658e4dda16d03489ed332ad857127803948698492db592d",
-				"plain": "0cda6cdfdea450ba2f86c0b488a0e79183dabc0cc52a46cbdbcad53c1be5e764"
+				"plain": "0cda6cdfdea450ba2f86c0b488a0e79183dabc0cc52a46cbdbcad53c1be5e764",
+				"lzma2": "99ce4efb68a8161a9893a35c70483b6a3cd587cb72675b39e01ddaf034c7cf56"
 			}
 		},
 		{
@@ -388,7 +389,8 @@
 			"inputSha256": "fe4316222a96194435eee5e9089feaeb7b3f27e4799e6e9b912b1c3d75563041",
 			"fixtureSha256": {
 				"marker": "d83e16d54bf14482e10871b72c1e3df7de31317f3ed68af674a9f8e764d7024c",
-				"plain": "f08c7611d51292cfadcf7fa6fa0c3246a20206ea93becb97cfe9d0c6a8b83fd0"
+				"plain": "f08c7611d51292cfadcf7fa6fa0c3246a20206ea93becb97cfe9d0c6a8b83fd0",
+				"lzma2": "19292646d37e5254a4ad90a4a5856dc16f11313663b16e0c31fd438bc7fd775a"
 			}
 		},
 		{
@@ -700,7 +702,8 @@
 			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
 			"fixtureSha256": {
 				"marker": "efb4b17da6c90616b5836aa1963000b1f7f5ee9ef6a4898fd4574725ddc316f0",
-				"plain": "8944d8faf5c36bcaa0453544adfee5af93b55f68292d1fb321f4a4482b55a00c"
+				"plain": "8944d8faf5c36bcaa0453544adfee5af93b55f68292d1fb321f4a4482b55a00c",
+				"lzma2": "04fb0646c043fca18938d3fcea6de65ecc7cac9bdc0b42d0d1a5584e34b9b636"
 			}
 		},
 		{
@@ -724,7 +727,8 @@
 			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
 			"fixtureSha256": {
 				"marker": "b0b36de8ff5f9da9f998c41463436cffa8da0dc757ded803ba57cba88b27268d",
-				"plain": "13cc21f29983799fd329c3ea43ec7f33c620f794164ade7cf276c9880db99e10"
+				"plain": "13cc21f29983799fd329c3ea43ec7f33c620f794164ade7cf276c9880db99e10",
+				"lzma2": "403cc4ecac18e499da48aaa75e19fef9fe1620a43714d6cfcf6a0ac305b68fd4"
 			}
 		},
 		{
@@ -748,7 +752,8 @@
 			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
 			"fixtureSha256": {
 				"marker": "b39f764953e4da6bcff556db33405e24ed9c75e9560235584eec4e91dbf4b998",
-				"plain": "d100dad01651d4b8ff61859fb0de7118d4865126858e1a4b20045aadc41c9249"
+				"plain": "d100dad01651d4b8ff61859fb0de7118d4865126858e1a4b20045aadc41c9249",
+				"lzma2": "4a5c9008ba8397d33b904717fd1bcc661891a10a8771a7fa1123c6df86381799"
 			}
 		},
 		{
@@ -772,7 +777,8 @@
 			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
 			"fixtureSha256": {
 				"marker": "dddc7dfd05709f37bbfdaa5dd076fd0889c5dad6f7605b966469a753fa229a65",
-				"plain": "1d0132fc3f090d8f703f6c2123129719597c2a288e2e3252be2b457853d51327"
+				"plain": "1d0132fc3f090d8f703f6c2123129719597c2a288e2e3252be2b457853d51327",
+				"lzma2": "31e26beae550c8d1426b570164e8e45db08b09cf6fc8c9a5ff072531e0def341"
 			}
 		},
 		{
@@ -796,7 +802,8 @@
 			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
 			"fixtureSha256": {
 				"marker": "bb3ff7e6d7cf5a04e855d8926ad352479b1f7f743fa4f2b81ac479ddaf07adac",
-				"plain": "7522e42d33c898193fab1891f597d1680d6f32994e3d9cb84acaadd422ff3278"
+				"plain": "7522e42d33c898193fab1891f597d1680d6f32994e3d9cb84acaadd422ff3278",
+				"lzma2": "650bb13fc5b07ccaf9154c5a2bc2e95a34f71004c3e34cf1aad88f80e5b37a68"
 			}
 		},
 		{
@@ -820,7 +827,8 @@
 			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
 			"fixtureSha256": {
 				"marker": "46bea48547adcbfd263ec306df9db9c69e6f068c64db6312c4553f6147561535",
-				"plain": "bbfe910e1b88c2e666220a5d82a8fdcf6b158d4f478b8bd7542d672546d26693"
+				"plain": "bbfe910e1b88c2e666220a5d82a8fdcf6b158d4f478b8bd7542d672546d26693",
+				"lzma2": "81f1db411bb4584ebce5f0d8ca009e88048bfbc7e4fb1ba8dd7c209fce5e2d3d"
 			}
 		},
 		{
@@ -844,7 +852,8 @@
 			"inputSha256": "d8fd41427cb83359cf9800f89e1be2ee1fd3bdaf841293ad94dc4491f35b066c",
 			"fixtureSha256": {
 				"marker": "2785ef2dcf6e38183a54de61a3d105002602e34e0e2e640d3737c913564d6d2c",
-				"plain": "628cca5b8f15ab6ca86c9606e44368732464ed97c1757a91bc94cba3349b9642"
+				"plain": "628cca5b8f15ab6ca86c9606e44368732464ed97c1757a91bc94cba3349b9642",
+				"lzma2": "2018a56fc4c8b5f4a74893ab7803f8a063456ec7f291da0c31c12040eef94f98"
 			}
 		},
 		{
@@ -868,7 +877,8 @@
 			"inputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 			"fixtureSha256": {
 				"marker": "da343da97420e033dcaf4bc7cb50f420bbe92f431b093aef89de45063c61fb17",
-				"plain": "d10a4d932930d4378422e8917683171a0b8b02416f865ab956ead19609cd1d0d"
+				"plain": "d10a4d932930d4378422e8917683171a0b8b02416f865ab956ead19609cd1d0d",
+				"lzma2": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
 			}
 		},
 		{
@@ -1276,7 +1286,8 @@
 			"inputSha256": "f47625715b4bf2663775e8b71c4026eb9fa6a46e50a1e66237b7ca4cc3cc9ddb",
 			"fixtureSha256": {
 				"marker": "1627edada8e04628a903b2848a89798098deede1fdfed46ae7315b6b2b34cce8",
-				"plain": "87f48aa2fda626c6eea9956c3c971474321ab98c9182bf157bd06df9780698ea"
+				"plain": "87f48aa2fda626c6eea9956c3c971474321ab98c9182bf157bd06df9780698ea",
+				"lzma2": "3e8c6caee1d90faba9e9888201fc4e512fba39f681f678cac0d4340045657fa7"
 			}
 		},
 		{
@@ -1420,7 +1431,8 @@
 			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
 			"fixtureSha256": {
 				"marker": "cb17569bba7282fb3e87e38156dd15248c7817cdeeee8c4ff35ae0460a695d15",
-				"plain": "3fe07747076c576b66233c011a4d4b36ed04586f7b137bb81725075bffa8e83c"
+				"plain": "3fe07747076c576b66233c011a4d4b36ed04586f7b137bb81725075bffa8e83c",
+				"lzma2": "7f593f6231a9a3508d900a8699d1a681f8a0823ff237f4f646cdc7361ff8e849"
 			}
 		},
 		{
@@ -1468,7 +1480,8 @@
 			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
 			"fixtureSha256": {
 				"marker": "05d373dc5209e3fc0c8936981e465c15fefeb334e6a99d23f8fde558d7bbd0b6",
-				"plain": "b2e891f71ad0e683ecda1b29c898e9edd8e2a15c787e3188268e603f0f7702c1"
+				"plain": "b2e891f71ad0e683ecda1b29c898e9edd8e2a15c787e3188268e603f0f7702c1",
+				"lzma2": "f8bb73d250ae016ee4564012f9e0fb6871b12dad2b0b0902791ffe3fb9fa0154"
 			}
 		},
 		{
@@ -1516,7 +1529,8 @@
 			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
 			"fixtureSha256": {
 				"marker": "4b13e12fefe22b4e4120803e3b10fba089be3536d43f0ab3dc517084e6cfc893",
-				"plain": "044f5c7035ed3b57c2864ee4d1a1e34855765d28346beda60473b149b178e89e"
+				"plain": "044f5c7035ed3b57c2864ee4d1a1e34855765d28346beda60473b149b178e89e",
+				"lzma2": "0ddc24b34730711a02a05725baa13134ea58087520ba8c9e1a31880bda0022db"
 			}
 		},
 		{
@@ -1564,7 +1578,8 @@
 			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
 			"fixtureSha256": {
 				"marker": "2ec79091749c2348a6547c21f1b38ec5eecd4afa265c106c7840b306f6de0ec1",
-				"plain": "7396f27374ce573ad31e6f64926a8d851530366c9c9ef814443f23d90d5584e4"
+				"plain": "7396f27374ce573ad31e6f64926a8d851530366c9c9ef814443f23d90d5584e4",
+				"lzma2": "f2e01eb12c97033c1ec5e174e486ec33d393d7076c1a552e0fadc8e0e4656c0b"
 			}
 		},
 		{
@@ -1612,7 +1627,8 @@
 			"inputSha256": "c3dca6757c95c8c021735c8e8bbf055006698272e4d4a827fcc9d505cf8a6f81",
 			"fixtureSha256": {
 				"marker": "cee7ef6e9deeb94acdef5a959a011897acb4784118e34bbb5f60f343045b9ea7",
-				"plain": "8ac91d3eed71bb31c83ae034cf5aaee10434bd972230e6d57e4f591912b3adb4"
+				"plain": "8ac91d3eed71bb31c83ae034cf5aaee10434bd972230e6d57e4f591912b3adb4",
+				"lzma2": "72476d23fa726c065b7e777e446c930f8726fc25f11326b7a0e457ce8d2d5894"
 			}
 		},
 		{
@@ -1636,7 +1652,8 @@
 			"inputSha256": "0c1ec5dd4d49d02404c998e9b92444d24bfc30c74708282af9a13f4850ad6ad1",
 			"fixtureSha256": {
 				"marker": "c1069077f8baab0b21b0df7b456359021cd5e55865c710bdb5300d7da3c0e8bc",
-				"plain": "93c6c8b213f794721d5d1ab07a11bed9bdaca9116d31a7b09812ae205633d2be"
+				"plain": "93c6c8b213f794721d5d1ab07a11bed9bdaca9116d31a7b09812ae205633d2be",
+				"lzma2": "6ea821fa95dff73243cd7227656d5b029780a9fef9f30d1e8993320be415e244"
 			}
 		},
 		{
@@ -1684,7 +1701,8 @@
 			"inputSha256": "7052143a90e3c8845d8649f56c78bb87a3d0c0c6d7476609b7b27ff587837ec2",
 			"fixtureSha256": {
 				"marker": "77a303d2cba579d97bd71fd66b9e5daddfe17a32df42ed880f18a9ac72305c75",
-				"plain": "9146f979f0f79ec16e632f6b72d2ae91f1aeab676625a4aa65d751eade003709"
+				"plain": "9146f979f0f79ec16e632f6b72d2ae91f1aeab676625a4aa65d751eade003709",
+				"lzma2": "9994c44678730e0997d32b48c650e2c1a66cc794342df267995335196b7f3582"
 			}
 		},
 		{
@@ -1732,7 +1750,8 @@
 			"inputSha256": "fd9ee121d4d1a0c71e60f31de8656052afaa5fc8a9e0528da6a2af05400f572d",
 			"fixtureSha256": {
 				"marker": "d3312f5fd27ad3f70afb956d2f9706c7055e099587f286d46e7424b6eb076124",
-				"plain": "320f8a82f32a1bace9b6c0d9ea1eb6b24e6f4bd46c15dd01d1a174069477a299"
+				"plain": "320f8a82f32a1bace9b6c0d9ea1eb6b24e6f4bd46c15dd01d1a174069477a299",
+				"lzma2": "bd22ea3a901efd6b5f94835be5e99c8430617fe11dd434d48f1e71ceeb88b0c6"
 			}
 		},
 		{

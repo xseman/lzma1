@@ -38,6 +38,8 @@ import {
 	type FixtureVariant,
 	fixtureVariants,
 	MALFORMED_SOURCES,
+	RAW_LZMA1_SOURCES,
+	RAW_LZMA2_SOURCES,
 } from "./corpus.ts";
 import { buildInput } from "./inputs.ts";
 import {
@@ -47,6 +49,11 @@ import {
 	type MalformedCase,
 } from "./malformed.ts";
 import {
+	deriveRawLzma1,
+	deriveRawLzma2,
+	type RawCase,
+} from "./raw-malformed.ts";
+import {
 	type DecodeOutcome,
 	type DeviationClass,
 	type FixtureHashes,
@@ -54,24 +61,11 @@ import {
 	type Manifest,
 	type ManifestCell,
 	parseManifest,
+	type RawMalformedRecord,
 } from "./records.ts";
 
 /** Memory limit (KiB) passed to the Java decoder for the malformed set. */
 const DECODER_MEM_LIMIT_KIB = 512 * 1024;
-
-/**
- * Malformed cases the library accepts at the declared length with output
- * that differs from the original input, where the Java decoder reports an
- * error: the decoder stops at the declared size without the Java code's
- * final range-coder check. Each member was reviewed individually; a
- * regeneration that finds a new one stops instead of extending the class.
- */
-const ACCEPTED_CORRUPTION: string[] = [
-	// A body bit flip that leaves enough valid symbols to fill the declared
-	// 100 bytes; the Java code then hits the end of input while finishing
-	// the range coder.
-	"base-100-n-bt4-64@flip32.0",
-];
 
 const fixturesDir = import.meta.dirname;
 const repoRoot = path.join(fixturesDir, "..");
@@ -113,6 +107,10 @@ const malformedCases = deriveMalformedCases();
 const javaOutcomes = decodeWithJava(malformedCases);
 const malformedRecords = classifyMalformed(malformedCases, javaOutcomes);
 fs.writeFileSync(path.join(fixturesDir, "malformed.json"), JSON.stringify({ memLimitKiB: DECODER_MEM_LIMIT_KIB, cases: malformedRecords }, null, "\t") + "\n");
+
+const rawCases = deriveRawCases();
+const rawRecords = checkRawCases(rawCases, decodeRawWithJava(rawCases));
+fs.writeFileSync(path.join(fixturesDir, "raw-malformed.json"), JSON.stringify({ cases: rawRecords }, null, "\t") + "\n");
 
 const manifest: Manifest = {
 	java: {
@@ -185,7 +183,7 @@ function generateCell(cell: CorpusCell): ManifestCell {
 	for (const variant of fixtureVariants(cell)) {
 		const fixture = encodeWithJava(input, cell.cfg, dictSize, variant);
 		fs.writeFileSync(path.join(corpusDir, fixtureFileName(cell.id, variant)), fixture);
-		fixtures.set(variant === "plain" ? cell.id : `${cell.id}.marker`, fixture);
+		fixtures.set(variant === "plain" ? cell.id : `${cell.id}.${variant}`, fixture);
 		hashes.set(variant, sha256(fixture));
 		process.stdout.write(`${fixtureFileName(cell.id, variant)}: ${input.length} B -> ${fixture.length} B\n`);
 	}
@@ -199,6 +197,11 @@ function generateCell(cell: CorpusCell): ManifestCell {
 	const plain = hashes.get("plain");
 	if (plain !== undefined) {
 		fixtureSha256.plain = plain;
+	}
+
+	const lzma2 = hashes.get("lzma2");
+	if (lzma2 !== undefined) {
+		fixtureSha256.lzma2 = lzma2;
 	}
 
 	inputs.set(cell.id, input);
@@ -233,8 +236,8 @@ function encodeWithJava(input: Uint8Array, config: EncoderConfig, dictSize: numb
 		String(config.niceLen),
 		String(config.depth),
 	];
-	if (variant === "marker") {
-		driverArgs.push("marker");
+	if (variant !== "plain") {
+		driverArgs.push(variant);
 	}
 
 	execFileSync("java", ["-cp", classpath, "Enc", ...driverArgs]);
@@ -279,17 +282,56 @@ function decodeWithJava(cases: MalformedCase[]): DecodeOutcome[] {
 		return file;
 	});
 
-	const output = execFileSync("java", ["-cp", classpath, "Dec", String(DECODER_MEM_LIMIT_KIB)], {
-		input: files.join("\n"),
+	return runDec(files, files, []);
+}
+
+/**
+ * Records the Java decoder's outcome for every raw case, in one JVM run
+ * per format, in the order of `cases`.
+ */
+function decodeRawWithJava(cases: RawCase[]): DecodeOutcome[] {
+	const caseDir = path.join(workDir, "raw");
+	fs.mkdirSync(caseDir);
+	const outcomes = new Map<RawCase, DecodeOutcome>();
+	for (const format of ["lzma1", "lzma2"] as const) {
+		const ofFormat = cases.filter((rawCase) => rawCase.format === format);
+		const files = ofFormat.map((rawCase, i) => {
+			const file = path.join(caseDir, `${format}-${i}.bin`);
+			fs.writeFileSync(file, rawCase.bytes);
+
+			return file;
+		});
+		const lines = ofFormat.map((rawCase, i) => {
+			if (rawCase.format === "lzma2") {
+				return `${files[i]}\t${rawCase.options.dictSize}`;
+			}
+
+			const { lc, lp, pb, dictSize, uncompressedSize } = rawCase.options;
+
+			return `${files[i]}\t${lc}\t${lp}\t${pb}\t${dictSize}\t${uncompressedSize ?? -1}`;
+		});
+		const results = runDec(files, lines, [format]);
+		for (let i = 0; i < ofFormat.length; i++) {
+			outcomes.set(ofFormat[i], results[i]);
+		}
+	}
+
+	return cases.map((rawCase) => outcomes.get(rawCase)!);
+}
+
+/** Runs `Dec` on one input line per file and parses its outcome per file. */
+function runDec(files: string[], lines: string[], formatArgs: string[]): DecodeOutcome[] {
+	const output = execFileSync("java", ["-cp", classpath, "Dec", String(DECODER_MEM_LIMIT_KIB), ...formatArgs], {
+		input: lines.join("\n"),
 		maxBuffer: 1 << 26,
 		encoding: "utf8",
 	});
-	const lines = output.trim().split("\n");
-	if (lines.length !== cases.length) {
-		throw new Error(`Dec reported ${lines.length} outcomes for ${cases.length} cases`);
+	const outputLines = output.trim().split("\n");
+	if (outputLines.length !== files.length) {
+		throw new Error(`Dec reported ${outputLines.length} outcomes for ${files.length} cases`);
 	}
 
-	return lines.map((line, i) => {
+	return outputLines.map((line, i) => {
 		const [file, status, first, second] = line.split("\t");
 		if (file !== files[i]) {
 			throw new Error(`Dec output line ${i} names ${file}, expected ${files[i]}`);
@@ -305,6 +347,68 @@ function decodeWithJava(cases: MalformedCase[]): DecodeOutcome[] {
 
 		throw new Error(`Dec output line ${i} has unknown status ${status}`);
 	});
+}
+
+function deriveRawCases(): RawCase[] {
+	const cases: RawCase[] = [];
+	for (const source of RAW_LZMA1_SOURCES) {
+		const cellId = source.replace(/\.marker$/, "");
+		const input = inputs.get(cellId);
+		if (input === undefined) {
+			throw new Error(`raw LZMA1 source ${source} is not a corpus cell`);
+		}
+
+		cases.push(...deriveRawLzma1(source, requireFixture(source), input.length));
+	}
+
+	for (const cellId of RAW_LZMA2_SOURCES) {
+		const cell = manifestCells.find((candidate) => candidate.id === cellId);
+		if (cell === undefined) {
+			throw new Error(`raw LZMA2 source ${cellId} is not a corpus cell`);
+		}
+
+		cases.push(...deriveRawLzma2(cellId, requireFixture(`${cellId}.lzma2`), cell.fittedDictSize));
+	}
+
+	return cases;
+}
+
+/**
+ * Pairs every raw case with its Java outcome. The raw decoders have no
+ * reviewed deviation classes: any difference from the Java decoder stops
+ * generation after listing every such case.
+ */
+function checkRawCases(cases: RawCase[], outcomes: DecodeOutcome[]): RawMalformedRecord[] {
+	const mismatches: string[] = [];
+	const records = cases.map((rawCase, i) => {
+		const java = outcomes[i];
+		const port = decodeRawWithPort(rawCase);
+		if (!sameOutcome(java, port)) {
+			mismatches.push(`${rawCase.id}: java ${JSON.stringify(java)}, port ${JSON.stringify(port)}`);
+		}
+
+		return { id: rawCase.id, format: rawCase.format, source: rawCase.source, op: rawCase.op, java };
+	});
+
+	if (mismatches.length > 0) {
+		throw new Error(`${mismatches.length} raw cases differ from the Java decoder:\n${mismatches.join("\n")}`);
+	}
+
+	const accepted = records.filter((record) => record.java.status === "ok").length;
+	process.stdout.write(`raw: ${cases.length} cases matching the Java outcome, ${accepted} accepted\n`);
+
+	return records;
+}
+
+function decodeRawWithPort(rawCase: RawCase): DecodeOutcome {
+	try {
+		const output = rawCase.format === "lzma1" ? library.decompressRawLzma1(rawCase.bytes, rawCase.options) : library.decompressRawLzma2(rawCase.bytes, rawCase.options);
+
+		return { status: "ok", length: output.length, sha256: sha256(output) };
+	} catch (error) {
+		// Recorded, not swallowed: a decoder error is an outcome to compare.
+		return { status: "error", error: error instanceof Error ? error.constructor.name : typeof error };
+	}
 }
 
 function decodeWithPort(bytes: Uint8Array): DecodeOutcome {
@@ -350,11 +454,6 @@ function classifyMalformed(cases: MalformedCase[], outcomes: DecodeOutcome[]): M
 		throw new Error(`${unclassified.length} unclassified deviations:\n${unclassified.join("\n")}`);
 	}
 
-	const missing = ACCEPTED_CORRUPTION.filter((id) => !records.some((record) => record.id === id && record.deviation === "accepted-corruption"));
-	if (missing.length > 0) {
-		throw new Error(`listed accepted-corruption cases no longer deviate that way: ${missing.join(", ")}`);
-	}
-
 	process.stdout.write(`malformed: ${cases.length} cases, ${cases.length - records.filter((record) => record.deviation).length} matching the Java outcome, deviations ${JSON.stringify(Object.fromEntries(perClass))}\n`);
 
 	return records;
@@ -369,9 +468,8 @@ function sameOutcome(java: DecodeOutcome, port: DecodeOutcome): boolean {
 }
 
 /**
- * The reviewed deviation classes. Every class but `accepted-corruption`
- * requires the library's output to equal the original input byte for
- * byte; `accepted-corruption` admits only its listed members.
+ * The reviewed deviation classes. Each requires the library's output to
+ * equal the original input byte for byte.
  */
 function classifyDeviation(malformedCase: MalformedCase, java: DecodeOutcome, port: DecodeOutcome): DeviationClass | undefined {
 	if (java.status !== "error" || port.status !== "ok") {
@@ -380,9 +478,8 @@ function classifyDeviation(malformedCase: MalformedCase, java: DecodeOutcome, po
 
 	const cellId = malformedCase.source.replace(/\.marker$/, "");
 	const input = inputs.get(cellId);
-	const fixture = fixtures.get(malformedCase.source);
-	if (input === undefined || fixture === undefined) {
-		throw new Error(`malformed source ${malformedCase.source} has no recorded input or fixture`);
+	if (input === undefined) {
+		throw new Error(`malformed source ${malformedCase.source} has no recorded input`);
 	}
 
 	const restoresInput = port.length === input.length && port.sha256 === sha256(input);
@@ -394,25 +491,10 @@ function classifyDeviation(malformedCase: MalformedCase, java: DecodeOutcome, po
 		return "end-marker-leniency";
 	}
 
-	// Decoding stops once the declared size is produced, without the
-	// Java code's check of the range coder's final state; corruption
-	// confined to the trailing bytes, or to the whole body when the
-	// declared size is 0, leaves the output intact.
-	const trailing = (op.kind === "flipbit" || op.kind === "truncate") && op.at >= Math.max(13, fixture.length - 8);
-	if (trailing && restoresInput) {
-		return "trailing-state-leniency";
-	}
-
 	// A header dictionary size beyond the Java code's supported range is
 	// clamped to the declared size instead of rejected.
 	if (op.kind === "header" && op.field === "dictSize" && restoresInput) {
 		return "dict-size-clamp";
-	}
-
-	// The same missing final check, where the corruption changed the
-	// output: accepted at the declared length with wrong bytes.
-	if (ACCEPTED_CORRUPTION.includes(malformedCase.id) && port.length === input.length && !restoresInput) {
-		return "accepted-corruption";
 	}
 
 	return undefined;

@@ -8,12 +8,19 @@ import {
 	type BinaryInput,
 	compressData,
 	decompressData,
+	decompressRawLzma2Data,
 	toUint8Array,
 } from "./lzma.js";
 import {
 	type CompressionMode,
 	type CompressionOptions,
+	type DecompressionOptions,
 	DEFAULT_LEVEL,
+	type RawLzma1Options,
+	type RawLzma2Options,
+	resolveRawLzma1Options,
+	resolveRawLzma2Options,
+	resolveStrict,
 } from "./options.js";
 import {
 	decodeUtf8,
@@ -22,7 +29,9 @@ import {
 
 export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
-export type { CompressionMode, CompressionOptions } from "./options.js";
+export { MemoryLimitError } from "./memory-limit.js";
+export type { CompressionMode, CompressionOptions, DecompressionOptions, RawLzma1Options, RawLzma2Options } from "./options.js";
+export { DecompressRawLzma1, DecompressRawLzma2 } from "./raw-web-streams.js";
 export { Compress, Decompress } from "./web-streams.js";
 
 /**
@@ -57,11 +66,13 @@ export function compressString(
  * Decompresses `.lzma` data.
  *
  * @param data Compressed data
+ * @param options `strict` rejects an end marker before the declared size
  * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid
  * @throws {Error} If the data is truncated or corrupted
  */
-export function decompress(data: BinaryInput): Uint8Array {
-	return decompressData(toUint8Array(data));
+export function decompress(data: BinaryInput, options?: DecompressionOptions): Uint8Array {
+	return decompressData(toUint8Array(data), resolveStrict(options));
 }
 
 /**
@@ -69,9 +80,45 @@ export function decompress(data: BinaryInput): Uint8Array {
  * data compressed by lzma1 v0.3.0 and older is also supported.
  *
  * @param data Compressed data
+ * @param options `strict` rejects an end marker before the declared size
  * @returns Decompressed string
+ * @throws {RangeError} If an option is invalid
  * @throws {Error} If the data is truncated or corrupted
  */
-export function decompressString(data: BinaryInput): string {
-	return decodeUtf8(decompressData(toUint8Array(data)));
+export function decompressString(data: BinaryInput, options?: DecompressionOptions): string {
+	return decodeUtf8(decompressData(toUint8Array(data), resolveStrict(options)));
+}
+
+/**
+ * Decompresses raw LZMA1 data, which has no `.lzma` header. Its properties
+ * come from the container, e.g. a 7z archive. An end marker before a known
+ * size is an error, as with `strict`.
+ *
+ * @param data Compressed data
+ * @param options Properties of the data, its uncompressed size if known,
+ *        and a memory limit
+ * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid
+ * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb`
+ * @throws {Error} If the data is truncated or corrupted
+ */
+export function decompressRawLzma1(data: BinaryInput, options: RawLzma1Options): Uint8Array {
+	// Strict: raw data has no earlier producers to stay compatible with, and
+	// XZ for Java rejects an end marker before the known size.
+	return decompressData(toUint8Array(data), true, resolveRawLzma1Options(options));
+}
+
+/**
+ * Decompresses raw LZMA2 data, the format inside `.xz` blocks and 7z LZMA2
+ * entries. Its dictionary size comes from the container.
+ *
+ * @param data Compressed data
+ * @param options Dictionary size and a memory limit
+ * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid
+ * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb`
+ * @throws {Error} If the data is truncated or corrupted
+ */
+export function decompressRawLzma2(data: BinaryInput, options: RawLzma2Options): Uint8Array {
+	return decompressRawLzma2Data(toUint8Array(data), resolveRawLzma2Options(options));
 }

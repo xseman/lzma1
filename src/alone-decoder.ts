@@ -1,5 +1,7 @@
 /**
- * Decoder for the `.lzma` format: header followed by raw LZMA data.
+ * Decoder for the `.lzma` format: header followed by raw LZMA data. It also
+ * decodes raw LZMA data without the header when the properties come from
+ * elsewhere, such as a 7z archive: `start()` takes them before the data.
  *
  * Input may arrive in chunks. Decoding pauses whenever fewer than
  * `INPUT_MARGIN` bytes are left, so a symbol never runs out of input halfway.
@@ -24,7 +26,7 @@ import {
  * reads at most one byte per bit, and the longest symbol (a match with the
  * largest distance) is 48 bits.
  */
-const INPUT_MARGIN = 64;
+export const INPUT_MARGIN = 64;
 
 const DICT_SIZE_MIN = 1 << 12;
 
@@ -48,11 +50,13 @@ export class AloneDecoder {
 	private done = false;
 	private readonly preallocateLimit: number;
 	private readonly reuse: boolean;
+	private readonly strict: boolean;
 
 	/**
 	 * True when the whole output fits into the dictionary buffer, which is
 	 * then allocated at once: the chunks passed to the sink are consecutive
-	 * views of one buffer that is never overwritten. Known after the header.
+	 * views of one buffer. Only an end check that fails writes into it again,
+	 * right before it throws. Known after the header.
 	 */
 	contiguousOutput = false;
 
@@ -63,11 +67,13 @@ export class AloneDecoder {
 	 *        buffer is allocated at once
 	 * @param reuse Reuse probability arrays of earlier decoders. Only for
 	 *        synchronous one-shot decompression.
+	 * @param strict Reject an end marker before the declared size
 	 */
-	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false) {
+	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false, strict = false) {
 		this.sink = sink;
 		this.preallocateLimit = preallocateLimit;
 		this.reuse = reuse;
+		this.strict = strict;
 	}
 
 	/** Uncompressed size from the header, once it has been read. */
@@ -102,11 +108,6 @@ export class AloneDecoder {
 
 			this.start(decodeHeader(input));
 			pos = HEADER_SIZE;
-
-			if (this.header!.uncompressedSize === 0) {
-				this.done = true;
-				return;
-			}
 		}
 
 		const lzma = this.lzma!;
@@ -129,17 +130,39 @@ export class AloneDecoder {
 		const outLimit = size === UNKNOWN_SIZE ? Infinity : size;
 		const inLimit = isLast ? Infinity : input.length - INPUT_MARGIN;
 
-		const endMarker = lzma.decode(outLimit, inLimit);
+		let endMarker = lzma.decode(outLimit, inLimit);
+
+		// At the declared size the range coder has to be finished, or one
+		// end marker has to follow, as in XZ for Java's relaxed end
+		// condition: `compress()` writes both the size and the marker.
+		if (!endMarker && lzma.outPos === size && !rc.isFinished() && rc.pos <= inLimit) {
+			// The sink gets every byte up to the declared size now, and none
+			// of what the symbol after it writes: `done` holds it back, and
+			// the decoder finishes or throws right after.
+			lz.flush();
+			this.done = true;
+			endMarker = lzma.decode(size + 1, inLimit);
+
+			if (!endMarker) {
+				throw new Error("Corrupted input: data exceeds the declared size");
+			}
+		}
+
 		lz.flush();
 
 		if (endMarker) {
-			// An end marker before the declared size is accepted, as in
+			// An end marker before the declared size is accepted too, as in
 			// earlier versions: some producers write a size that is too large.
+			// `strict` rejects it. An unknown size is -1, so it is never early.
+			if (this.strict && lzma.outPos < size) {
+				throw new Error("Corrupted input: end marker before the declared size");
+			}
+
 			if (!rc.isFinished()) {
 				throw new Error("Corrupted input: invalid end marker");
 			}
 			this.done = true;
-		} else if (lzma.outPos === size) {
+		} else if (lzma.outPos === size && rc.isFinished()) {
 			this.done = true;
 		}
 
@@ -159,7 +182,11 @@ export class AloneDecoder {
 		}
 	}
 
-	private start(header: LzmaHeader): void {
+	/**
+	 * Sets the properties and the size. `decode` calls it with the `.lzma`
+	 * header; for raw data, which has none, the caller does before `write`.
+	 */
+	start(header: LzmaHeader): void {
 		this.header = header;
 
 		let dictSize = Math.max(header.dictSize, DICT_SIZE_MIN);
@@ -171,7 +198,13 @@ export class AloneDecoder {
 		const size = header.uncompressedSize;
 		this.contiguousOutput = size !== UNKNOWN_SIZE && size > 0 && dictSize === size && size <= this.preallocateLimit;
 
-		this.lz = new LzDecoder(dictSize, this.sink, this.contiguousOutput);
+		const sink = (chunk: Uint8Array) => {
+			if (!this.done) {
+				this.sink(chunk);
+			}
+		};
+
+		this.lz = new LzDecoder(dictSize, sink, this.contiguousOutput);
 		let probs: Uint16Array | undefined;
 		if (this.reuse) {
 			const size = probsSize(header.lc, header.lp);

@@ -10,7 +10,9 @@ import {
 	compressString,
 	CRC32_TABLE,
 	decompress,
+	decompressRawLzma1,
 	decompressString,
+	MemoryLimitError,
 } from "./index.js";
 import { LZMA } from "./lzma.js";
 import {
@@ -343,11 +345,6 @@ describe("decompression errors", () => {
 		expect(() => decompress(unknownSize)).toThrow("Truncated input");
 	});
 
-	test("end marker is optional when the size is known", () => {
-		// The last bytes only complete the end marker.
-		expect(decompress(compressed.subarray(0, compressed.length - 1))).toEqual(input);
-	});
-
 	test("invalid properties byte", () => {
 		const bad = compressed.slice();
 		bad[0] = 225;
@@ -419,6 +416,55 @@ describe("decompression errors", () => {
 	});
 });
 
+describe("end of the stream", () => {
+	// Distinct bytes at the end are literals, so a declared size one byte
+	// short ends between two symbols.
+	const text = new TextEncoder().encode("The range coder has to finish at the declared size. ".repeat(20));
+	const input = new Uint8Array([...text, ...Array.from({ length: 16 }, (_, i) => 0xF0 + i)]);
+	const withMarker = compress(input);
+	const withoutMarker = compress(input, { endMarker: false });
+	const forms = [["with", withMarker], ["without", withoutMarker]] as const;
+
+	test.each(forms)("accepts a known size %s an end marker", (_, compressed) => {
+		const output = decompress(compressed);
+
+		expect(output).toEqual(input);
+	});
+
+	test.each(forms)("rejects a declared size smaller than the data %s an end marker", (_, compressed) => {
+		const bad = compressed.slice();
+		new DataView(bad.buffer).setUint32(5, input.length - 1, true);
+
+		expect(() => decompress(bad)).toThrow("Corrupted input: data exceeds the declared size");
+	});
+
+	test("rejects an end marker cut short after the declared size", () => {
+		const truncated = withMarker.subarray(0, withMarker.length - 1);
+
+		expect(() => decompress(truncated)).toThrow("Truncated input");
+	});
+
+	test("rejects a corrupted last byte", () => {
+		const bad = withoutMarker.slice();
+		bad[bad.length - 1] ^= 0x01;
+
+		expect(() => decompress(bad)).toThrow();
+	});
+
+	test("rejects a declared size of 0 without the range coder bytes", () => {
+		const headerOnly = compress(new Uint8Array(0)).subarray(0, 13);
+
+		expect(() => decompress(headerOnly)).toThrow("Truncated input");
+	});
+
+	test("rejects data after a declared size of 0", () => {
+		const bad = withoutMarker.slice();
+		new DataView(bad.buffer).setUint32(5, 0, true);
+
+		expect(() => decompress(bad)).toThrow("Corrupted input: data exceeds the declared size");
+	});
+});
+
 describe("encoder reuse", () => {
 	// Encoders for small inputs are pooled and reused by later calls.
 	test("reused encoders produce the same output as new ones", () => {
@@ -482,5 +528,185 @@ describe("decoder reuse", () => {
 				// Expected to fail; the next calls must not be affected.
 			}
 		}
+	});
+});
+
+describe("strict", () => {
+	const input = new TextEncoder().encode("An end marker before the declared size ends the data. ".repeat(10));
+	const compressed = compress(input);
+	const tooLarge = compressed.slice();
+	new DataView(tooLarge.buffer).setUint32(5, input.length + 100, true);
+	const unknownSize = compressed.slice();
+	unknownSize.fill(0xFF, 5, 13);
+
+	test("rejects an end marker before the declared size", () => {
+		expect(() => decompress(tooLarge, { strict: true })).toThrow("Corrupted input: end marker before the declared size");
+	});
+
+	test("accepts that marker without strict", () => {
+		const output = decompress(tooLarge);
+
+		expect(output).toEqual(input);
+	});
+
+	test.each([
+		["an end marker at the declared size", compressed],
+		["a known size without an end marker", compress(input, { endMarker: false })],
+		["an unknown size", unknownSize],
+	])("accepts %s", (_, data) => {
+		const output = decompress(data, { strict: true });
+
+		expect(output).toEqual(input);
+	});
+
+	test("applies to decompressString", () => {
+		expect(() => decompressString(tooLarge, { strict: true })).toThrow("end marker before the declared size");
+	});
+
+	test.each([1, "yes"])("rejects strict: %p", (strict) => {
+		expect(() => decompress(compressed, { strict } as never)).toThrow(RangeError);
+	});
+});
+
+describe("decompressRawLzma1", () => {
+	const input = new TextEncoder().encode("raw LZMA1 data has no header; 7z keeps its properties. ".repeat(40));
+	const properties = { lc: 3, lp: 0, pb: 2, dictSize: 1 << 16 };
+	const withMarker = compress(input).subarray(13);
+	const withoutMarker = compress(input, { endMarker: false }).subarray(13);
+
+	test("decodes data with an end marker when the size is unknown", () => {
+		const output = decompressRawLzma1(withMarker, properties);
+
+		expect(output).toEqual(input);
+	});
+
+	test("decodes data without an end marker given its size", () => {
+		const output = decompressRawLzma1(withoutMarker, { ...properties, uncompressedSize: input.length });
+
+		expect(output).toEqual(input);
+	});
+
+	test("accepts an end marker after the given size", () => {
+		const output = decompressRawLzma1(withMarker, { ...properties, uncompressedSize: input.length });
+
+		expect(output).toEqual(input);
+	});
+
+	test("decodes like decompress with the properties of the header", () => {
+		const lzma = compress(input, { lc: 1, lp: 3, pb: 4, dictSize: 4096 });
+		const header = new DataView(lzma.buffer, lzma.byteOffset, 13);
+
+		const output = decompressRawLzma1(lzma.subarray(13), { lc: 1, lp: 3, pb: 4, dictSize: header.getUint32(1, true) });
+
+		expect(lzma[0]).toBe((4 * 5 + 3) * 9 + 1);
+		expect(output).toEqual(decompress(lzma));
+	});
+
+	test("decodes lc + lp > 4, which 7-Zip writes", () => {
+		const encoder = new AloneEncoder({ ...resolveOptions(5), lc: 8, lp: 4 }, input.length);
+		encoder.write(input);
+		const packed = encoder.finish().subarray(13);
+
+		const output = decompressRawLzma1(packed, { ...properties, lc: 8, lp: 4 });
+
+		expect(output).toEqual(input);
+	});
+
+	test("decodes a size of 0 from the range coder bytes", () => {
+		const packed = compress(new Uint8Array(0), { endMarker: false }).subarray(13);
+
+		const output = decompressRawLzma1(packed, { ...properties, uncompressedSize: 0 });
+
+		expect(packed.length).toBe(5);
+		expect(output).toEqual(new Uint8Array(0));
+	});
+
+	test("rejects a size of 0 without the range coder bytes", () => {
+		const run = () => decompressRawLzma1(new Uint8Array(0), { ...properties, uncompressedSize: 0 });
+
+		expect(run).toThrow("Truncated input");
+	});
+
+	test("rejects data without an end marker when the size is unknown", () => {
+		const run = () => decompressRawLzma1(withoutMarker, properties);
+
+		expect(run).toThrow("Truncated input");
+	});
+
+	test("rejects truncated data", () => {
+		for (const cut of [0, 4, 5, 20, withMarker.length >> 1, withMarker.length - 1]) {
+			expect(() => decompressRawLzma1(withMarker.subarray(0, cut), properties)).toThrow("Truncated input");
+		}
+	});
+
+	test("rejects a size larger than the data without an end marker", () => {
+		const run = () => decompressRawLzma1(withoutMarker, { ...properties, uncompressedSize: input.length + 1 });
+
+		expect(run).toThrow("Truncated input");
+	});
+
+	test("rejects an end marker before the given size", () => {
+		const run = () => decompressRawLzma1(withMarker, { ...properties, uncompressedSize: input.length + 1 });
+
+		expect(run).toThrow("Corrupted input: end marker before the declared size");
+	});
+
+	test("rejects data after the given size", () => {
+		const run = () => decompressRawLzma1(withoutMarker, { ...properties, uncompressedSize: input.length - 100 });
+
+		expect(run).toThrow("Corrupted input: data exceeds the declared size");
+	});
+
+	test("rejects a dictionary over the memory limit", () => {
+		let error: unknown;
+
+		try {
+			decompressRawLzma1(withMarker, { ...properties, dictSize: 1 << 30, memoryLimitKb: 1 << 20 });
+		} catch (caught) {
+			error = caught;
+		}
+
+		expect(error).toBeInstanceOf(MemoryLimitError);
+		expect(error).toMatchObject({ name: "MemoryLimitError", memoryNeededKb: 10 + (1 << 20) + 12, memoryLimitKb: 1 << 20 });
+	});
+
+	test("counts the probabilities of lc and lp against the memory limit", () => {
+		const run = () => decompressRawLzma1(withMarker, { ...properties, lc: 8, lp: 4, dictSize: 0, memoryLimitKb: 6000 });
+
+		expect(run).toThrow("6158 KiB of memory would be needed; limit was 6000 KiB");
+	});
+
+	test("checks the memory limit against the given dictionary size, as XZ for Java does", () => {
+		const options = { ...properties, dictSize: 1 << 30, uncompressedSize: input.length };
+
+		const withinLimit = () => decompressRawLzma1(withMarker, { ...options, memoryLimitKb: 10 + (1 << 20) + 12 });
+		const overLimit = () => decompressRawLzma1(withMarker, { ...options, memoryLimitKb: 10 + (1 << 20) + 11 });
+
+		expect(withinLimit()).toEqual(input);
+		expect(overLimit).toThrow(MemoryLimitError);
+	});
+
+	test("estimates the largest dictionary without overflow", () => {
+		const run = () => decompressRawLzma1(withMarker, { ...properties, dictSize: 0xFFFFFFFF, memoryLimitKb: 0 });
+
+		expect(run).toThrow(`${10 + 2 ** 22 + 12} KiB of memory would be needed`);
+	});
+
+	test.each([
+		{ lc: 9 },
+		{ lp: 5 },
+		{ pb: 5 },
+		{ lc: -1 },
+		{ dictSize: -1 },
+		{ dictSize: 2 ** 32 },
+		{ dictSize: undefined },
+		{ uncompressedSize: -1 },
+		{ uncompressedSize: 1.5 },
+		{ memoryLimitKb: -1 },
+		{ memoryLimitKb: "1024" },
+	])("rejects %o", (options) => {
+		const run = () => decompressRawLzma1(withMarker, { ...properties, ...options } as never);
+
+		expect(run).toThrow(RangeError);
 	});
 });

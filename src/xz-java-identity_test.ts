@@ -2,13 +2,17 @@
  * Byte identity against XZ for Java at the pinned commit, on the
  * differential corpus in `fixtures/` (see fixtures/README.md):
  *
- * - `compress()` reproduces every committed Java fixture byte for
+ * - `compress()` reproduces every committed `.lzma` fixture byte for
  *   byte, in both the known-size and the end-marker form, twice in a row;
  *   the streaming cell does the same through `Compress`;
- * - `decompress()` of every fixture reproduces the seeded input;
+ * - `decompress()` of every `.lzma` fixture reproduces the seeded input;
  * - on the malformed-stream set, the decoder's outcome matches the
  *   Java decoder's recorded outcome, except for the reviewed
- *   deviation classes, which carry the library's own recorded outcome.
+ *   deviation classes, which carry the library's own recorded outcome;
+ * - with `strict`, the same holds and `end-marker-leniency` cases get the
+ *   Java decoder's outcome;
+ * - every raw LZMA2 fixture decodes to its input, and on the raw LZMA1 and
+ *   LZMA2 sets the raw decoders' outcomes match the Java decoder's.
  *
  * The checks live in `fixtures/identity.ts`, shared with
  * `fixtures/verify.ts`, which runs them on Node.
@@ -24,16 +28,20 @@ import {
 	cellChecks,
 	loadMalformedRecords,
 	loadManifest,
+	loadRawMalformedRecords,
 	malformedChecks,
+	rawMalformedChecks,
 	recordChecks,
+	strictMalformedChecks,
 } from "../fixtures/identity.ts";
 import * as library from "./index.js";
 
 const manifest = loadManifest();
 const records = loadMalformedRecords();
+const rawRecords = loadRawMalformedRecords();
 
 describe("fixture records", () => {
-	test.each(recordChecks(manifest, records).map((check) => [check.name, check] as const))("%s", async (_, check) => {
+	test.each(recordChecks(manifest, records, rawRecords).map((check) => [check.name, check] as const))("%s", async (_, check) => {
 		const mismatch = await check.run();
 
 		expect(mismatch).toBeUndefined();
@@ -54,6 +62,22 @@ describe("byte identity with XZ for Java", () => {
 
 describe("malformed streams match recorded decoder expectations", () => {
 	test.each(malformedChecks(library, manifest, records).map((check) => [check.name, check] as const))("%s", async (_, check) => {
+		const mismatch = await check.run();
+
+		expect(mismatch).toBeUndefined();
+	});
+});
+
+describe("malformed streams in strict mode", () => {
+	test.each(strictMalformedChecks(library, manifest, records).map((check) => [check.name, check] as const))("%s", async (_, check) => {
+		const mismatch = await check.run();
+
+		expect(mismatch).toBeUndefined();
+	});
+});
+
+describe("raw streams match the Java decoder", () => {
+	test.each(rawMalformedChecks(library, manifest, rawRecords).map((check) => [check.name, check] as const))("%s", async (_, check) => {
 		const mismatch = await check.run();
 
 		expect(mismatch).toBeUndefined();

@@ -3,8 +3,9 @@
 <h1>lzma1</h1>
 
 A TypeScript implementation of the Lempel-Ziv-Markov chain algorithm (LZMA)
-for the `.lzma` format, ported from [XZ for Java][xz-java]. It started as a
-[fork][fork-link] of [Nathan Rugg's][fork-author] LZMA-JS package.
+for the `.lzma` format, ported from [XZ for Java][xz-java]. It also decodes
+the raw LZMA1 and LZMA2 data inside 7z archives and `.xz` files. It started
+as a [fork][fork-link] of [Nathan Rugg's][fork-author] LZMA-JS package.
 
 </div>
 
@@ -26,11 +27,14 @@ standard APIs.
 ## Features
 
 - Encode and decode `.lzma` data, interoperable with `xz`, 7-Zip and LZMA SDK
+- Decode raw LZMA1 and LZMA2 data, as 7z and `.xz` store it, given the
+  properties from the container
 - Strings (UTF-8) and binary data (`ArrayBuffer` or any typed array)
 - Compression levels 1-9 or fine-grained options (dictionary size,
   `lc`/`lp`/`pb`, ...)
 - Web Streams (`TransformStream`) for compressing and decompressing streams
 - Errors on truncated input and on most corrupted input
+- A memory limit for untrusted raw data, in KiB like XZ for Java's
 - No dependencies, runs in browsers, workers, Node.js, Deno and Bun
 
 ## Installation
@@ -64,16 +68,21 @@ npm install lzma1
 
 ## Quick start
 
-The library provides four main functions for compression and decompression:
+Four functions compress and decompress the `.lzma` format, and two decode
+raw data:
 
 ```ts
 // For binary data
 compress(data: ArrayBuffer | ArrayBufferView, mode?: 1-9 | CompressionOptions): Uint8Array
-decompress(data: ArrayBuffer | ArrayBufferView): Uint8Array
+decompress(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOptions): Uint8Array
 
 // For string data
 compressString(data: string, mode?: 1-9 | CompressionOptions): Uint8Array
-decompressString(data: ArrayBuffer | ArrayBufferView): string
+decompressString(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOptions): string
+
+// For raw data without a .lzma header, e.g. from 7z or .xz
+decompressRawLzma1(data: ArrayBuffer | ArrayBufferView, options: RawLzma1Options): Uint8Array
+decompressRawLzma2(data: ArrayBuffer | ArrayBufferView, options: RawLzma2Options): Uint8Array
 ```
 
 Strings are encoded as UTF-8. `decompressString` also decodes data compressed
@@ -153,7 +162,58 @@ find the end: raw LZMA decoders (`xz --format=raw`, Python's `FORMAT_RAW`)
 report an error or decode past the end without it. Omit it only when the data
 is decoded with its header (this library, `xz --format=lzma`, 7-Zip) or the
 size is known from elsewhere. Strict decoders that know the size may reject a
-marker, e.g. XZ for Java's `LZMAInputStream`.
+marker, e.g. XZ for Java's raw `LZMAInputStream` constructor without
+`enableRelaxedEndCondition()`.
+
+### Raw LZMA1 and LZMA2
+
+7z archives and `.xz` files store LZMA data without the `.lzma` header and keep
+its properties in their own headers. Pass those properties to
+`decompressRawLzma1` or `decompressRawLzma2`. This library doesn't parse the 7z
+or `.xz` containers.
+
+```js
+import {
+	decompressRawLzma1,
+	decompressRawLzma2,
+} from "lzma1";
+
+// A 7z LZMA entry. Its 5-byte coder properties are the byte
+// (pb * 5 + lp) * 9 + lc and the dictionary size, 32-bit little-endian.
+const file = decompressRawLzma1(packed, {
+	lc: 3, // literal context bits, 0-8
+	lp: 0, // literal position bits, 0-4
+	pb: 2, // position bits, 0-4
+	dictSize: 1 << 24, // dictionary size in bytes
+	uncompressedSize: 123_456, // optional, the size from the 7z header
+	memoryLimitKb: 65_536, // optional
+});
+
+// LZMA2 data from a 7z entry or an .xz block
+const block = decompressRawLzma2(packed, {
+	dictSize: 1 << 20, // from the LZMA2 properties byte, see "LZMA2" below
+	memoryLimitKb: 65_536, // optional
+});
+```
+
+LZMA2 marks its own end and needs no size. Raw LZMA1 needs the uncompressed
+size or an end marker. 7-Zip writes no end
+marker by default, so pass the size from the 7z header.
+`xz --format=raw --lzma1` always writes one. With a known size, the data has to
+end there, with or without an end marker, as with `decompress`. An end marker
+before that size is an error, as with `strict`.
+
+The dictionary size comes from the container, and a corrupt or hostile header
+can claim up to 4 GiB. `memoryLimitKb` works like XZ for Java's `memoryLimit`.
+The decoder estimates its memory in KiB from the dictionary size, plus `lc` and
+`lp` for LZMA1, and throws a `MemoryLimitError` before it allocates anything if
+the estimate is over the limit. The error's `memoryNeededKb` and `memoryLimitKb` fields hold
+both numbers. The estimate counts the dictionary at the size given. The
+dictionary buffer starts at 64 KiB at most and doubles only as output arrives,
+so a huge claimed dictionary costs nothing until the output grows. A known LZMA1
+size changes that: `decompressRawLzma1` then allocates up to 64 MiB at once from
+it, for the dictionary or for the output, as `decompress` does with the size in
+the `.lzma` header. The estimate doesn't count the output.
 
 ### Streams
 
@@ -178,6 +238,14 @@ A stream's size isn't known in advance, so the header marks it as unknown and
 the data always ends with an end marker: `new Compress({ endMarker: false })`
 throws a `RangeError`.
 
+`DecompressRawLzma1` and `DecompressRawLzma2` decode raw data in a stream and
+take the same options as the functions. Invalid options and a dictionary over
+the memory limit throw from the constructor.
+
+```js
+const output = response.body.pipeThrough(new DecompressRawLzma2({ dictSize: 1 << 20 }));
+```
+
 In TypeScript, their types need `TransformStream` from the `DOM` lib or
 `@types/node` (or `skipLibCheck`).
 
@@ -186,8 +254,20 @@ In TypeScript, their types need `TransformStream` from the `DOM` lib or
 Decompressing truncated or corrupted data throws an `Error`, e.g.
 `"Truncated input"` or `"Corrupted input: match distance is too large"`.
 The `.lzma` format has no checksum, so some corrupted data decodes without
-an error to different output.
-Invalid options throw a `RangeError`.
+an error to different output. Raw LZMA1 and LZMA2 data have none either; 7z
+and `.xz` keep their checksums in the container.
+Invalid options throw a `RangeError`, and a dictionary over `memoryLimitKb`
+throws a `MemoryLimitError`.
+
+The data has to end at the size in the header, with or without an end marker
+after it. An end marker before that size ends the data too, because some
+producers write a size that is too large. `strict` rejects it, as XZ for Java
+and xz do:
+
+```js
+decompress(data, { strict: true });
+new Decompress({ strict: true });
+```
 
 ### HTML example
 
@@ -240,6 +320,37 @@ structure.
 
 [header_link]: https://docs.fileformat.com/compression/lzma/#lzma-header
 
+### LZMA2
+
+LZMA2 splits the data into chunks of up to 2 MiB uncompressed and 64 KiB
+compressed. Every chunk starts with a control byte:
+
+| Control   | Chunk                                                     |
+| --------- | --------------------------------------------------------- |
+| 0x00      | End of the data                                           |
+| 0x01      | Uncompressed, resets the dictionary                       |
+| 0x02      | Uncompressed                                              |
+| 0x80-0x9F | LZMA                                                      |
+| 0xA0-0xBF | LZMA, resets the state                                    |
+| 0xC0-0xDF | LZMA, resets the state, new `lc`/`lp`/`pb`                |
+| 0xE0-0xFF | LZMA, resets the dictionary and state, new `lc`/`lp`/`pb` |
+
+An uncompressed chunk has its size minus one in the next 2 bytes. An LZMA
+chunk has this header, with sizes minus one, big-endian:
+
+```mermaid
+packet-beta
+  0-7: "Control (low 5 bits: size bits 16-20)"
+  8-23: "Uncompressed size, bits 0-15"
+  24-39: "Compressed size"
+  40-47: "Properties (0xC0 and up)"
+```
+
+The first chunk has to reset the dictionary, and `lc + lp` can't exceed 4.
+7z and `.xz` store the dictionary size in one byte `n`. The size is
+`0xFFFFFFFF` for `n = 40` and `(2 | (n & 1)) * 2 ** ((n >> 1) + 11)` below
+that, from 4 KiB up.
+
 ### Benchmarks
 
 See [docs/benchmarks.md](docs/benchmarks.md), and [bench](bench) to run them.
@@ -249,8 +360,10 @@ See [docs/benchmarks.md](docs/benchmarks.md), and [bench](bench) to run them.
 The encoder's output is byte-identical to [XZ for Java][xz-java] at commit
 [`6925f81`](https://github.com/tukaani-project/xz-java/commit/6925f81244a99d0ea4f3fd021938e2ee1e6de2eb)
 on a corpus of inputs and encoder settings. The decoder handles a set of
-corrupted streams the same way, except for four documented kinds of corrupt
-input that it accepts where XZ for Java rejects them. CI checks both.
+corrupted streams the same way, except for two documented kinds of corrupt
+input that it accepts where XZ for Java rejects them. The raw LZMA1 and LZMA2
+decoders handle their own set of streams exactly as XZ for Java does. CI checks
+all three.
 [fixtures/README.md](fixtures/README.md) describes the corpus and how to
 regenerate it.
 

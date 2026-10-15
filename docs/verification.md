@@ -15,27 +15,33 @@ beyond the tests.
 
 ## Java sources and file mapping
 
-| Port file                                 | Java source (`src/org/tukaani/xz/...` at the pinned commit)              |
-| ----------------------------------------- | ------------------------------------------------------------------------ |
-| `src/range-coder.ts`                      | `rangecoder/RangeCoder.java`                                             |
-| `src/range-encoder.ts`                    | `rangecoder/RangeEncoder.java`, `rangecoder/RangeEncoderToBuffer.java`   |
-| `src/range-decoder.ts`                    | `rangecoder/RangeDecoder.java`, `rangecoder/RangeDecoderFromStream.java` |
-| `src/lzma-coder.ts`                       | `lzma/LZMACoder.java`, `lzma/State.java`                                 |
-| `src/lzma-encoder.ts`                     | `lzma/LZMAEncoder.java`                                                  |
-| `src/lzma-encoder-fast.ts`                | `lzma/LZMAEncoderFast.java`                                              |
-| `src/lzma-encoder-normal.ts`              | `lzma/LZMAEncoderNormal.java`, `lzma/Optimum.java`                       |
-| `src/lzma-decoder.ts`                     | `lzma/LZMADecoder.java`                                                  |
-| `src/lz-encoder.ts`                       | `lz/LZEncoder.java`, `lz/Matches.java`, `lz/MatchLength.java`            |
-| `src/lz-decoder.ts`                       | `lz/LZDecoder.java`                                                      |
-| `src/hash234.ts`                          | `lz/Hash234.java`, `lz/CRC32Hash.java`                                   |
-| `src/hc4.ts`                              | `lz/HC4.java`                                                            |
-| `src/bt4.ts`                              | `lz/BT4.java`                                                            |
-| `createEncoder` in `src/alone-encoder.ts` | `lzma/LZMAEncoder.getInstance`, `lz/LZEncoder.getInstance`               |
+| Port file                                 | Java source (`src/org/tukaani/xz/...` at the pinned commit)                                                          |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `src/range-coder.ts`                      | `rangecoder/RangeCoder.java`                                                                                         |
+| `src/range-encoder.ts`                    | `rangecoder/RangeEncoder.java`, `rangecoder/RangeEncoderToBuffer.java`                                               |
+| `src/range-decoder.ts`                    | `rangecoder/RangeDecoder.java`, `rangecoder/RangeDecoderFromStream.java`                                             |
+| `src/lzma-coder.ts`                       | `lzma/LZMACoder.java`, `lzma/State.java`                                                                             |
+| `src/lzma-encoder.ts`                     | `lzma/LZMAEncoder.java`                                                                                              |
+| `src/lzma-encoder-fast.ts`                | `lzma/LZMAEncoderFast.java`                                                                                          |
+| `src/lzma-encoder-normal.ts`              | `lzma/LZMAEncoderNormal.java`, `lzma/Optimum.java`                                                                   |
+| `src/lzma-decoder.ts`                     | `lzma/LZMADecoder.java`                                                                                              |
+| `src/lz-encoder.ts`                       | `lz/LZEncoder.java`, `lz/Matches.java`, `lz/MatchLength.java`                                                        |
+| `src/lz-decoder.ts`                       | `lz/LZDecoder.java`                                                                                                  |
+| `src/lzma2-decoder.ts`                    | `LZMA2InputStream.java`, `rangecoder/RangeDecoderFromBuffer.java`, `lz/LZDecoder.java` (`copyUncompressed`, `reset`) |
+| `src/hash234.ts`                          | `lz/Hash234.java`, `lz/CRC32Hash.java`                                                                               |
+| `src/hc4.ts`                              | `lz/HC4.java`                                                                                                        |
+| `src/bt4.ts`                              | `lz/BT4.java`                                                                                                        |
+| `createEncoder` in `src/alone-encoder.ts` | `lzma/LZMAEncoder.getInstance`, `lz/LZEncoder.getInstance`                                                           |
 
 The API code (`options.ts`, `lzma.ts`, `header.ts`, `index.ts`,
-`web-streams.ts`, `utf8.ts`, `output-buffer.ts`, `crc32.ts`, and the rest of
-`alone-encoder.ts` and `alone-decoder.ts`) is the library's own interface around
-the coders and is not derived from the Java code.
+`web-streams.ts`, `raw-web-streams.ts`, `utf8.ts`, `output-buffer.ts`,
+`crc32.ts`, `memory-limit.ts`, and the rest of `alone-encoder.ts` and
+`alone-decoder.ts`) is the library's own interface around the coders and is not
+derived from the Java code, except in three places. The end check in
+`alone-decoder.ts` follows `LZMAInputStream`'s end condition, as "End of the
+stream" below describes. `getLzma1MemoryUsageKb` and `getDictSize` in
+`options.ts` are `LZMAInputStream.getMemoryUsage` and its rounding, as "Raw
+LZMA1" describes. `MemoryLimitError`'s message is `MemoryLimitException`'s.
 
 ## Translation
 
@@ -159,29 +165,216 @@ translation:
 - **lz-decoder.ts** (`LZDecoder.java`): an adaptation to the library's interface
   rather than a translation: a growing buffer with a sink replaces the fixed
   dictionary flushed by the caller; `repeat`'s distance validation against the
-  written history matches the Java code's `dist >= full` check in outcome kind;
-  `pendingLen` is unnecessary since the only output limit is the declared size,
-  enforced in `lzma-decoder.ts`. The `copyWithin` fast path for non-overlapping
+  written history matches the Java code's `dist >= full` check in outcome kind,
+  except in the gap the Java code's 16-byte rounding of the dictionary adds (see
+  "Raw LZMA1");
+  `pendingLen` is unnecessary since the output limit, the declared size or the
+  end of an LZMA2 chunk, is enforced in `lzma-decoder.ts` before each match. The `copyWithin` fast path for non-overlapping
   long copies preserves output by the same forward-copy semantics.
+  `copyUncompressed` and `reset`, which only LZMA2 calls, are functions in
+  `lzma2-decoder.ts` (that entry); `buf`, `pos`, `start`, `wrapped` and
+  `onBufferEnd` are not private so that they can reach them.
+- **lzma2-decoder.ts** (`LZMA2InputStream.java`,
+  `RangeDecoderFromBuffer.java`, `LZDecoder.copyUncompressed` and
+  `LZDecoder.reset`): `decodeChunkHeader` and `decodeProps` make the Java code's
+  checks in the Java code's order, and the memory estimate is `getMemoryUsage`,
+  named `getMemoryUsageKb` for its unit. Differences in the interface:
+  - The two `LZDecoder` methods and the two methods of `RangeDecoderFromBuffer`
+    are module functions that take the decoder. As methods of `LzDecoder` or
+    `RangeDecoder` they would ship in bundles that decode only `.lzma` data. As
+    subclasses they changed V8's inlining of the shared `LzmaDecoder`: the bit
+    decoding stopped being inlined into the literal decoder, which made LZMA2
+    about 10% slower on Node.
+  - `copyUncompressed` continues past the end of the buffer like `repeat`,
+    where the Java code copies up to the end and leaves the rest to its
+    caller's next call; the bytes reach the sink in the same order.
+    `resetDictionary` (`reset`) passes pending bytes to the sink before the
+    positions restart, which the Java caller has always done by then, clears
+    `wrapped` where the Java code clears `full`, so `repeat` rejects every
+    distance into the old data as `dist >= full` does, and zeroes the byte
+    `getByte(0)` reads at position 0.
+  - `prepareInputBuffer` starts the range decoder on a chunk's data at the start
+    of `inBuf`, where the Java code puts it at the end of its buffer, so
+    `isChunkFinished` compares `pos` with the chunk's length where the Java
+    code's `isFinished` compares it with `buf.length`. It starts through `init`,
+    which makes the `code == range` check the Java code does not make. The Java
+    decoder rejects such a chunk later: from `code == range`, every bit decodes
+    as 1 and keeps `code >= range` (a bit subtracts `bound` from both; direct
+    bits leave `code - range >= range` after halving `range`; normalization
+    multiplies both by 256 and adds a byte to `code`), so `code` never reaches 0
+    and the chunk fails `isFinished`. The check only rejects it sooner.
+  - Input arrives in pieces. The chunk header is collected until it is complete,
+    an uncompressed chunk is copied as it arrives, and an LZMA chunk's compressed
+    data, at most 64 KiB, is collected and then decoded at once, where the Java
+    code reads from a stream on demand. Truncated input fails in `end()`, like
+    the Java code's `EOFException`. A chunk shorter than the five range coder
+    bytes is reported once its data has arrived instead of before.
+  - `LzmaDecoder.decode(outLimit, inLimit)` decodes the chunk with `outLimit` at
+    its last output byte and `inLimit` at the end of its data. Then `outPos` has
+    to equal `outLimit` and the range decoder has to be finished, as the Java
+    code requires `isFinished()` and no pending match when the chunk's size is
+    reached. A match that crosses the chunk's end throws in `decode`, where the
+    Java code leaves it pending; an end marker returns early from `decode` and
+    fails the `outPos` check, where the Java code's `repeat` throws on its
+    distance. Every case is an error in both.
+  - A read past the chunk's data throws in the Java code. Here `inBuf` has
+    `INPUT_MARGIN` spare bytes after the largest chunk, and the loop starts a
+    symbol only while the position has not passed the end of the data, so a
+    symbol that runs over reads at most 49 spare bytes (48 bits and the final
+    normalization) and the chunk then fails `isChunkFinished`. Bytes decoded before
+    the error can reach a stream's output, as the Java code hands out a chunk's
+    earlier bytes before it reaches the error.
+  - Position bits come from `outPos`, the number of bytes since the last
+    dictionary reset, which is set to 0 where `resetDictionary` runs. The Java code
+    reads `lz.getPos()`, its position in a buffer of `getDictSize(dictSize)`
+    bytes, a multiple of 16 that `reset()` sets to 0, so the two agree modulo
+    16, as in the lzma-decoder.ts entry.
+  - The dictionary grows with the output instead of being allocated up front,
+    and up to `dictSize` instead of `getDictSize(dictSize)`, which rounds up to
+    a multiple of 16 (see "Raw LZMA2"). There is no preset dictionary.
+  - A state reset (control `0xA0` to `0xBF`) calls `lzma.reset()` where the Java
+    code calls `LZMADecoder.reset()`. That is `LzmaCoder.reset`, which zeroes
+    the reps, resets the state and fills the whole probability array: the values
+    the Java code's per-array resets write (see "Probabilities reset all at
+    once").
+  - After an uncompressed chunk the Java code also checks `rc.isFinished()`,
+    which cannot fail there: the previous LZMA chunk ended with the same check,
+    or no LZMA chunk came yet and the Java range decoder is in its initial,
+    finished state. The check is left out.
+  - Data after the end of the data (control byte `0x00`) is ignored; the Java
+    code doesn't read it either.
 - **`createEncoder` in alone-encoder.ts**: it carries only the known-size
   plumbing.
 
-### Semantic deviation
+### End of the stream
 
-The decoder does not check the range coder's final state when the declared size
-is reached. At that point `LZMAInputStream` requires a finished range coder
-(`code == 0`), or, in its relaxed mode, an end marker followed by a finished
-range coder, and otherwise rejects the stream. The library has `isFinished()`,
-but the API code does not call it there. So corruption after the last symbol
-needed for the declared size goes undetected, and a corrupt stream can be
-accepted at the declared length with wrong bytes where the Java decoder reports
-an error. A check at the declared size would close both without conflicting with
-the end-marker leniency, which ends at a marker before the declared size; it
-would change which inputs the library accepts.
+At the declared size, `AloneDecoder` applies the end condition of
+`LZMAInputStream` in its relaxed mode, which the Java code's `.lzma` header
+constructor turns on. The range coder must be finished (`code == 0`), or the
+next symbol must be an end marker after which it is finished. Anything else is
+an error. The decoder decodes that one symbol with an output limit one byte past
+the declared size, as the Java code does with `lz.setLimit(1)`. A literal or a
+short rep fills the extra byte and a longer match crosses the limit, so both
+throw, and the end marker returns before anything is written. A declared size of
+0 takes the same path, so its five range coder bytes are read and checked, as
+the Java constructor reads them before any output.
 
-The fixtures record every decoder outcome that differs from the Java decoder's,
-in four classes described in `fixtures/README.md`; this deviation accounts for
-two of them. `fixtures/generate.ts` stops on any other difference.
+This rejects three kinds of stream that the decoder used to accept at the
+declared length: corruption after the last symbol the declared size needs, a
+declared size smaller than the data, and a size-0 stream without its range coder
+bytes. The first two sometimes produced wrong bytes. Nothing else changes:
+
+- _Output._ Decoding up to the declared size is unchanged, and the check runs
+  after it, so every byte a stream produces is the byte it produced before.
+- _Nothing past the declared size._ Before it decodes the extra symbol, the
+  decoder passes every pending byte to the sink, and then it holds the sink
+  back. A byte that symbol writes never reaches a stream, as the Java code never
+  hands it out. In a contiguous output buffer it can overwrite the first byte
+  after a wrap, but only right before the decoder throws.
+- _Valid streams._ The encoder's output passes in both forms. Without a marker,
+  the range coder is finished at the declared size; with a known size and a
+  marker, as `compress()` writes by default, the extra symbol is the marker.
+- _Chunked input._ The extra symbol is decoded only when `INPUT_MARGIN` bytes are
+  left or the input has ended, like every other symbol. Otherwise the decoder
+  keeps the bytes and waits, so splitting the input anywhere gives the same
+  outcome.
+- _Probability pool._ A size-0 stream now reaches `release()` after its check,
+  like every finished stream, and the one-owner argument of the pool entry
+  covers it unchanged.
+
+One difference from the Java decoder remains at the end of a stream: an end
+marker before the declared size is accepted, because some producers write a size
+that is too large and the marker is how their data decodes. The `strict` option
+rejects it as the Java decoder does, and the identity checks decode the
+malformed set in both modes. The fixtures record
+every decoder outcome that differs from the Java decoder's, in two classes
+described in `fixtures/README.md`. `fixtures/generate.ts` stops on any other
+difference.
+
+### Raw LZMA1
+
+`decompressRawLzma1` decodes what `LZMAInputStream`'s raw constructor
+`LZMAInputStream(in, uncompSize, lc, lp, pb, dictSize, presetDict)` decodes
+without a preset dictionary, with the relaxed end condition turned on when the
+size is known. It runs the `.lzma` path: `AloneDecoder.start()` takes the
+properties and the size that `decode` would read from a header, and the decoder
+is strict. For the same properties, size and data, it therefore behaves as on a
+`.lzma` stream with that header in strict mode, and the arguments for that path
+carry over. What remains to compare is the part the Java constructor does
+differently from its header constructor:
+
+- _Validation._ `lc` 0-8, `lp` 0-4 and `pb` 0-4 are the ranges the Java
+  constructor accepts. An unknown size is an omitted `uncompressedSize` here and
+  -1 in the Java code. The library differs from the Java constructor in three
+  places, the deviations of raw LZMA1:
+  - It accepts dictionary sizes up to `2^32 - 1`, the most a container can
+    store, where the Java code throws an `IllegalArgumentException` above
+    `DICT_SIZE_MAX` (`0x7FFFFFF0`). It allocates no more for them: the
+    dictionary is capped by a known size and grows with the output either way.
+  - It takes a known size up to `2^53 - 1` and throws a `RangeError` above it,
+    where the Java code takes any `long`. The `.lzma` header has the same cap.
+  - The Java code rounds the dictionary up to a multiple of 16 bytes
+    (`getDictSize`), and `repeat` accepts distances up to that rounded size.
+    Here the dictionary is the size given, at least 4 KiB, without the
+    rounding. In data longer than a dictionary
+    whose size is not a multiple of 16, a distance between the two sizes is an
+    error here and accepted by the Java code. An encoder never writes one,
+    because its distances stay below the dictionary size it declares. The
+    `.lzma` path has the same difference.
+- _End of the data._ With a known size, the relaxed end condition applies at
+  that size (previous section). An end marker before it is an error in every
+  mode of the Java code, where it reaches the `remainingSize != -1` rethrow, and
+  it is an error here because the decoder is strict. With an unknown size, the
+  data has to end with a marker in both.
+- _Size 0._ The Java constructor reads the five range coder bytes and checks the
+  end condition. So does the library, because a size of 0 takes the general
+  path (previous section).
+- _Memory estimate._ `getLzma1MemoryUsageKb` is
+  `LZMAInputStream.getMemoryUsage(dictSize, lc, lp)`, with a `Kb` suffix for the
+  unit, as on `memoryLimitKb`. Both compute
+  `10 + getDictSize(dictSize) / 1024 + ((2 * 0x300) << (lc + lp)) / 1024`, where
+  `getDictSize` rounds `max(dictSize, 4096)` up to a multiple of 16. Java's
+  `(d + 15) & ~15` equals `Math.ceil(d / 16) * 16` for every `d` up to
+  `DICT_SIZE_MAX`, and Java's division of non-negative ints is `Math.floor`, so
+  the estimates are equal wherever the Java code gives one. Above
+  `DICT_SIZE_MAX`, `Math.ceil` stays exact where `& ~15` would turn negative.
+  `(2 * 0x300) << 12` is below 2^23, so the shift does not wrap. The raw Java
+  constructor takes no limit; the library checks `memoryLimitKb` before it
+  allocates anything, as the Java header constructor checks its limit.
+- _Recorded cases._ `fixtures/raw-malformed.json` holds the Java decoder's
+  outcome for the unchanged, truncated, bit-flipped and resized bodies of four
+  `.lzma` fixtures, and the library's outcome has to match it on every case.
+
+Nothing else changes. `start()` is the method `decode` already called, now
+public. `decompressData` takes the properties as an optional `header` and passes
+it to `start()` before the data; without one it runs as before, so `.lzma` data
+takes the same path.
+
+### Raw LZMA2
+
+`decompressRawLzma2` decodes what `LZMA2InputStream(in, dictSize)` decodes,
+with two deviations, both about the dictionary size:
+
+- The Java code accepts a dictionary size from `DICT_SIZE_MIN` (4096) to
+  `DICT_SIZE_MAX` (`0x7FFFFFF0`) and throws an `IllegalArgumentException` above
+  it. The library accepts sizes up to `2^32 - 1`, which the LZMA2 properties
+  byte can state (`n = 40`). The dictionary grows with the output, so a large
+  size costs nothing until the output does.
+- The Java code rounds the dictionary up to a multiple of 16 bytes and accepts
+  distances up to the rounded size, as for raw LZMA1. The properties byte states
+  multiples of 16 below `n = 40`, so only a `dictSize` the caller picks leaves a
+  gap.
+
+`getMemoryUsageKb` rounds with `Math.ceil` as `getLzma1MemoryUsageKb`
+does, so its estimate equals the Java code's up to `DICT_SIZE_MAX` and stays
+exact above it. The `.lzma2` fixtures, XZ for Java's LZMA2 output for nineteen
+corpus cells, decode to their inputs, and on the raw LZMA2 cases of
+`fixtures/raw-malformed.json` the library's outcome matches the Java decoder's
+on every case.
+
+Nothing else changes for `.lzma` data. `buf`, `pos`, `start`, `wrapped` and
+`onBufferEnd` of `LzDecoder` lose `private`, which changes no emitted code, and
+`INPUT_MARGIN` is exported unchanged.
 
 ### Java-to-JS hazard checklist
 
@@ -202,8 +395,10 @@ two of them. `fixtures/generate.ts` stops on any other difference.
   Java's `& 0xFF` masks are implicit; byte equality comparisons are unaffected
   by Java's signed bytes; BT4 and HC4's ordered comparison uses the unsigned
   values directly, as Java's masked values do.
-- **Integer division:** Java `/` on ints appears only in constants and table
-  setup where the operands divide exactly; `Math.floor(low / 2^32)` implements
+- **Integer division:** Java `/` on ints appears in constants and table setup,
+  where the operands divide exactly, and in the memory estimates and LZMA2's
+  properties byte, where `Math.floor` or `| 0` of a non-negative quotient below
+  2^31 is Java's truncating division. `Math.floor(low / 2^32)` implements
   `low >>> 32` for the 33-bit `low`.
 - **Typed-array narrowing:** probability stores rely on `Uint16Array` masking
   exactly like Java's `(short)` casts (the values stay in 0..2047 anyway);
@@ -215,7 +410,15 @@ two of them. `fixtures/generate.ts` stops on any other difference.
 - **int32 `<<` wrap sites,** verified one by one:
   `(2 | (distSlot & 1)) << footerBits` (a negative base for slot 63, intended),
   `symbol << 1` chains (bounded below 2^17), `matchByte << 1` (bounded below
-  2^17 within a literal), `result << 1` in direct bits (bounded below 2^27).
+  2^17 within a literal), `result << 1` in direct bits (bounded below 2^27),
+  LZMA2's `(control & 0x1F) << 16` (below 2^21) and `bytes[pos] << 8` (below
+  2^16), and the memory estimates' `(2 * 0x300) << (lc + lp)` (below 2^23).
+- **Output positions:** `outPos` counts output bytes or, for LZMA2, the bytes
+  since the last dictionary reset. It is at most one past a declared size, which
+  is at most 2^53 - 1, or a count of bytes actually written, so it stays an
+  integer of at most 2^53, which doubles hold exactly. The
+  position masks apply `&`, which takes it modulo 2^32 through ToInt32 and so
+  keeps its low bits for every such integer.
 - **Array bounds.** Java throws `ArrayIndexOutOfBoundsException` on an
   out-of-range index; a typed array silently drops an out-of-range write and
   reads `undefined`, which then compares unequal to every byte or turns
@@ -272,15 +475,29 @@ two of them. `fixtures/generate.ts` stops on any other difference.
     counterpart). `repeat` throws unless `dist < history` (the written bytes, or
     the full buffer once wrapped), before any index is formed, so `back` lies in
     `[0, buf.length)`. `getByte(dist)` is called with 0 (the previous byte; at
-    position 0 it reads the zero-initialized last slot, as the Java code reads
-    the slot `LZDecoder.reset` zeroes) or with `reps[0]`, which is either the
-    initial 0 or a distance a previous `repeat` validated against a history that
-    has only grown since. `putByte` and `repeat` grow or flush the buffer when
-    `pos` reaches its end, before the next write.
+    position 0 it reads the last slot, which a new buffer has zero-initialized
+    and `resetDictionary` zeroes, as the Java code reads the slot
+    `LZDecoder.reset` zeroes) or with `reps[0]`. That is 0, or a distance a
+    `repeat` validated since the current `LzmaDecoder` was created or last
+    `reset()`, against a history that has only grown since. A dictionary reset
+    is the one place the history shrinks, to zero, and only LZMA2 makes one.
+    `resetDictionary` comes with `needProps`, so before the next LZMA symbol a
+    chunk with properties has to come, and `decodeProps` creates a new
+    `LzmaDecoder` whose reps start at 0; uncompressed chunks in between never
+    call `getByte`. `putByte`, `repeat` and `copyUncompressed` grow or flush the
+    buffer when `pos` reaches its end, before the next write.
   - _Range coder streams_ (no Java counterpart): the encoder's `writeByte` calls
     `ensureCapacity` before each write; the decoder's `readByte` throws an
     explicit truncation error when the input is exhausted instead of indexing
     past it.
+  - _LZMA2 buffers_ (`lzma2-decoder.ts`). The chunk header goes into a 6-byte
+    array at `headerPos`, below the header's size of at most 6 by the copy
+    limits. An LZMA chunk's data goes into `inBuf` at `inPos`, with each copy
+    limited to `compressedSize - inPos` and `compressedSize` at most 65536,
+    below `inBuf.length`; the range decoder reads at most 49 bytes past the
+    data (lzma2-decoder.ts entry), inside the 64 spare bytes.
+    `copyUncompressed` copies at most `buf.length - pos` bytes per step and
+    calls `onBufferEnd` when `pos` reaches the end, as `putByte` does.
   - _Bit-tree and table indices from decoded data:_ tree walks stay inside their
     tree by construction (`decodeBitTree` builds an index below `probs.length`),
     a decoded `distSlot` is below 64 and selects `distSpecial[distSlot - 4]`
@@ -448,7 +665,9 @@ Argument:
   calls `super.reset()`. The decoder's constructor now reaches `LzmaCoder.reset`
   directly, which is all the deleted override did besides the deleted region
   resets. The counters are still zeroed by `LengthEncoder.reset`, which
-  `LzmaEncoder.reset` still calls for both length encoders.
+  `LzmaEncoder.reset` still calls for both length encoders. LZMA2's state
+  resets, which came later, reach `LzmaCoder.reset` through `lzma.reset()` in
+  `Lzma2Decoder.decodeChunkHeader` (lzma2-decoder.ts entry).
 - _No other callers._ The deleted methods were called only from the resets
   above; the type checker, run over the library and every test, confirms no
   remaining reference.
@@ -470,10 +689,10 @@ Argument:
   `start()`, which runs once per `AloneDecoder`, removes the entry from the pool
   before passing it to exactly one new decoder. So each array belongs to at most
   one decoder that can still use it, and no two decoders share probabilities. A
-  decoder that throws never returns its array, and a stream with declared size 0
-  finishes without decoding and without returning it; both only lose an array.
-  Only decoders created with `reuse` (the synchronous one-shot path in
-  `lzma.ts`) take from or give to the pool.
+  decoder that throws never returns its array, which only loses the array.
+  Only decoders created with `reuse`, which `decompressData` in `lzma.ts`
+  creates for synchronous one-shot decoding of `.lzma` and raw LZMA1 data, take
+  from or give to the pool.
 - _Right size._ The lookup key is `probsSize(lc, lp)` for the new header, and
   entries are stored under their own length, so a reused array has exactly the
   length a new allocation would have. Headers with different `(lc, lp)` but the

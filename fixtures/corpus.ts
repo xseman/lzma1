@@ -9,7 +9,10 @@
  * known size and no end marker, and `<id>.marker.lzma`, written in XZ for
  * Java's end-marker form, which always declares the size unknown. A
  * streaming cell has only the second kind, compared against the library's
- * chunked `Compress`, which also declares the size unknown.
+ * chunked `Compress`, which also declares the size unknown. The cells in
+ * `LZMA2_CELLS` also have `<id>.lzma2`, XZ for Java's raw LZMA2 output for
+ * the same input and settings, which the identity test decodes with
+ * `decompressRawLzma2`; the library has no LZMA2 encoder to compare.
  *
  * Constraint: the dictionary size each cell ends up with (after
  * `fitDictSize`, which streaming cells skip because the size is unknown)
@@ -48,16 +51,28 @@ export interface CorpusCell {
 	stream?: StreamSpec;
 }
 
-/** The two Java fixture forms; see the module comment. */
-export type FixtureVariant = "plain" | "marker";
+/** The Java fixture forms; see the module comment. */
+export type FixtureVariant = "plain" | "marker" | "lzma2";
 
 export function fixtureFileName(id: string, variant: FixtureVariant): string {
+	if (variant === "lzma2") {
+		return `${id}.lzma2`;
+	}
+
 	return variant === "plain" ? `${id}.lzma` : `${id}.marker.lzma`;
 }
 
-/** The fixture variants a cell has: streaming cells only have a marker form. */
+/**
+ * The fixture variants a cell has: streaming cells only have a marker form,
+ * and the cells in `LZMA2_CELLS` also have a raw LZMA2 form.
+ */
 export function fixtureVariants(cell: CorpusCell): FixtureVariant[] {
-	return cell.stream === undefined ? ["plain", "marker"] : ["marker"];
+	const variants: FixtureVariant[] = cell.stream === undefined ? ["plain", "marker"] : ["marker"];
+	if (LZMA2_CELLS.has(cell.id)) {
+		variants.push("lzma2");
+	}
+
+	return variants;
 }
 
 function cfg(dictSize: number, mode: EncoderConfig["mode"], matchFinder: EncoderConfig["matchFinder"], niceLen: number, depth = 0, lc = 3, lp = 0, pb = 2): EncoderConfig {
@@ -211,3 +226,45 @@ export const BAD_HEADER_CARRIER = "base-100-n-bt4-64";
 
 /** The marker-form fixture whose declared size is patched. */
 export const DECLARED_SIZE_CARRIER = { source: "base-100-n-bt4-64.marker", cellId: "base-100-n-bt4-64" };
+
+/**
+ * Cells with a raw LZMA2 fixture: the 300 KB base inputs, whose compressed
+ * data needs two LZMA chunks, in every base configuration; the lc/lp/pb
+ * corners, which LZMA2 stores in its chunk headers; inputs larger than the
+ * dictionary or with long distances, runs and rep cycles; the empty input;
+ * and the sources of the malformed LZMA2 set.
+ */
+export const LZMA2_CELLS: ReadonlySet<string> = new Set([
+	...BASE_CONFIGS.map(([name]) => `base-300000-${name}`),
+	"base-100-n-bt4-64",
+	"base-5000-n-bt4-64",
+	"props-lc4lp0pb2-70000",
+	"props-lc0lp4pb2-70000",
+	"props-lc0lp0pb0-70000",
+	"props-lc3lp0pb4-70000",
+	"props-lc2lp2pb1-70000",
+	"dict4k-12000",
+	"longdist-2m-fast",
+	"runs-n-273",
+	"repcycle-n",
+	"empty-normal",
+]);
+
+/**
+ * The raw LZMA1 set is derived from the bodies of these `.lzma` fixtures,
+ * with the header's properties passed in: known sizes from the plain form,
+ * an unknown size from the marker form. See `raw-malformed.ts`.
+ */
+export const RAW_LZMA1_SOURCES = [
+	"base-100-n-bt4-64",
+	"base-5000-n-bt4-64",
+	"empty-normal",
+	"base-100-n-bt4-64.marker",
+];
+
+/** The raw LZMA2 set is derived from these cells' `.lzma2` fixtures. */
+export const RAW_LZMA2_SOURCES = [
+	"base-100-n-bt4-64",
+	"base-300000-n-bt4-64",
+	"empty-normal",
+];
