@@ -2,6 +2,10 @@
 
 ## [0.6.1](https://github.com/xseman/lzma1/compare/v0.6.0...v0.6.1) (2026-10-15)
 
+### Compatibility notes
+
+- `decompress()`, `decompressString()` and `Decompress` now check that the data ends at its declared size, as XZ for Java does. Some corrupt data used to decode to that size, sometimes with wrong bytes, and so did data that went on past it. Both now throw. A declared size of 0 now needs its five range coder bytes too.
+- An end marker before the declared size still ends the data, unless `strict: true` is set.
 
 ### Features
 
