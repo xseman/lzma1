@@ -7,7 +7,7 @@ Read `README.md` for the API.
 ## Commands
 
 ```sh
-bun run test            # bun test src/ with coverage
+bun run test            # bun test ./src with coverage
 bun run typecheck       # tsc --noEmit && tsc -p tsconfig.tests.json
 bun run fmt             # dprint fmt
 bun run build           # tsc --build into lib/

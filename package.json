@@ -24,8 +24,8 @@
 		"typecheck": "tsc --noEmit && tsc -p tsconfig.tests.json",
 		"bench": "cd bench && bun install && bun run bench",
 		"bench:report": "cd bench && bun install && bun run report",
-		"test": "bun test src/ --coverage --coverage-reporter=text --coverage-reporter=lcov --concurrent",
-		"test:watch": "bun test src/ --watch --coverage --concurrent"
+		"test": "bun test ./src --coverage --coverage-reporter=text --coverage-reporter=lcov --concurrent",
+		"test:watch": "bun test ./src --watch --coverage --concurrent"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.3.11",
