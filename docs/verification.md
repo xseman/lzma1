@@ -144,10 +144,14 @@ translation:
   asserts are dropped.
 - **lzma-decoder.ts** (`LZMADecoder.java`): the Java code's symbol-structured
   decode (`decodeMatch`, `decodeRepMatch`, `LiteralDecoder`/`LiteralSubdecoder`,
-  `LengthDecoder`). Differences in the interface to the API code, each covered
-  by the malformed-stream records:
+  `LengthDecoder`). Differences in the interface to the API code, covered by the
+  malformed-stream records except where noted:
   - The loop is bounded by produced bytes and the input position
     (`decode(outLimit, inLimit)`) instead of the LZ window limit.
+  - An optional pause point (`decode(outLimit, inLimit, pauseAt)`) also stops
+    the loop, at the first symbol boundary at or after it, where the Java code
+    stops exactly at its window limit; "Async decompression" below argues that
+    this changes no decoded byte.
   - `posState` and the literal position come from `outPos`. The Java code reads
     them from `LZDecoder.getPos()`, its position in a circular dictionary buffer
     that `LZMAInputStream.getDictSize` rounds up to a multiple of 16 for exactly
@@ -441,6 +445,82 @@ divided. The argument for this port:
   interleaved calls never share one, and a call cancelled before `finish()`
   never returns its encoder. As for `compress`, a pooled encoder is restarted
   with `restart` before use.
+
+### Async decompression
+
+`decompressAsync` and `decompressRawLzma1Async` decode with the same
+`AloneDecoder` as `decompress` and `decompressRawLzma1`, made by
+`createOneShotDecoder`, which `decompressData` also calls, so both paths build
+the same sink and output collection. Without a callback they run
+`decompressData`. With one, `decodeInMemory` decodes the whole input, which is
+all in memory, and the driver awaits `onProgressAsync` each time it pauses,
+after about 256 KiB of output. One ported file changes: `LzmaDecoder.decode`
+takes an optional pause point, used only in its loop bound
+`stopAt = Math.min(pauseAt, outLimit)`. XZ for Java's `LZMAInputStream` lets its
+caller read any amount at a time and stops in the middle of a match when it has
+to (`pendingLen`). Here a pause waits for the end of the current symbol, so a
+step overshoots the threshold by at most 272 bytes. The output and the errors
+are the same as without pauses:
+
+- _Callers without a pause point are unchanged._ The pause point defaults to
+  `outLimit`, so `stopAt` is `outLimit` and the loop is the old one, for the
+  LZMA2 decoder, for the probe for an end marker after the declared size, and
+  for `write()` and `end()`, whose `decode` passes `Infinity`.
+  `AloneDecoder.decode` treats a stop as a pause only when `outPos` has reached
+  the pause point, so with `Infinity` it never pauses and runs as before.
+  `decompressData` runs the same statements as before, moved into
+  `createOneShotDecoder`.
+- _A pause splits the loop at a symbol boundary._ Each iteration decodes one
+  whole symbol, and between symbols the decoder's state is all in fields:
+  `state`, `reps`, `outPos` and the probabilities of `LzmaDecoder`, `range`,
+  `code` and `pos` of the range decoder, and the LZ window. A pause leaves the
+  loop where the next iteration would have started, and the next call starts the
+  loop there. A pause happens only below the declared size and without an end
+  marker, so another symbol has to follow, as it would have without the pause.
+  This is the stop the `Decompress` stream already makes at every chunk
+  boundary, with a second condition.
+- _The extra normalization reads nothing new._ `decode` ends with
+  `rc.normalize()`, which reads a byte when `range` is below `TOP_VALUE` (2^24).
+  Without the pause, the next symbol's first `decodeBit` would have made the
+  same call first, in the same state, so the same byte is read at the same
+  point, and a truncated stream throws the same error there. After it, `range`
+  is at least `TOP_VALUE`, so the next `decodeBit`'s `normalize()` does nothing.
+  That holds because probabilities stay between 31 and 2017 under the update
+  rules: after a bit, `range` is at least 31 times `range >>> 11`, so at least
+  `31 << 13` for a normalized `range`, and after a direct bit at least 2^23, so
+  one normalization, a multiplication by 256, brings either above 2^24.
+- _The range decoder resumes on the same bytes._ The driver passes the same
+  `data` to every `decodeInMemory` call, and the public functions ask the caller
+  not to change it until the promise settles. A resumed call skips `setInput`,
+  because `paused` is set, and skips the header, which has been read, so
+  `rc.pos` stays where the last call left it. `inLimit` is `Infinity` in every
+  call, because `isLast` is true.
+- _The end checks are the same._ A pausing call returns before them. Otherwise
+  `decode` runs them as before, on the decoder state an unpaused decode would
+  have reached. `decodeInMemory` passes `isLast` as true from its first call and
+  throws `Truncated input` when a call neither pauses nor finishes, as `end()`
+  does. The synchronous path decodes the same data in two calls, `write()` and
+  then `end()`. `write()` starts a symbol only while at least `INPUT_MARGIN`
+  (64) bytes are left, more than the 49 a symbol can read (lzma2-decoder.ts
+  entry), so it also stops only between symbols, and `end()` continues on the
+  rest of the same bytes. The previous bullets cover that stop as they cover a
+  pause, so both paths reach the end checks in the same state.
+- _The same bytes reach the output._ The sink receives the decoded bytes in
+  order, in chunks that `LzDecoder` passes on when its buffer ends and at the
+  flushes in `decode`; a pausing call returns before its flush. How the bytes
+  are split into chunks differs between the paths (the synchronous one also
+  flushes at the end of `write()`) and doesn't matter: the output collection
+  appends each chunk to an `OutputBuffer`, or, for a contiguous buffer, keeps
+  the end of the last one, whose bytes all lie in one buffer.
+- _The pool._ `start()` takes a probability array from the spares. For `.lzma`
+  data it runs when the first `decodeInMemory` call reads the header, and for
+  raw LZMA1 data the driver calls it, both after the first callback returns.
+  `release()` returns the array in the call that sets `done`, the driver stops
+  calling `decodeInMemory` once it returns true, and a call cancelled before
+  that drops its decoder and the array with it. Neither `start()`,
+  `decodeInMemory` nor `release()` awaits, so the one-owner argument of
+  "Probability arrays reused between one-shot decoders" holds for interleaved
+  calls.
 
 ### Java-to-JS hazard checklist
 
@@ -751,14 +831,15 @@ Argument:
 - _One owner at a time._ The pool (`spareProbs`, keyed by array length) receives
   an array only in `release()`, which runs at the end of `decode()` in the step
   that sets `done`; a done `AloneDecoder` returns at the top of `write()` and
-  `end()`, so its `LzmaDecoder` never reads or writes that array again.
+  `end()`, and `decompressDataAsync` stops calling `decodeInMemory` once it
+  returns true, so its `LzmaDecoder` never reads or writes that array again.
   `start()`, which runs once per `AloneDecoder`, removes the entry from the pool
   before passing it to exactly one new decoder. So each array belongs to at most
   one decoder that can still use it, and no two decoders share probabilities. A
-  decoder that throws never returns its array, which only loses the array.
-  Only decoders created with `reuse`, which `decompressData` in `lzma.ts`
-  creates for synchronous one-shot decoding of `.lzma` and raw LZMA1 data, take
-  from or give to the pool.
+  decoder that throws never returns its array, which only loses the array. Only
+  decoders created with `reuse`, which `createOneShotDecoder` in `lzma.ts`
+  creates for one-shot decoding of `.lzma` and raw LZMA1 data, synchronous or
+  async, take from or give to the pool.
 - _Right size._ The lookup key is `probsSize(lc, lp)` for the new header, and
   entries are stored under their own length, so a reused array has exactly the
   length a new allocation would have. Headers with different `(lc, lp)` but the

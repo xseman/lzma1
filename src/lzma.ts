@@ -6,6 +6,7 @@ import {
 } from "./header.js";
 import { Lzma2Decoder } from "./lzma2-decoder.js";
 import {
+	type AsyncProgressOptions,
 	type CompressAsyncOptions,
 	type CompressionMode,
 	type CompressionOptions,
@@ -86,34 +87,13 @@ export async function compressDataAsync(data: Uint8Array, options: CompressionMo
 	return output;
 }
 
-/** Largest declared output size that is allocated at once when decompressing. */
-const PREALLOCATE_LIMIT = 64 << 20;
-
 /**
  * Decompresses `.lzma` data, or raw LZMA1 data when `header` holds its
  * properties and size. `strict` rejects an end marker before the declared
  * size.
  */
 export function decompressData(data: Uint8Array, strict = false, header?: LzmaHeader): Uint8Array {
-	let out: OutputBuffer | undefined;
-	let last: Uint8Array | undefined;
-
-	const decoder = new AloneDecoder(
-		(chunk) => {
-			if (decoder.contiguousOutput) {
-				last = chunk;
-			} else {
-				// Don't trust the declared size for the initial allocation.
-				const size = decoder.uncompressedSize!;
-				out ??= new OutputBuffer(size === UNKNOWN_SIZE ? data.length * 4 : Math.min(size, 1 << 24));
-				out.write(chunk);
-			}
-		},
-		PREALLOCATE_LIMIT,
-		true,
-		strict,
-	);
-
+	const { decoder, output } = createOneShotDecoder(data.length, strict);
 	if (header) {
 		decoder.start(header);
 	}
@@ -121,12 +101,60 @@ export function decompressData(data: Uint8Array, strict = false, header?: LzmaHe
 	decoder.write(data);
 	decoder.end();
 
-	if (decoder.contiguousOutput) {
-		// The output was decoded in place into one buffer.
-		return last === undefined ? new Uint8Array(0) : new Uint8Array(last.buffer, 0, last.byteOffset + last.length);
+	return output();
+}
+
+/**
+ * Bytes of output decoded between calls to `onProgressAsync`, plus up to
+ * 272 more, because a pause waits for the end of the current symbol. The
+ * value isn't tuned. It is measured in output, because a few bytes of input
+ * can expand to many kilobytes, and it is larger than
+ * `COMPRESS_SLICE_SIZE` because decompressing is much faster.
+ */
+const DECOMPRESS_SLICE_SIZE = 256 << 10;
+
+/**
+ * Implements `decompressAsync` and `decompressRawLzma1Async`: decompresses
+ * like `decompressData`, awaiting `onProgressAsync` between slices of the
+ * output. The output is the same as `decompressData`'s.
+ */
+export async function decompressDataAsync(
+	data: Uint8Array,
+	strict: boolean,
+	header: LzmaHeader | undefined,
+	onProgressAsync: AsyncProgressOptions["onProgressAsync"],
+): Promise<Uint8Array> {
+	if (onProgressAsync === undefined) {
+		return decompressData(data, strict, header);
 	}
 
-	return out?.finish() ?? new Uint8Array(0);
+	await onProgressAsync({ progress: 0 });
+
+	// Start the decoder after the first call, so that cancelling there
+	// doesn't discard a spare probability array.
+	const { decoder, output } = createOneShotDecoder(data.length, strict);
+	if (header) {
+		decoder.start(header);
+	}
+
+	let progress = 0;
+	let pauseAt = DECOMPRESS_SLICE_SIZE;
+	while (!decoder.decodeInMemory(data, pauseAt)) {
+		// After the last input byte, the range decoder can still hold symbols
+		// to decode. Keep the previous value then, so that only the last call
+		// reports 1.
+		if (decoder.inputPos < data.length) {
+			progress = decoder.inputPos / data.length;
+		}
+
+		await onProgressAsync({ progress });
+		pauseAt += DECOMPRESS_SLICE_SIZE;
+	}
+
+	const result = output();
+	await onProgressAsync({ progress: 1 });
+
+	return result;
 }
 
 /** Decompresses raw LZMA2 data with the given dictionary size. */
@@ -172,4 +200,47 @@ function compressResolved(data: Uint8Array, options: ResolvedOptions): Uint8Arra
 	const encoder = new AloneEncoder(options, data.length, true);
 	encoder.write(data);
 	return encoder.finish();
+}
+
+interface OneShotDecoder {
+	decoder: AloneDecoder;
+	/** Returns the decompressed data, once the stream has ended. */
+	output(): Uint8Array;
+}
+
+/** Largest declared output size that is allocated at once when decompressing. */
+const PREALLOCATE_LIMIT = 64 << 20;
+
+/** Creates an `AloneDecoder` that collects its output in one buffer. */
+function createOneShotDecoder(compressedSize: number, strict: boolean): OneShotDecoder {
+	let out: OutputBuffer | undefined;
+	let last: Uint8Array | undefined;
+
+	const decoder = new AloneDecoder(
+		(chunk) => {
+			if (decoder.contiguousOutput) {
+				last = chunk;
+			} else {
+				// Don't trust the declared size for the initial allocation.
+				const size = decoder.uncompressedSize!;
+				out ??= new OutputBuffer(size === UNKNOWN_SIZE ? compressedSize * 4 : Math.min(size, 1 << 24));
+				out.write(chunk);
+			}
+		},
+		PREALLOCATE_LIMIT,
+		true,
+		strict,
+	);
+
+	return {
+		decoder,
+		output() {
+			if (decoder.contiguousOutput) {
+				// The output was decoded in place into one buffer.
+				return last === undefined ? new Uint8Array(0) : new Uint8Array(last.buffer, 0, last.byteOffset + last.length);
+			}
+
+			return out?.finish() ?? new Uint8Array(0);
+		},
+	};
 }

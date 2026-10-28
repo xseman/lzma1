@@ -238,6 +238,9 @@ export interface DecompressionOptions {
 	strict?: boolean;
 }
 
+/** Options of `decompressAsync`. */
+export interface DecompressAsyncOptions extends DecompressionOptions, AsyncProgressOptions {}
+
 /** Validates the decompression options. Returns `strict`. */
 export function resolveStrict(options: DecompressionOptions = {}): boolean {
 	const strict = options.strict ?? false;
@@ -278,6 +281,9 @@ export interface RawLzma1Options {
 	 */
 	memoryLimitKb?: number;
 }
+
+/** Options of `decompressRawLzma1Async`. */
+export interface RawLzma1AsyncOptions extends RawLzma1Options, AsyncProgressOptions {}
 
 /**
  * Properties of raw LZMA2 data, the format inside `.xz` blocks and 7z

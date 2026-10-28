@@ -9,6 +9,7 @@ import {
 	compressData,
 	compressDataAsync,
 	decompressData,
+	decompressDataAsync,
 	decompressRawLzma2Data,
 	toUint8Array,
 } from "./lzma.js";
@@ -16,10 +17,13 @@ import {
 	type CompressAsyncOptions,
 	type CompressionMode,
 	type CompressionOptions,
+	type DecompressAsyncOptions,
 	type DecompressionOptions,
 	DEFAULT_LEVEL,
+	type RawLzma1AsyncOptions,
 	type RawLzma1Options,
 	type RawLzma2Options,
+	resolveOnProgressAsync,
 	resolveRawLzma1Options,
 	resolveRawLzma2Options,
 	resolveStrict,
@@ -32,7 +36,7 @@ import {
 export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
 export { MemoryLimitError } from "./memory-limit.js";
-export type { AsyncProgressOptions, CompressAsyncOptions, CompressionMode, CompressionOptions, DecompressionOptions, ProgressEventArgs, RawLzma1Options, RawLzma2Options } from "./options.js";
+export type { AsyncProgressOptions, CompressAsyncOptions, CompressionMode, CompressionOptions, DecompressAsyncOptions, DecompressionOptions, ProgressEventArgs, RawLzma1AsyncOptions, RawLzma1Options, RawLzma2Options } from "./options.js";
 export { DecompressRawLzma1, DecompressRawLzma2 } from "./raw-web-streams.js";
 export { Compress, Decompress } from "./web-streams.js";
 
@@ -101,6 +105,27 @@ export function decompress(data: BinaryInput, options?: DecompressionOptions): U
 }
 
 /**
+ * Decompresses `.lzma` data, pausing regularly to await `onProgressAsync`.
+ * The callback can update a progress bar, yield so that a web page stays
+ * responsive, or cancel by throwing.
+ *
+ * The output is the same as `decompress(data, options)`. Without
+ * `onProgressAsync`, the whole decompression runs before the promise is
+ * returned.
+ *
+ * @param data Compressed data; the caller can read it but must not modify it
+ *        until the returned promise has settled
+ * @param options `strict` rejects an end marker before the declared size
+ * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid (the promise rejects)
+ * @throws {Error} If the data is truncated or corrupted (the promise rejects)
+ * @throws Any error that `onProgressAsync` throws
+ */
+export async function decompressAsync(data: BinaryInput, options?: DecompressAsyncOptions): Promise<Uint8Array> {
+	return decompressDataAsync(toUint8Array(data), resolveStrict(options), undefined, resolveOnProgressAsync(options));
+}
+
+/**
  * Decompresses `.lzma` data into a string. The data is decoded as UTF-8;
  * data compressed by lzma1 v0.3.0 and older is also supported.
  *
@@ -131,6 +156,30 @@ export function decompressRawLzma1(data: BinaryInput, options: RawLzma1Options):
 	// Strict: raw data has no earlier producers to stay compatible with, and
 	// XZ for Java rejects an end marker before the known size.
 	return decompressData(toUint8Array(data), true, resolveRawLzma1Options(options));
+}
+
+/**
+ * Decompresses raw LZMA1 data like `decompressRawLzma1`, pausing regularly
+ * to await `onProgressAsync`. The callback can update a progress bar, yield
+ * so that a web page stays responsive, or cancel by throwing.
+ *
+ * The output is the same as `decompressRawLzma1(data, options)`. Without
+ * `onProgressAsync`, the whole decompression runs before the promise is
+ * returned.
+ *
+ * @param data Compressed data; the caller can read it but must not modify it
+ *        until the returned promise has settled
+ * @param options Properties of the data, its uncompressed size if known,
+ *        and a memory limit
+ * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid (the promise rejects)
+ * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb` (the promise rejects)
+ * @throws {Error} If the data is truncated or corrupted (the promise rejects)
+ * @throws Any error that `onProgressAsync` throws
+ */
+export async function decompressRawLzma1Async(data: BinaryInput, options: RawLzma1AsyncOptions): Promise<Uint8Array> {
+	// Strict, like `decompressRawLzma1`.
+	return decompressDataAsync(toUint8Array(data), true, resolveRawLzma1Options(options), resolveOnProgressAsync(options));
 }
 
 /**

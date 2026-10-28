@@ -5,13 +5,16 @@ import {
 } from "bun:test";
 
 import { AloneEncoder } from "./alone-encoder.js";
+import { HEADER_SIZE } from "./header.js";
 import {
 	compress,
 	compressAsync,
 	compressString,
 	CRC32_TABLE,
 	decompress,
+	decompressAsync,
 	decompressRawLzma1,
+	decompressRawLzma1Async,
 	decompressString,
 	MemoryLimitError,
 } from "./index.js";
@@ -20,6 +23,8 @@ import {
 	type CompressAsyncOptions,
 	type CompressionMode,
 	type CompressionOptions,
+	type DecompressAsyncOptions,
+	type DecompressionOptions,
 	type ProgressEventArgs,
 	resolveOptions,
 } from "./options.js";
@@ -809,6 +814,105 @@ describe("compressAsync", () => {
 		["onProgressAsync symbol", { onProgressAsync: Symbol("not a function") }],
 	])("invalid %s rejects instead of throwing", async (_, options) => {
 		const result = compressAsync(new Uint8Array(10), options as unknown as CompressAsyncOptions);
+
+		await expect(result).rejects.toBeInstanceOf(RangeError);
+	});
+});
+
+describe("async decompression", () => {
+	/** `compress` output with the size field set to unknown, which the end marker then terminates. */
+	const withUnknownSize = (compressed: Uint8Array) => {
+		const copy = compressed.slice();
+		copy.fill(0xFF, HEADER_SIZE - 8, HEADER_SIZE);
+		return copy;
+	};
+
+	test.each([
+		["a small input", compress(sample(1000), 1), {}],
+		["a known size with an end marker", compress(sample(600_000), 1), {}],
+		["a known size without one, strict", compress(sample(600_000), { level: 1, endMarker: false }), { strict: true }],
+		["an unknown size", withUnknownSize(compress(sample(600_000), 1)), {}],
+		// A multiple of the 256 KiB pause, where the last pause is the end, and one byte more.
+		["524,288 bytes", compress(sample(524_288), { level: 1, endMarker: false }), { strict: true }],
+		["524,289 bytes", compress(sample(524_289), { level: 1, endMarker: false }), { strict: true }],
+	] as [string, Uint8Array, DecompressionOptions][])("output for %s equals decompress", async (_, compressed, options) => {
+		const decompressed = await decompressAsync(compressed, { ...options, onProgressAsync: yieldToTimer });
+
+		expect(decompressed).toEqual(decompress(compressed, options));
+	});
+
+	test("decompressRawLzma1Async gives the output of decompressRawLzma1", async () => {
+		const data = sample(600_000);
+		const raw = compress(data, { level: 1, endMarker: false }).subarray(HEADER_SIZE);
+		const options = { lc: 3, lp: 0, pb: 2, dictSize: data.length, uncompressedSize: data.length };
+
+		const decompressed = await decompressRawLzma1Async(raw, { ...options, onProgressAsync: yieldToTimer });
+
+		expect(decompressed).toEqual(decompressRawLzma1(raw, options));
+	});
+
+	test("progress starts at 0, never decreases and reports 1 once, at the end", async () => {
+		const compressed = compress(sample(600_000), 1);
+		const progress: number[] = [];
+
+		await decompressAsync(compressed, {
+			onProgressAsync: (eventArgs) => {
+				progress.push(eventArgs.progress);
+			},
+		});
+
+		expect(progress[0]).toBe(0);
+		expect([...progress].sort((a, b) => a - b)).toEqual(progress);
+		expect(progress.indexOf(1)).toBe(progress.length - 1);
+		expect(progress.length).toBeGreaterThan(2);
+	});
+
+	test.each(
+		[
+			["first", (progress: number) => progress === 0],
+			["middle", (progress: number) => progress > 0 && progress < 1],
+			["last", (progress: number) => progress === 1],
+		] as const,
+	)("cancelling at the %s call rejects, and a later call is unaffected", async (_, isTarget) => {
+		const compressed = compress(sample(600_000), 1);
+		const expected = decompress(compressed);
+		const error = new Error("cancelled");
+		const onProgressAsync = async ({ progress }: ProgressEventArgs) => {
+			await yieldToTimer();
+			if (isTarget(progress)) {
+				throw error;
+			}
+		};
+
+		const cancelled = await decompressAsync(compressed, { onProgressAsync }).catch((reason: unknown) => reason);
+		const again = await decompressAsync(compressed, { onProgressAsync: yieldToTimer });
+
+		expect(cancelled).toBe(error);
+		expect(again).toEqual(expected);
+	});
+
+	test("interleaved calls both produce the expected output", async () => {
+		const first = compress(sample(600_000), 1);
+		const second = compress(sample(600_000).reverse(), 1);
+		const expected = [decompress(first), decompress(second)];
+
+		const outputs = await Promise.all([first, second].map((compressed) => decompressAsync(compressed, { onProgressAsync: yieldToTimer })));
+
+		expect(outputs).toEqual(expected);
+	});
+
+	test("truncated input rejects with the error of decompress", async () => {
+		const compressed = compress(sample(600_000), 1);
+		const truncated = compressed.subarray(0, compressed.length - 100);
+
+		const rejection = await decompressAsync(truncated, { onProgressAsync: yieldToTimer }).catch((reason: unknown) => reason);
+
+		expect(rejection).toBeInstanceOf(Error);
+		expect(() => decompress(truncated)).toThrow((rejection as Error).message);
+	});
+
+	test("a non-function onProgressAsync rejects with a RangeError", async () => {
+		const result = decompressAsync(compress(sample(10)), { onProgressAsync: "not a function" } as unknown as DecompressAsyncOptions);
 
 		await expect(result).rejects.toBeInstanceOf(RangeError);
 	});

@@ -5,6 +5,8 @@
  *
  * Input may arrive in chunks. Decoding pauses whenever fewer than
  * `INPUT_MARGIN` bytes are left, so a symbol never runs out of input halfway.
+ * When the whole input is in memory, `decodeInMemory` decodes it where it
+ * is instead, and pauses only where its caller asks.
  */
 
 import {
@@ -48,6 +50,8 @@ export class AloneDecoder {
 	private pending: Uint8Array = new Uint8Array(0);
 	private rcStarted = false;
 	private done = false;
+	/** Set when `decodeInMemory` stopped before the end of the stream. */
+	private paused = false;
 	private readonly preallocateLimit: number;
 	private readonly reuse: boolean;
 	private readonly strict: boolean;
@@ -65,8 +69,7 @@ export class AloneDecoder {
 	 *        the call, unless `contiguousOutput` is set.
 	 * @param preallocateLimit Largest declared size for which the output
 	 *        buffer is allocated at once
-	 * @param reuse Reuse probability arrays of earlier decoders. Only for
-	 *        synchronous one-shot decompression.
+	 * @param reuse Reuse probability arrays of earlier decoders.
 	 * @param strict Reject an end marker before the declared size
 	 */
 	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false, strict = false) {
@@ -79,6 +82,11 @@ export class AloneDecoder {
 	/** Uncompressed size from the header, once it has been read. */
 	get uncompressedSize(): number | undefined {
 		return this.header?.uncompressedSize;
+	}
+
+	/** Bytes of input consumed so far by `decodeInMemory`. */
+	get inputPos(): number {
+		return this.rc.pos;
 	}
 
 	/** Decodes as much of `chunk` as possible. */
@@ -97,7 +105,27 @@ export class AloneDecoder {
 		}
 	}
 
-	private decode(input: Uint8Array, isLast: boolean): void {
+	/**
+	 * Decodes `input`, which holds the whole rest of the stream, but stops at
+	 * the first symbol boundary once the output reaches `pauseAt` bytes. Call
+	 * it again with the same `input` to continue. Throws like `end()` if the
+	 * stream is incomplete.
+	 *
+	 * @returns `true` once the stream has ended
+	 */
+	decodeInMemory(input: Uint8Array, pauseAt: number): boolean {
+		this.decode(input, true, pauseAt);
+		if (this.paused) {
+			return false;
+		}
+		if (!this.done) {
+			throw new Error("Truncated input");
+		}
+
+		return true;
+	}
+
+	private decode(input: Uint8Array, isLast: boolean, pauseAt = Infinity): void {
 		let pos = 0;
 
 		if (this.header === null) {
@@ -122,6 +150,9 @@ export class AloneDecoder {
 			}
 			rc.init(input, pos);
 			this.rcStarted = true;
+		} else if (this.paused) {
+			// Continue where the last call stopped, on the same input.
+			this.paused = false;
 		} else {
 			rc.setInput(input, pos);
 		}
@@ -130,7 +161,13 @@ export class AloneDecoder {
 		const outLimit = size === UNKNOWN_SIZE ? Infinity : size;
 		const inLimit = isLast ? Infinity : input.length - INPUT_MARGIN;
 
-		let endMarker = lzma.decode(outLimit, inLimit);
+		let endMarker = lzma.decode(outLimit, inLimit, pauseAt);
+		if (!endMarker && lzma.outPos >= pauseAt && lzma.outPos < outLimit) {
+			// The end checks wait for the call that reaches the end, and the
+			// input stays where it is, so that nothing is copied.
+			this.paused = true;
+			return;
+		}
 
 		// At the declared size the range coder has to be finished, or one
 		// end marker has to follow, as in XZ for Java's relaxed end

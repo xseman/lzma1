@@ -24,6 +24,10 @@
  *   Java code's `lz.repeat` raises for it; a match that would cross the
  *   output limit, the declared size or the end of an LZMA2 chunk, is an
  *   error.
+ * - `decode` can also stop at the first symbol boundary at or after
+ *   `pauseAt`, so that the async functions can call back while decoding.
+ *   The Java code stops exactly at its window limit, in the middle of a
+ *   match if need be (`LZDecoder.pendingLen`); nothing here needs that.
  */
 
 import type { LzDecoder } from "./lz-decoder.js";
@@ -95,17 +99,20 @@ export class LzmaDecoder extends LzmaCoder {
 	}
 
 	/**
-	 * Decodes symbols until `outPos` reaches `outLimit` or the input
-	 * position passes `inLimit`.
+	 * Decodes symbols until `outPos` reaches `outLimit` or `pauseAt`, or the
+	 * input position passes `inLimit`.
 	 *
+	 * @param pauseAt Output position at or after which to stop, at a symbol
+	 *        boundary. Unlike `outLimit`, a match may cross it.
 	 * @returns `true` if the end marker was decoded
 	 */
-	decode(outLimit: number, inLimit: number): boolean {
+	decode(outLimit: number, inLimit: number, pauseAt = outLimit): boolean {
 		const rc = this.rc;
 		const lz = this.lz;
+		const stopAt = Math.min(pauseAt, outLimit);
 		let endMarker = false;
 
-		while (this.outPos < outLimit && rc.pos <= inLimit) {
+		while (this.outPos < stopAt && rc.pos <= inLimit) {
 			const posState = this.outPos & this.posMask;
 
 			if (rc.decodeBit(this.probs, IS_MATCH + (this.state.get() << 4) + posState) === 0) {
