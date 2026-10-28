@@ -30,6 +30,8 @@ standard APIs.
 - Decode raw LZMA1 and LZMA2 data, as 7z and `.xz` store it, given the
   properties from the container
 - Strings (UTF-8) and binary data (`ArrayBuffer` or any typed array)
+- Async compression with an awaited progress callback, for yielding,
+  progress and cancellation
 - Compression levels 1-9 or fine-grained options (dictionary size,
   `lc`/`lp`/`pb`, ...)
 - Web Streams (`TransformStream`) for compressing and decompressing streams
@@ -68,12 +70,13 @@ npm install lzma1
 
 ## Quick start
 
-Four functions compress and decompress the `.lzma` format, and two decode
+Five functions compress and decompress the `.lzma` format, and two decode
 raw data:
 
 ```ts
 // For binary data
 compress(data: ArrayBuffer | ArrayBufferView, mode?: 1-9 | CompressionOptions): Uint8Array
+compressAsync(data: ArrayBuffer | ArrayBufferView, mode?: 1-9 | CompressAsyncOptions): Promise<Uint8Array>
 decompress(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOptions): Uint8Array
 
 // For string data
@@ -84,6 +87,12 @@ decompressString(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOpt
 decompressRawLzma1(data: ArrayBuffer | ArrayBufferView, options: RawLzma1Options): Uint8Array
 decompressRawLzma2(data: ArrayBuffer | ArrayBufferView, options: RawLzma2Options): Uint8Array
 ```
+
+`compressAsync` returns the same bytes as `compress`, and awaits an optional
+`onProgressAsync` callback while it works, so that the caller can yield to the
+event loop, show progress or cancel; its doc comment has an example.
+Important: the caller can read `data` but must not modify it until the returned
+promise has settled.
 
 Strings are encoded as UTF-8. `decompressString` also decodes data compressed
 by v0.3.0 and older, which used Java's "modified UTF-8". The `LZMA` class

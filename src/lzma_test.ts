@@ -7,6 +7,7 @@ import {
 import { AloneEncoder } from "./alone-encoder.js";
 import {
 	compress,
+	compressAsync,
 	compressString,
 	CRC32_TABLE,
 	decompress,
@@ -16,7 +17,10 @@ import {
 } from "./index.js";
 import { LZMA } from "./lzma.js";
 import {
+	type CompressAsyncOptions,
 	type CompressionMode,
+	type CompressionOptions,
+	type ProgressEventArgs,
 	resolveOptions,
 } from "./options.js";
 
@@ -708,5 +712,104 @@ describe("decompressRawLzma1", () => {
 		const run = () => decompressRawLzma1(withMarker, { ...properties, ...options } as never);
 
 		expect(run).toThrow(RangeError);
+	});
+});
+
+/** Compressible input with some incompressible stretches. */
+const sample = (length: number) => Uint8Array.from({ length }, (_, i) => ((i >> 10) % 3 === 0 ? Math.imul(i, 0x9E3779B1) >>> 24 : i % 97));
+const yieldToTimer = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+describe("compressAsync", () => {
+	test.each([
+		...[0, 1, 16_383, 16_384, 16_385, 70_000].flatMap((length) => [1, 5].map((level) => [length, { level }])),
+		// Larger than the encoder's buffer, so the window has to move.
+		[300_000, { level: 1, dictSize: 4096 }],
+		[300_000, { level: 5, dictSize: 4096 }],
+	] as [number, CompressionOptions][])("output for %i bytes with %j equals compress", async (length, options) => {
+		const data = sample(length);
+
+		const compressed = await compressAsync(data, { ...options, onProgressAsync: yieldToTimer });
+
+		expect(compressed).toEqual(compress(data, options));
+	});
+
+	test("without a callback, a bare level gives the output of compress", async () => {
+		const data = sample(20_000);
+
+		const compressed = await compressAsync(data, 1);
+
+		expect(compressed).toEqual(compress(data, 1));
+	});
+
+	test("progress starts at 0, never decreases and reports 1 once, at the end", async () => {
+		const progress: number[] = [];
+
+		await compressAsync(sample(50_000), {
+			onProgressAsync: (eventArgs) => {
+				progress.push(eventArgs.progress);
+			},
+		});
+
+		expect(progress[0]).toBe(0);
+		expect([...progress].sort((a, b) => a - b)).toEqual(progress);
+		expect(progress.indexOf(1)).toBe(progress.length - 1);
+		expect(progress.length).toBeGreaterThan(2);
+	});
+
+	test("empty input reports progress 0, then 1", async () => {
+		const progress: number[] = [];
+
+		await compressAsync(new Uint8Array(0), {
+			onProgressAsync: (eventArgs) => {
+				progress.push(eventArgs.progress);
+			},
+		});
+
+		expect(progress).toEqual([0, 1]);
+	});
+
+	test.each(
+		[
+			["first", (progress: number) => progress === 0],
+			["middle", (progress: number) => progress > 0 && progress < 1],
+			["last", (progress: number) => progress === 1],
+		] as const,
+	)("cancelling at the %s call rejects, and a later call is unaffected", async (_, isTarget) => {
+		const data = sample(50_000);
+		const expected = compress(data);
+		const error = new Error("cancelled");
+		const onProgressAsync = async ({ progress }: ProgressEventArgs) => {
+			await yieldToTimer();
+			if (isTarget(progress)) {
+				throw error;
+			}
+		};
+
+		const cancelled = await compressAsync(data, { onProgressAsync }).catch((reason: unknown) => reason);
+		const again = await compressAsync(data, { onProgressAsync: yieldToTimer });
+
+		expect(cancelled).toBe(error);
+		expect(again).toEqual(expected);
+	});
+
+	test("interleaved calls with the same settings both produce the expected output", async () => {
+		const first = sample(40_000);
+		const second = sample(40_000).reverse();
+		const expected = [compress(first), compress(second)];
+
+		const outputs = await Promise.all([first, second].map((data) => compressAsync(data, { onProgressAsync: yieldToTimer })));
+
+		expect(outputs).toEqual(expected);
+	});
+
+	test.each([
+		["level", { level: 10 }],
+		["niceLen", { niceLen: 4 }],
+		["onProgressAsync string", { onProgressAsync: "not a function" }],
+		["onProgressAsync symbol", { onProgressAsync: Symbol("not a function") }],
+	])("invalid %s rejects instead of throwing", async (_, options) => {
+		const result = compressAsync(new Uint8Array(10), options as unknown as CompressAsyncOptions);
+
+		await expect(result).rejects.toBeInstanceOf(RangeError);
 	});
 });

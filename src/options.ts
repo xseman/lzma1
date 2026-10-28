@@ -63,6 +63,69 @@ export interface CompressionOptions {
 	endMarker?: boolean;
 }
 
+/** Progress of an async function, passed to `onProgressAsync`. */
+export interface ProgressEventArgs {
+	/** Fraction of the input processed so far, from 0 at the start to 1 at the end. */
+	readonly progress: number;
+}
+
+/** Options shared by the async functions. */
+export interface AsyncProgressOptions {
+	/**
+	 * Callback that the async functions await regularly while they work,
+	 * default none. It gets called with progress 0 before any work, at
+	 * intervals during the work, and with progress 1 at the end.
+	 *
+	 * The time between calls is unspecified, but the interval will be large
+	 * enough to ensure negligible overhead even for a callback that simply
+	 * returns. The callback should decide when to update the page and yield,
+	 * for example by checking the clock. It can be synchronous if it never
+	 * yields. If the callback throws an exception, that cancels the
+	 * operation.
+	 *
+	 * @example
+	 * Check for cancellation at every call, but update a progress bar and
+	 * yield to the browser at most every 100 ms:
+	 *
+	 * ```ts
+	 * let lastYield = performance.now();
+	 *
+	 * const compressed = await compressAsync(data, {
+	 * 	onProgressAsync: async ({ progress }) => {
+	 * 		controller.signal.throwIfAborted();
+	 *
+	 * 		if (progress < 1 && performance.now() - lastYield < 100) {
+	 * 			return;
+	 * 		}
+	 *
+	 * 		progressBar.value = progress;
+	 *
+	 * 		// setTimeout starts a new task, which lets the browser repaint
+	 * 		// and handle input. Awaiting an already-resolved promise would not.
+	 * 		await new Promise((resolve) => setTimeout(resolve, 0));
+	 * 		lastYield = performance.now();
+	 * 	},
+	 * });
+	 * ```
+	 */
+	onProgressAsync?: (eventArgs: ProgressEventArgs) => void | Promise<void>;
+}
+
+/** Options of `compressAsync`. */
+export interface CompressAsyncOptions extends CompressionOptions, AsyncProgressOptions {}
+
+/** Returns `onProgressAsync`, or `undefined` if it isn't set. */
+export function resolveOnProgressAsync(options: AsyncProgressOptions = {}): AsyncProgressOptions["onProgressAsync"] {
+	const onProgressAsync = options.onProgressAsync;
+	if (onProgressAsync !== undefined && typeof onProgressAsync !== "function") {
+		// Report the type, not the value: putting a symbol in a template string
+		// throws a TypeError.
+		throw new RangeError(`Invalid onProgressAsync: ${typeof onProgressAsync} (expected a function)`);
+	}
+
+	return onProgressAsync;
+}
+
 export interface ResolvedOptions {
 	dictSize: number;
 	lc: number;

@@ -6,9 +6,12 @@ import {
 } from "./header.js";
 import { Lzma2Decoder } from "./lzma2-decoder.js";
 import {
+	type CompressAsyncOptions,
 	type CompressionMode,
 	type CompressionOptions,
 	DEFAULT_LEVEL,
+	type ResolvedOptions,
+	resolveOnProgressAsync,
 	resolveOptions,
 } from "./options.js";
 import { OutputBuffer } from "./output-buffer.js";
@@ -40,9 +43,47 @@ export function toUint8Array(data: BinaryInput): Uint8Array {
 
 /** Compresses `data` into the `.lzma` format. */
 export function compressData(data: Uint8Array, options: CompressionMode | CompressionOptions = DEFAULT_LEVEL): Uint8Array {
-	const encoder = new AloneEncoder(resolveOptions(options), data.length, true);
-	encoder.write(data);
-	return encoder.finish();
+	return compressResolved(data, resolveOptions(options));
+}
+
+/**
+ * Bytes of input compressed between calls to `onProgressAsync`. The value
+ * isn't tuned. It just has to be large enough that awaiting the callback
+ * costs little next to compressing a slice, on any machine, and small
+ * enough that the callback still runs often.
+ */
+const COMPRESS_SLICE_SIZE = 16 << 10;
+
+/**
+ * Implements `compressAsync`: compresses `data` in slices, awaiting
+ * `onProgressAsync` between them. The output is the same as
+ * `compressData`'s.
+ */
+export async function compressDataAsync(data: Uint8Array, options: CompressionMode | CompressAsyncOptions = DEFAULT_LEVEL): Promise<Uint8Array> {
+	const resolved = resolveOptions(options);
+	const onProgressAsync = resolveOnProgressAsync(typeof options === "object" ? options : undefined);
+	if (onProgressAsync === undefined) {
+		return compressResolved(data, resolved);
+	}
+
+	await onProgressAsync({ progress: 0 });
+
+	// Create the encoder after the first call, so that cancelling there
+	// doesn't discard a pooled encoder.
+	const encoder = new AloneEncoder(resolved, data.length, true);
+	for (let start = 0; start < data.length; start += COMPRESS_SLICE_SIZE) {
+		const end = Math.min(start + COMPRESS_SLICE_SIZE, data.length);
+		encoder.write(data.subarray(start, end));
+
+		if (end < data.length) {
+			await onProgressAsync({ progress: end / data.length });
+		}
+	}
+
+	const output = encoder.finish();
+	await onProgressAsync({ progress: 1 });
+
+	return output;
 }
 
 /** Largest declared output size that is allocated at once when decompressing. */
@@ -124,4 +165,11 @@ export class LZMA {
 	public decompressString(data: BinaryInput): string {
 		return decodeUtf8(this.decompress(data));
 	}
+}
+
+/** Compresses `data` with options already checked by `resolveOptions`. */
+function compressResolved(data: Uint8Array, options: ResolvedOptions): Uint8Array {
+	const encoder = new AloneEncoder(options, data.length, true);
+	encoder.write(data);
+	return encoder.finish();
 }

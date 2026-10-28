@@ -376,6 +376,72 @@ Nothing else changes for `.lzma` data. `buf`, `pos`, `start`, `wrapped` and
 `onBufferEnd` of `LzDecoder` lose `private`, which changes no emitted code, and
 `INPUT_MARGIN` is exported unchanged.
 
+### Async compression
+
+`compressAsync` passes its input to the same `AloneEncoder` as `compress`,
+created with the same options, size and pool flag, but in slices of 16 KiB, and
+awaits `onProgressAsync` between them. Without a callback it runs `compress`'s
+code. No ported file changes. XZ for Java's `LZMAOutputStream`, whose
+constructor takes the size as `AloneEncoder`'s does, accepts writes of any size,
+and the encoder's design makes its output independent of how the input is
+divided. The argument for this port:
+
+- _Every match-finder step sees `matchLenMax` bytes ahead until `finish()`._
+  `keepSizeAfter` is `extraSizeAfter + matchLenMax`: `OPTS` (4096) plus 273 in
+  normal mode, 272 plus 273 in fast mode. Before `finish()`, `readLimit` is at
+  most `writePos - keepSizeAfter` (it stays -1 until `writePos` reaches
+  `keepSizeAfter`). `encodeSymbol` starts a symbol only while
+  `hasEnoughData(readAhead + 1)` holds, and `encodeInit` encodes the first
+  literal only if `hasEnoughData(0)` holds, so every symbol starts at a position
+  `s` with `writePos - s >= keepSizeAfter`. While choosing it, the normal
+  encoder moves the match finder at most `OPTS - 1` positions past `s` (the
+  optimum search stops below `optEnd`, which stays at most
+  `min(getAvail(), OPTS - 1)` as the hazard checklist shows, and its early
+  returns skip at most 272 positions), and the fast encoder at most 272, through
+  `skip(len - 1)`. So at every match-finder position `p`,
+  `writePos - p >= matchLenMax`.
+- _So the amount of input written never decides anything._ With that much
+  lookahead, `movePos` never defers a position (it defers only when fewer than
+  `matchLenMax` bytes remain and the encoder isn't finishing), so `pendingSize`
+  stays 0 and `processPendingBytes` does nothing. The match finders'
+  `matchLenLimit` and `niceLenLimit` are `matchLenMax` and `niceLen`, and the
+  encoders' `Math.min(lz.getAvail(), MATCH_LEN_MAX)` and
+  `Math.min(lz.getAvail(), OPTS - 1)`, both read at `s`, give the constant.
+  Every other read of the input stays within those limits. So each symbol is a
+  function of the coder's state and the input's bytes, which are the same
+  however the input was divided.
+- _The same symbols in the same order._ The encoder encodes every symbol it can
+  as soon as the input allows. A symbol that starts at least `keepSizeAfter`
+  bytes before the end of the input is chosen as above, whether a `write` or
+  `finish()` encodes it; `setFinishing` only raises `readLimit` to
+  `writePos - 1` and lets `movePos` use up the last `matchLenMax` bytes, which
+  these symbols don't reach. Later symbols are encoded only by `finish()`, once
+  all of the input is written, in both cases. Slicing changes when each symbol
+  is encoded, relative to the writes, and not the symbol, so every probability,
+  price and output byte is the same.
+- _Window moves._ When the input is larger than the encoder's buffer,
+  `fillWindow` moves the window as the read position nears the buffer's end, and
+  slicing can change when that happens, and so where each byte sits in the
+  buffer. The output doesn't depend on that position. `moveWindow` keeps the
+  offset a multiple of 16, so `getPos()` keeps the low 4 bits that select
+  `posState` and the literal position. The match finders store positions as
+  `lzPos`, a counter of their own, not a buffer index, and read the buffer
+  relative to `readPos`. And the window keeps `keepSizeBefore` (`dictSize` plus
+  `extraSizeBefore`) bytes before the read position, so every distance a match
+  finder accepts (below `cyclicSize`) still reaches the same byte. So does every
+  backward read of the encoders themselves (`getByte`), which reaches at most a
+  rep distance plus the read-ahead behind the read position; `extraSizeBefore`
+  is sized for that read-ahead. These are the Java code's `moveWindow` and match
+  finders.
+- _The pool._ The encoder is created after the first callback returns. Its
+  constructor takes a pooled encoder with `get` and `delete`, and only
+  `finish()` returns it to the pool, after the last slice. The constructor,
+  `write` and `finish()` don't await, so no other call runs between a `get` and
+  its `delete`. While a call awaits its callback, its encoder is in no pool, so
+  interleaved calls never share one, and a call cancelled before `finish()`
+  never returns its encoder. As for `compress`, a pooled encoder is restarted
+  with `restart` before use.
+
 ### Java-to-JS hazard checklist
 
 - **Signed versus unsigned shifts:** every Java `>>>` kept as `>>>`; `>>` only
@@ -776,9 +842,9 @@ Argument:
   finds a flag clear, every probability its compute function would read is
   `PROB_INIT`. A throw between a write and its flag can come only from the range
   encoder's buffer growth (allocation failure); the encoder is then never used
-  again (the one-shot path drops it, and a `TransformStream` whose `transform`
-  threw is errored and calls nothing further), and the API code returns an
-  encoder to its pool only after a successful `finish()`.
+  again (`compress` and `compressAsync` drop it, and a `TransformStream` whose
+  `transform` threw is errored and calls nothing further), and the API code
+  returns an encoder to its pool only after a successful `finish()`.
 - _Flags, not counters._ The update counters cannot tell untouched models from
   touched ones: `LzmaEncoderNormal.getNextSymbol` returns a repeated or normal
   match of at least `niceLen` before its first `updatePrices()`, so such a match

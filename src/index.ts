@@ -7,11 +7,13 @@
 import {
 	type BinaryInput,
 	compressData,
+	compressDataAsync,
 	decompressData,
 	decompressRawLzma2Data,
 	toUint8Array,
 } from "./lzma.js";
 import {
+	type CompressAsyncOptions,
 	type CompressionMode,
 	type CompressionOptions,
 	type DecompressionOptions,
@@ -30,7 +32,7 @@ import {
 export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
 export { MemoryLimitError } from "./memory-limit.js";
-export type { CompressionMode, CompressionOptions, DecompressionOptions, RawLzma1Options, RawLzma2Options } from "./options.js";
+export type { AsyncProgressOptions, CompressAsyncOptions, CompressionMode, CompressionOptions, DecompressionOptions, ProgressEventArgs, RawLzma1Options, RawLzma2Options } from "./options.js";
 export { DecompressRawLzma1, DecompressRawLzma2 } from "./raw-web-streams.js";
 export { Compress, Decompress } from "./web-streams.js";
 
@@ -46,6 +48,29 @@ export function compress(
 	mode: CompressionMode | CompressionOptions = DEFAULT_LEVEL,
 ): Uint8Array {
 	return compressData(toUint8Array(data), mode);
+}
+
+/**
+ * Compresses data into the `.lzma` format, pausing regularly to await
+ * `onProgressAsync`. The callback can update a progress bar, yield so that
+ * a web page stays responsive, or cancel by throwing.
+ *
+ * The output is the same as `compress(data, mode)`. Without
+ * `onProgressAsync`, the whole compression runs before the promise is
+ * returned.
+ *
+ * @param data Data to compress; the caller can read it but must not modify it
+ *        until the returned promise has settled
+ * @param mode Compression level (1-9, default 5) or options
+ * @returns Compressed data
+ * @throws {RangeError} If an option is invalid (the promise rejects)
+ * @throws Any error that `onProgressAsync` throws
+ */
+export async function compressAsync(
+	data: BinaryInput,
+	mode: CompressionMode | CompressAsyncOptions = DEFAULT_LEVEL,
+): Promise<Uint8Array> {
+	return compressDataAsync(toUint8Array(data), mode);
 }
 
 /**
