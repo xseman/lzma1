@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.2](https://github.com/xseman/lzma1/compare/v0.6.1...v0.6.2) (2026-10-29)
+
+
+### Features
+
+* add async compression and decompression with a progress callback ([#45](https://github.com/xseman/lzma1/issues/45)) ([3229935](https://github.com/xseman/lzma1/commit/322993548992d7d1bd4ed5d12182de52a4e86f52))
+
+
+### Build System
+
+* drop bunfig.toml, pass ./src to bun test ([8e66190](https://github.com/xseman/lzma1/commit/8e66190afe1b300a6dae2689f5f7e573f02cc334))
+
 ## [0.6.1](https://github.com/xseman/lzma1/compare/v0.6.0...v0.6.1) (2026-10-15)
 
 ### Compatibility notes
