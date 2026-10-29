@@ -30,6 +30,8 @@ standard APIs.
 - Decode raw LZMA1 and LZMA2 data, as 7z and `.xz` store it, given the
   properties from the container
 - Strings (UTF-8) and binary data (`ArrayBuffer` or any typed array)
+- Async compression and decompression with an awaited progress callback,
+  for yielding, progress and cancellation
 - Compression levels 1-9 or fine-grained options (dictionary size,
   `lc`/`lp`/`pb`, ...)
 - Web Streams (`TransformStream`) for compressing and decompressing streams
@@ -68,13 +70,15 @@ npm install lzma1
 
 ## Quick start
 
-Four functions compress and decompress the `.lzma` format, and two decode
+Six functions compress and decompress the `.lzma` format, and three decode
 raw data:
 
 ```ts
 // For binary data
 compress(data: ArrayBuffer | ArrayBufferView, mode?: 1-9 | CompressionOptions): Uint8Array
+compressAsync(data: ArrayBuffer | ArrayBufferView, mode?: 1-9 | CompressAsyncOptions): Promise<Uint8Array>
 decompress(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOptions): Uint8Array
+decompressAsync(data: ArrayBuffer | ArrayBufferView, options?: DecompressAsyncOptions): Promise<Uint8Array>
 
 // For string data
 compressString(data: string, mode?: 1-9 | CompressionOptions): Uint8Array
@@ -82,8 +86,15 @@ decompressString(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOpt
 
 // For raw data without a .lzma header, e.g. from 7z or .xz
 decompressRawLzma1(data: ArrayBuffer | ArrayBufferView, options: RawLzma1Options): Uint8Array
+decompressRawLzma1Async(data: ArrayBuffer | ArrayBufferView, options: RawLzma1AsyncOptions): Promise<Uint8Array>
 decompressRawLzma2(data: ArrayBuffer | ArrayBufferView, options: RawLzma2Options): Uint8Array
 ```
+
+The `Async` functions return the same bytes as the functions without the
+suffix, and await an optional `onProgressAsync` callback while they work, so
+that the caller can yield to the event loop, show progress or cancel. The
+callback's doc comment has an example. Important: the caller can read `data`
+but must not modify it until the returned promise has settled.
 
 Strings are encoded as UTF-8. `decompressString` also decodes data compressed
 by v0.3.0 and older, which used Java's "modified UTF-8". The `LZMA` class

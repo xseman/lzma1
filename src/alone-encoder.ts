@@ -51,7 +51,7 @@ export class AloneEncoder {
 	 * @param options Resolved compression options
 	 * @param uncompressedSize Total input size, or `UNKNOWN_SIZE` when streaming
 	 * @param reuse Take the encoder from, and return it to, the pool of
-	 *        small encoders. Only for synchronous one-shot compression.
+	 *        small encoders.
 	 */
 	constructor(options: ResolvedOptions, uncompressedSize: number = UNKNOWN_SIZE, reuse = false) {
 		const knownSize = uncompressedSize !== UNKNOWN_SIZE;
