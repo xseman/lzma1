@@ -56,7 +56,7 @@ export interface LzEncoderConfig {
 	/** Search depth limit, 0 = automatic */
 	depthLimit: number;
 	/** Total input size, when known in advance, to avoid oversized buffers */
-	inputSize?: number;
+	inputSize?: number | undefined;
 }
 
 export abstract class LzEncoder {

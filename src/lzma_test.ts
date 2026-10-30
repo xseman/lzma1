@@ -15,6 +15,7 @@ import {
 	decompressAsync,
 	decompressRawLzma1,
 	decompressRawLzma1Async,
+	decompressRawLzma2,
 	decompressString,
 	MemoryLimitError,
 	OutputLimitError,
@@ -27,6 +28,8 @@ import {
 	type DecompressAsyncOptions,
 	type DecompressionOptions,
 	type ProgressEventArgs,
+	type RawLzma1AsyncOptions,
+	type RawLzma2Options,
 	resolveOptions,
 } from "./options.js";
 
@@ -198,6 +201,31 @@ describe("options", () => {
 			encoder.write(input);
 			expect(decompress(encoder.finish())).toEqual(input);
 		}
+	});
+
+	test("treats undefined like an omitted option", async () => {
+		const compressed = compress(input);
+		const raw = compressed.subarray(HEADER_SIZE);
+		// Every optional field is listed, so that the typecheck, which uses
+		// exactOptionalPropertyTypes, fails if one stops accepting undefined.
+		// A new optional field has to be added here to be covered.
+		const compression: CompressAsyncOptions = { level: undefined, dictSize: undefined, lc: undefined, lp: undefined, pb: undefined, mode: undefined, niceLen: undefined, matchFinder: undefined, depth: undefined, endMarker: undefined, onProgressAsync: undefined };
+		const decompression: DecompressAsyncOptions = { strict: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
+		const rawLzma1: RawLzma1AsyncOptions = { lc: 3, lp: 0, pb: 2, dictSize: 1 << 16, uncompressedSize: undefined, memoryLimitKb: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
+		const rawLzma2: RawLzma2Options = { dictSize: 1 << 16, memoryLimitKb: undefined };
+
+		const outputs = [
+			compress(input, compression),
+			await compressAsync(input, compression),
+			decompress(compressed, decompression),
+			await decompressAsync(compressed, decompression),
+			decompressRawLzma1(raw, rawLzma1),
+			await decompressRawLzma1Async(raw, rawLzma1),
+		];
+		const emptyLzma2 = decompressRawLzma2(new Uint8Array([0x00]), rawLzma2);
+
+		expect(outputs).toEqual([compressed, compressed, input, input, input, input]);
+		expect(emptyLzma2).toEqual(new Uint8Array(0));
 	});
 
 	test("level as a string, like v0.3.0", () => {

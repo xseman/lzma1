@@ -24,27 +24,27 @@ export interface CompressionOptions {
 	 * hash chain match finder, levels 4-9 the normal encoder with a binary
 	 * tree match finder. The other options override values of the preset.
 	 */
-	level?: CompressionMode;
+	level?: CompressionMode | undefined;
 	/**
 	 * Dictionary size in bytes (4 KiB - 768 MiB). How far back matches can
 	 * reach. When the input size is known, a smaller dictionary is written
 	 * to the header if it's enough to cover the whole input.
 	 */
-	dictSize?: number;
+	dictSize?: number | undefined;
 	/** Literal context bits (0-4, `lc + lp <= 4`), default 3. */
-	lc?: number;
+	lc?: number | undefined;
 	/** Literal position bits (0-4, `lc + lp <= 4`), default 0. */
-	lp?: number;
+	lp?: number | undefined;
 	/** Position bits (0-4), default 2. */
-	pb?: number;
+	pb?: number | undefined;
 	/** Encoder mode: `"fast"` (heuristic) or `"normal"` (optimal parsing). */
-	mode?: "fast" | "normal";
+	mode?: "fast" | "normal" | undefined;
 	/** Match length (8-273) that is good enough to stop searching. */
-	niceLen?: number;
+	niceLen?: number | undefined;
 	/** Match finder: `"hc4"` (hash chain, faster) or `"bt4"` (binary tree, better). */
-	matchFinder?: MatchFinderType;
+	matchFinder?: MatchFinderType | undefined;
 	/** Maximum match finder search depth, 0 = automatic. */
-	depth?: number;
+	depth?: number | undefined;
 	/**
 	 * Write an end marker after the data, default `true`. The header also
 	 * holds the uncompressed size, so the marker is redundant for decoders
@@ -61,7 +61,7 @@ export interface CompressionOptions {
 	 *
 	 * Requires a known size: `Compress` throws a `RangeError` for `false`.
 	 */
-	endMarker?: boolean;
+	endMarker?: boolean | undefined;
 }
 
 /** Progress of an async function, passed to `onProgressAsync`. */
@@ -109,7 +109,7 @@ export interface AsyncProgressOptions {
 	 * });
 	 * ```
 	 */
-	onProgressAsync?: (eventArgs: ProgressEventArgs) => void | Promise<void>;
+	onProgressAsync?: ((eventArgs: ProgressEventArgs) => void | Promise<void>) | undefined;
 }
 
 /** Options of `compressAsync`. */
@@ -245,7 +245,7 @@ export interface OutputLimitOptions {
 	 *
 	 * For `decompressString()`, the limit counts UTF-8 bytes, not characters.
 	 */
-	maxOutputLength?: number;
+	maxOutputLength?: number | undefined;
 }
 
 /** Options of `decompress`, `decompressString` and `Decompress`. */
@@ -256,7 +256,7 @@ export interface DecompressionOptions extends OutputLimitOptions {
 	 * producers write a size that is too large. XZ for Java and xz reject
 	 * it.
 	 */
-	strict?: boolean;
+	strict?: boolean | undefined;
 }
 
 /** Options of `decompressAsync`. */
@@ -306,7 +306,7 @@ export interface RawLzma1Options extends OutputLimitOptions {
 	 * and the dictionary is no larger than this size. When it is unknown,
 	 * the data has to end with an end marker.
 	 */
-	uncompressedSize?: number;
+	uncompressedSize?: number | undefined;
 	/**
 	 * Memory limit in KiB, default none. If decoding would need more, the
 	 * call throws a `MemoryLimitError` before it allocates anything. The
@@ -315,7 +315,7 @@ export interface RawLzma1Options extends OutputLimitOptions {
 	 * which `decompressRawLzma1` sizes from `uncompressedSize`, up to 16 MiB
 	 * at first, or at 4 times the input length when the size is unknown.
 	 */
-	memoryLimitKb?: number;
+	memoryLimitKb?: number | undefined;
 }
 
 /** Options of `decompressRawLzma1Async`. */
@@ -341,7 +341,7 @@ export interface RawLzma2Options {
 	 * doesn't count the output buffer, which `decompressRawLzma2` creates with
 	 * the first output, at 4 times the input length up to 16 MiB.
 	 */
-	memoryLimitKb?: number;
+	memoryLimitKb?: number | undefined;
 }
 
 /** Largest dictionary size a container can declare: 4 GiB - 1. */
