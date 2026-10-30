@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/xseman/lzma1/compare/v0.6.2...v0.6.3) (2026-10-30)
+
+
+### Features
+
+* add an output size limit for decompressing untrusted data ([#46](https://github.com/xseman/lzma1/issues/46)) ([378a571](https://github.com/xseman/lzma1/commit/378a571e1b8be9ae06af7b452e37f5e8cd1b2d8c))
+
 ## [0.6.2](https://github.com/xseman/lzma1/compare/v0.6.1...v0.6.2) (2026-10-29)
 
 
