@@ -17,6 +17,7 @@ import {
 	decompressRawLzma1Async,
 	decompressString,
 	MemoryLimitError,
+	OutputLimitError,
 } from "./index.js";
 import { LZMA } from "./lzma.js";
 import {
@@ -574,6 +575,172 @@ describe("strict", () => {
 
 	test.each([1, "yes"])("rejects strict: %p", (strict) => {
 		expect(() => decompress(compressed, { strict } as never)).toThrow(RangeError);
+	});
+});
+
+describe("maxOutputLength", () => {
+	const input = new TextEncoder().encode("A few bytes of compressed data can expand to gigabytes. ".repeat(20));
+	const compressed = compress(input);
+	const unknownSize = compressed.slice();
+	unknownSize.fill(0xFF, 5, 13);
+
+	// 16 MiB of zeros compress to a few KiB. The 4 GiB dictionary size keeps
+	// the dictionary from stopping the decoder before the limit does.
+	const knownSizeBomb = compress(new Uint8Array(16 << 20), 1);
+	new DataView(knownSizeBomb.buffer).setUint32(1, 0xFFFFFFFF, true);
+	const unknownSizeBomb = knownSizeBomb.slice().fill(0xFF, 5, 13);
+
+	/** Calls `decode()` and returns the error that it threw, or `undefined` if it didn't throw. */
+	const thrownBy = (decode: () => unknown) => {
+		try {
+			decode();
+		} catch (error) {
+			return error;
+		}
+
+		return undefined;
+	};
+
+	test.each([
+		["a known size with an end marker", compressed],
+		["a known size without an end marker", compress(input, { endMarker: false })],
+		["an unknown size", unknownSize],
+	])("accepts output of exactly the limit for %s", (_, data) => {
+		const output = decompress(data, { maxOutputLength: input.length });
+
+		expect(output).toEqual(input);
+	});
+
+	test.each([false, true])("rejects a declared size over the limit with strict: %p", (strict) => {
+		const error = thrownBy(() => decompress(compressed, { strict, maxOutputLength: input.length - 1 }));
+
+		expect(error).toBeInstanceOf(OutputLimitError);
+		expect(error).toMatchObject({ name: "OutputLimitError", declaredSize: input.length, maxOutputLength: input.length - 1 });
+		expect((error as Error).message).toBe(`${input.length} bytes of output declared; limit was ${input.length - 1} bytes`);
+	});
+
+	test("rejects an unknown size once the output exceeds the limit", () => {
+		const error = thrownBy(() => decompress(unknownSize, { maxOutputLength: input.length - 1 }));
+
+		expect(error).toBeInstanceOf(OutputLimitError);
+		expect(error).toMatchObject({ declaredSize: undefined, maxOutputLength: input.length - 1 });
+		expect((error as Error).message).toBe(`Output exceeds the limit of ${input.length - 1} bytes`);
+	});
+
+	test.each([
+		["an unknown size", unknownSizeBomb],
+		["a known size over the limit, without strict", knownSizeBomb],
+	])("stops a small input that expands far past the limit, with %s", async (_, bomb) => {
+		let calls = 0;
+
+		const run = () => decompress(bomb, { maxOutputLength: 1 << 20 });
+		const result = decompressAsync(bomb, {
+			maxOutputLength: 1 << 20,
+			onProgressAsync: () => {
+				calls++;
+			},
+		});
+
+		expect(bomb.length).toBeLessThan(5000);
+		expect(run).toThrow(OutputLimitError);
+		await expect(result).rejects.toBeInstanceOf(OutputLimitError);
+		// The pauses don't flush the dictionary, so the count shows how far
+		// decoding got before the error: 4 calls for 1 MiB of output, but
+		// 64 for all 16 MiB if the dictionary weren't capped at the limit.
+		expect(calls).toBeLessThan(16);
+	});
+
+	test("accepts a limit of 0 for empty output and rejects one byte", () => {
+		const empty = decompress(compress(new Uint8Array(0)).fill(0xFF, 5, 13), { maxOutputLength: 0 });
+		const oneByte = () => decompress(compress(new Uint8Array(1)).fill(0xFF, 5, 13), { maxOutputLength: 0 });
+
+		expect(empty).toEqual(new Uint8Array(0));
+		expect(oneByte).toThrow(OutputLimitError);
+	});
+
+	test("counts UTF-8 bytes in decompressString", () => {
+		const text = "é".repeat(10);
+		const packed = compressString(text);
+
+		const atLimit = decompressString(packed, { maxOutputLength: 20 });
+		const overLimit = () => decompressString(packed, { maxOutputLength: 19 });
+
+		expect(atLimit).toBe(text);
+		expect(overLimit).toThrow(OutputLimitError);
+	});
+
+	test("applies to decompressAsync", async () => {
+		const options = { maxOutputLength: input.length - 1, onProgressAsync: yieldToTimer };
+
+		const declared = await decompressAsync(compressed, options).catch((reason: unknown) => reason);
+		const unknown = await decompressAsync(unknownSize, options).catch((reason: unknown) => reason);
+
+		expect(declared).toMatchObject({ name: "OutputLimitError", declaredSize: input.length });
+		expect(unknown).toMatchObject({ name: "OutputLimitError", declaredSize: undefined });
+	});
+
+	test("rejects a declared size after the first progress call with strict, like other errors in the header", async () => {
+		const progress: number[] = [];
+
+		const result = decompressAsync(compressed, {
+			strict: true,
+			maxOutputLength: input.length - 1,
+			onProgressAsync: ({ progress: value }) => {
+				progress.push(value);
+			},
+		});
+
+		await expect(result).rejects.toBeInstanceOf(OutputLimitError);
+		expect(progress).toEqual([0]);
+	});
+
+	test("leaves later calls unaffected", () => {
+		const rejected = thrownBy(() => decompress(unknownSize, { maxOutputLength: 10 }));
+
+		const output = decompress(unknownSize);
+
+		expect(rejected).toBeInstanceOf(OutputLimitError);
+		expect(output).toEqual(input);
+	});
+
+	test.each([-1, 1.5, NaN, Infinity, "100"])("rejects maxOutputLength: %p", (maxOutputLength) => {
+		expect(() => decompress(compressed, { maxOutputLength } as never)).toThrow(RangeError);
+	});
+
+	describe("raw LZMA1", () => {
+		const properties = { lc: 3, lp: 0, pb: 2, dictSize: 1 << 16 };
+		const withMarker = compressed.subarray(13);
+
+		test("rejects a given size over the limit before the first progress call, like the memory limit", async () => {
+			const options = { ...properties, uncompressedSize: input.length, maxOutputLength: input.length - 1 };
+			let calls = 0;
+
+			const error = thrownBy(() => decompressRawLzma1(withMarker, options));
+			const result = decompressRawLzma1Async(withMarker, {
+				...options,
+				onProgressAsync: () => {
+					calls++;
+				},
+			});
+
+			expect(error).toMatchObject({ declaredSize: input.length, maxOutputLength: input.length - 1 });
+			await expect(result).rejects.toBeInstanceOf(OutputLimitError);
+			expect(calls).toBe(0);
+		});
+
+		test("validates maxOutputLength before checking the memory limit", () => {
+			const run = () => decompressRawLzma1(withMarker, { ...properties, dictSize: 0xFFFFFFFF, memoryLimitKb: 1, maxOutputLength: -1 });
+
+			expect(run).toThrow(RangeError);
+		});
+
+		test("rejects an unknown size once the output exceeds the limit", () => {
+			const atLimit = decompressRawLzma1(withMarker, { ...properties, maxOutputLength: input.length });
+			const overLimit = () => decompressRawLzma1(withMarker, { ...properties, maxOutputLength: input.length - 1 });
+
+			expect(atLimit).toEqual(input);
+			expect(overLimit).toThrow("Output exceeds the limit");
+		});
 	});
 });
 

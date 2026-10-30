@@ -90,10 +90,11 @@ export async function compressDataAsync(data: Uint8Array, options: CompressionMo
 /**
  * Decompresses `.lzma` data, or raw LZMA1 data when `header` holds its
  * properties and size. `strict` rejects an end marker before the declared
- * size.
+ * size. If the output would exceed `maxOutputLength`, `OutputLimitError` is
+ * thrown.
  */
-export function decompressData(data: Uint8Array, strict = false, header?: LzmaHeader): Uint8Array {
-	const { decoder, output } = createOneShotDecoder(data.length, strict);
+export function decompressData(data: Uint8Array, strict = false, header?: LzmaHeader, maxOutputLength = Infinity): Uint8Array {
+	const { decoder, output } = createOneShotDecoder(data.length, strict, maxOutputLength);
 	if (header) {
 		decoder.start(header);
 	}
@@ -123,16 +124,17 @@ export async function decompressDataAsync(
 	strict: boolean,
 	header: LzmaHeader | undefined,
 	onProgressAsync: AsyncProgressOptions["onProgressAsync"],
+	maxOutputLength = Infinity,
 ): Promise<Uint8Array> {
 	if (onProgressAsync === undefined) {
-		return decompressData(data, strict, header);
+		return decompressData(data, strict, header, maxOutputLength);
 	}
 
 	await onProgressAsync({ progress: 0 });
 
 	// Start the decoder after the first call, so that cancelling there
 	// doesn't discard a spare probability array.
-	const { decoder, output } = createOneShotDecoder(data.length, strict);
+	const { decoder, output } = createOneShotDecoder(data.length, strict, maxOutputLength);
 	if (header) {
 		decoder.start(header);
 	}
@@ -212,7 +214,7 @@ interface OneShotDecoder {
 const PREALLOCATE_LIMIT = 64 << 20;
 
 /** Creates an `AloneDecoder` that collects its output in one buffer. */
-function createOneShotDecoder(compressedSize: number, strict: boolean): OneShotDecoder {
+function createOneShotDecoder(compressedSize: number, strict: boolean, maxOutputLength: number): OneShotDecoder {
 	let out: OutputBuffer | undefined;
 	let last: Uint8Array | undefined;
 
@@ -222,14 +224,19 @@ function createOneShotDecoder(compressedSize: number, strict: boolean): OneShotD
 				last = chunk;
 			} else {
 				// Don't trust the declared size for the initial allocation.
+				// Also cap it at maxOutputLength: in lenient mode a declared
+				// size can exceed the limit, and when the size is unknown, a
+				// 100 MiB input might be a 100-byte stream followed by junk.
 				const size = decoder.uncompressedSize!;
-				out ??= new OutputBuffer(size === UNKNOWN_SIZE ? compressedSize * 4 : Math.min(size, 1 << 24));
+				const guess = size === UNKNOWN_SIZE ? compressedSize * 4 : Math.min(size, 1 << 24);
+				out ??= new OutputBuffer(Math.min(guess, maxOutputLength));
 				out.write(chunk);
 			}
 		},
 		PREALLOCATE_LIMIT,
 		true,
 		strict,
+		maxOutputLength,
 	);
 
 	return {

@@ -21,6 +21,7 @@ import {
 	loadManifest,
 	loadRawMalformedRecords,
 	malformedChecks,
+	outputLimitChecks,
 	rawMalformedChecks,
 	recordChecks,
 	strictMalformedChecks,
@@ -42,6 +43,7 @@ const groups: [string, IdentityCheck[]][] = [
 	["malformed streams match recorded decoder expectations", malformedChecks(library, manifest, records)],
 	["malformed streams in strict mode", strictMalformedChecks(library, manifest, records)],
 	["raw streams match the Java decoder", rawMalformedChecks(library, manifest, rawRecords)],
+	["output limit at the edge of every output", outputLimitChecks(library, manifest)],
 ];
 
 let failures = 0;

@@ -23,6 +23,7 @@ import {
 	type RawLzma1AsyncOptions,
 	type RawLzma1Options,
 	type RawLzma2Options,
+	resolveMaxOutputLength,
 	resolveOnProgressAsync,
 	resolveRawLzma1Options,
 	resolveRawLzma2Options,
@@ -36,7 +37,8 @@ import {
 export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
 export { MemoryLimitError } from "./memory-limit.js";
-export type { AsyncProgressOptions, CompressAsyncOptions, CompressionMode, CompressionOptions, DecompressAsyncOptions, DecompressionOptions, ProgressEventArgs, RawLzma1AsyncOptions, RawLzma1Options, RawLzma2Options } from "./options.js";
+export type { AsyncProgressOptions, CompressAsyncOptions, CompressionMode, CompressionOptions, DecompressAsyncOptions, DecompressionOptions, OutputLimitOptions, ProgressEventArgs, RawLzma1AsyncOptions, RawLzma1Options, RawLzma2Options } from "./options.js";
+export { OutputLimitError } from "./output-limit.js";
 export { DecompressRawLzma1, DecompressRawLzma2 } from "./raw-web-streams.js";
 export { Compress, Decompress } from "./web-streams.js";
 
@@ -95,13 +97,15 @@ export function compressString(
  * Decompresses `.lzma` data.
  *
  * @param data Compressed data
- * @param options `strict` rejects an end marker before the declared size
+ * @param options `strict` rejects an end marker before the declared size,
+ *        and `maxOutputLength` sets an upper bound for the output size
  * @returns Decompressed data
  * @throws {RangeError} If an option is invalid
+ * @throws {OutputLimitError} If the output would exceed `maxOutputLength`
  * @throws {Error} If the data is truncated or corrupted
  */
 export function decompress(data: BinaryInput, options?: DecompressionOptions): Uint8Array {
-	return decompressData(toUint8Array(data), resolveStrict(options));
+	return decompressData(toUint8Array(data), resolveStrict(options), undefined, resolveMaxOutputLength(options));
 }
 
 /**
@@ -115,14 +119,16 @@ export function decompress(data: BinaryInput, options?: DecompressionOptions): U
  *
  * @param data Compressed data; the caller can read it but must not modify it
  *        until the returned promise has settled
- * @param options `strict` rejects an end marker before the declared size
+ * @param options `strict` rejects an end marker before the declared size,
+ *        and `maxOutputLength` sets an upper bound for the output size
  * @returns Decompressed data
  * @throws {RangeError} If an option is invalid (the promise rejects)
+ * @throws {OutputLimitError} If the output would exceed `maxOutputLength` (the promise rejects)
  * @throws {Error} If the data is truncated or corrupted (the promise rejects)
  * @throws Any error that `onProgressAsync` throws
  */
 export async function decompressAsync(data: BinaryInput, options?: DecompressAsyncOptions): Promise<Uint8Array> {
-	return decompressDataAsync(toUint8Array(data), resolveStrict(options), undefined, resolveOnProgressAsync(options));
+	return decompressDataAsync(toUint8Array(data), resolveStrict(options), undefined, resolveOnProgressAsync(options), resolveMaxOutputLength(options));
 }
 
 /**
@@ -130,13 +136,16 @@ export async function decompressAsync(data: BinaryInput, options?: DecompressAsy
  * data compressed by lzma1 v0.3.0 and older is also supported.
  *
  * @param data Compressed data
- * @param options `strict` rejects an end marker before the declared size
+ * @param options `strict` rejects an end marker before the declared size,
+ *        and `maxOutputLength` sets an upper bound for the output size,
+ *        counted in UTF-8 bytes
  * @returns Decompressed string
  * @throws {RangeError} If an option is invalid
+ * @throws {OutputLimitError} If the output would exceed `maxOutputLength`
  * @throws {Error} If the data is truncated or corrupted
  */
 export function decompressString(data: BinaryInput, options?: DecompressionOptions): string {
-	return decodeUtf8(decompressData(toUint8Array(data), resolveStrict(options)));
+	return decodeUtf8(decompressData(toUint8Array(data), resolveStrict(options), undefined, resolveMaxOutputLength(options)));
 }
 
 /**
@@ -146,16 +155,20 @@ export function decompressString(data: BinaryInput, options?: DecompressionOptio
  *
  * @param data Compressed data
  * @param options Properties of the data, its uncompressed size if known,
- *        and a memory limit
+ *        a memory limit and an output limit
  * @returns Decompressed data
  * @throws {RangeError} If an option is invalid
  * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb`
+ * @throws {OutputLimitError} If the output would exceed `maxOutputLength`
  * @throws {Error} If the data is truncated or corrupted
  */
 export function decompressRawLzma1(data: BinaryInput, options: RawLzma1Options): Uint8Array {
+	const input = toUint8Array(data);
+	const { header, maxOutputLength } = resolveRawLzma1Options(options);
+
 	// Strict: raw data has no earlier producers to stay compatible with, and
 	// XZ for Java rejects an end marker before the known size.
-	return decompressData(toUint8Array(data), true, resolveRawLzma1Options(options));
+	return decompressData(input, true, header, maxOutputLength);
 }
 
 /**
@@ -170,16 +183,20 @@ export function decompressRawLzma1(data: BinaryInput, options: RawLzma1Options):
  * @param data Compressed data; the caller can read it but must not modify it
  *        until the returned promise has settled
  * @param options Properties of the data, its uncompressed size if known,
- *        and a memory limit
+ *        a memory limit and an output limit
  * @returns Decompressed data
  * @throws {RangeError} If an option is invalid (the promise rejects)
  * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb` (the promise rejects)
+ * @throws {OutputLimitError} If the output would exceed `maxOutputLength` (the promise rejects)
  * @throws {Error} If the data is truncated or corrupted (the promise rejects)
  * @throws Any error that `onProgressAsync` throws
  */
 export async function decompressRawLzma1Async(data: BinaryInput, options: RawLzma1AsyncOptions): Promise<Uint8Array> {
+	const input = toUint8Array(data);
+	const { header, maxOutputLength } = resolveRawLzma1Options(options);
+
 	// Strict, like `decompressRawLzma1`.
-	return decompressDataAsync(toUint8Array(data), true, resolveRawLzma1Options(options), resolveOnProgressAsync(options));
+	return decompressDataAsync(input, true, header, resolveOnProgressAsync(options), maxOutputLength);
 }
 
 /**

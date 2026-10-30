@@ -10,6 +10,7 @@ import {
 import type { MatchFinderType } from "./lz-encoder.js";
 import { Lzma2Decoder } from "./lzma2-decoder.js";
 import { MemoryLimitError } from "./memory-limit.js";
+import { checkDeclaredSize } from "./output-limit.js";
 
 /**
  * LZMA compression level (1-9).
@@ -227,8 +228,28 @@ export function fitDictSize(dictSize: number, inputSize: number): number {
 	return dictSize;
 }
 
+/** Options for the functions and streams that decode `.lzma` and raw LZMA1 data. */
+export interface OutputLimitOptions {
+	/**
+	 * The maximum number of bytes of output, or no limit if omitted. Use this
+	 * when decompressing untrusted input, to protect against "decompression
+	 * bomb" attacks where a few bytes of compressed data expand to gigabytes.
+	 *
+	 * If the header (or `uncompressedSize`) declares a size larger than the
+	 * limit, `OutputLimitError` is thrown before anything gets allocated, with
+	 * `strict` and for raw LZMA1. Without `strict`, an end marker can still
+	 * end the data within the limit, so such a size is treated like an
+	 * unknown one: `OutputLimitError` is thrown as soon as the output exceeds
+	 * the limit, and none of the excess bytes are returned or enqueued. An
+	 * output of exactly `maxOutputLength` bytes is allowed.
+	 *
+	 * For `decompressString()`, the limit counts UTF-8 bytes, not characters.
+	 */
+	maxOutputLength?: number;
+}
+
 /** Options of `decompress`, `decompressString` and `Decompress`. */
-export interface DecompressionOptions {
+export interface DecompressionOptions extends OutputLimitOptions {
 	/**
 	 * Reject an end marker before the size the header declares, default
 	 * false. By default the data ends at such a marker, because some
@@ -252,10 +273,25 @@ export function resolveStrict(options: DecompressionOptions = {}): boolean {
 }
 
 /**
+ * Validates `maxOutputLength` and returns it, or returns `Infinity` if it
+ * isn't specified.
+ */
+export function resolveMaxOutputLength(options: OutputLimitOptions = {}): number {
+	const maxOutputLength = options.maxOutputLength;
+	if (maxOutputLength === undefined) {
+		return Infinity;
+	}
+
+	checkInteger("maxOutputLength", maxOutputLength, 0, Number.MAX_SAFE_INTEGER);
+
+	return maxOutputLength;
+}
+
+/**
  * Properties of raw LZMA1 data, which has no `.lzma` header. They come from
  * the container, e.g. the coder properties of a 7z entry.
  */
-export interface RawLzma1Options {
+export interface RawLzma1Options extends OutputLimitOptions {
 	/** Literal context bits, 0-8. */
 	lc: number;
 	/** Literal position bits, 0-4. */
@@ -311,11 +347,20 @@ export interface RawLzma2Options {
 /** Largest dictionary size a container can declare: 4 GiB - 1. */
 const RAW_DICT_SIZE_MAX = 0xFFFFFFFF;
 
+/** The options of raw LZMA1 decoding, validated. */
+export interface ResolvedRawLzma1Options {
+	/** The properties and the size, in the form of a `.lzma` header */
+	header: LzmaHeader;
+	/** The output limit, `Infinity` if none was given */
+	maxOutputLength: number;
+}
+
 /**
- * Validates the options of raw LZMA1 decoding and checks the memory limit.
- * Returns the properties in the shape of a `.lzma` header.
+ * Validates the options for raw LZMA1 decoding, and checks the memory limit
+ * and the output limit. Returns the properties in the form of a `.lzma`
+ * header, and the output limit.
  */
-export function resolveRawLzma1Options(options: RawLzma1Options): LzmaHeader {
+export function resolveRawLzma1Options(options: RawLzma1Options): ResolvedRawLzma1Options {
 	const { lc, lp, pb, dictSize, uncompressedSize, memoryLimitKb } = options;
 
 	checkInteger("lc", lc, 0, 8);
@@ -327,9 +372,19 @@ export function resolveRawLzma1Options(options: RawLzma1Options): LzmaHeader {
 		checkInteger("uncompressedSize", uncompressedSize, 0, Number.MAX_SAFE_INTEGER);
 	}
 
+	// Before the memory limit, so that an invalid maxOutputLength throws a
+	// RangeError rather than a MemoryLimitError.
+	const maxOutputLength = resolveMaxOutputLength(options);
+
 	checkMemoryLimit(getLzma1MemoryUsageKb(dictSize, lc, lp), memoryLimitKb);
 
-	return { lc, lp, pb, dictSize, uncompressedSize: uncompressedSize ?? UNKNOWN_SIZE };
+	// `AloneDecoder.start()` checks the size again, but the async functions
+	// call it only after the first `onProgressAsync` call. Checking here
+	// rejects the size before that call, as with the memory limit.
+	const header = { lc, lp, pb, dictSize, uncompressedSize: uncompressedSize ?? UNKNOWN_SIZE };
+	checkDeclaredSize(header.uncompressedSize, maxOutputLength);
+
+	return { header, maxOutputLength };
 }
 
 /**

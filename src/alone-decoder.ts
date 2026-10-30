@@ -19,6 +19,10 @@ import { LzDecoder } from "./lz-decoder.js";
 import { probsSize } from "./lzma-coder.js";
 import { LzmaDecoder } from "./lzma-decoder.js";
 import {
+	checkDeclaredSize,
+	OutputLimitError,
+} from "./output-limit.js";
+import {
 	RANGE_DECODER_INIT_SIZE,
 	RangeDecoder,
 } from "./range-decoder.js";
@@ -55,6 +59,9 @@ export class AloneDecoder {
 	private readonly preallocateLimit: number;
 	private readonly reuse: boolean;
 	private readonly strict: boolean;
+	private readonly maxOutputLength: number;
+	/** The number of bytes that have been passed to the sink so far. */
+	private outputLength = 0;
 
 	/**
 	 * True when the whole output fits into the dictionary buffer, which is
@@ -71,12 +78,15 @@ export class AloneDecoder {
 	 *        buffer is allocated at once
 	 * @param reuse Reuse probability arrays of earlier decoders.
 	 * @param strict Reject an end marker before the declared size
+	 * @param maxOutputLength Throw `OutputLimitError` if the output would
+	 *        exceed this many bytes
 	 */
-	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false, strict = false) {
+	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false, strict = false, maxOutputLength = Infinity) {
 		this.sink = sink;
 		this.preallocateLimit = preallocateLimit;
 		this.reuse = reuse;
 		this.strict = strict;
+		this.maxOutputLength = maxOutputLength;
 	}
 
 	/** Uncompressed size from the header, once it has been read. */
@@ -224,6 +234,15 @@ export class AloneDecoder {
 	 * header; for raw data, which has none, the caller does before `write`.
 	 */
 	start(header: LzmaHeader): void {
+		// In strict mode, a declared size over the limit can never decode
+		// within it, so check it first, before anything gets allocated or taken
+		// from the spare probability arrays. In lenient mode, an end marker may
+		// still end the data within the limit, so the cap and the counter below
+		// handle it like an unknown size.
+		if (this.strict) {
+			checkDeclaredSize(header.uncompressedSize, this.maxOutputLength);
+		}
+
 		this.header = header;
 
 		let dictSize = Math.max(header.dictSize, DICT_SIZE_MIN);
@@ -232,11 +251,28 @@ export class AloneDecoder {
 			dictSize = Math.max(Math.min(dictSize, header.uncompressedSize), 1);
 		}
 
+		// The output can never legitimately exceed the limit, so we don't need
+		// a bigger dictionary. The extra byte is a trick: when the output
+		// reaches limit + 1 bytes, the buffer fills up and flushes to the sink,
+		// which then throws. Without this cap, a small input could decode up to
+		// 4 GiB before the first flush gives the counter a chance to notice.
+		// This applies to a known size too, which lenient mode lets exceed the
+		// limit.
+		dictSize = Math.min(dictSize, this.maxOutputLength + 1);
+
 		const size = header.uncompressedSize;
 		this.contiguousOutput = size !== UNKNOWN_SIZE && size > 0 && dictSize === size && size <= this.preallocateLimit;
 
+		// The counter can only reach the limit with a known size if that size
+		// is over the limit, so the error reports it, as the check above does.
+		const declaredSize = size === UNKNOWN_SIZE ? undefined : size;
 		const sink = (chunk: Uint8Array) => {
 			if (!this.done) {
+				this.outputLength += chunk.length;
+				if (this.outputLength > this.maxOutputLength) {
+					throw new OutputLimitError(declaredSize, this.maxOutputLength);
+				}
+
 				this.sink(chunk);
 			}
 		};

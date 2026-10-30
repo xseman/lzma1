@@ -37,6 +37,7 @@ standard APIs.
 - Web Streams (`TransformStream`) for compressing and decompressing streams
 - Errors on truncated input and on most corrupted input
 - A memory limit for untrusted raw data, in KiB like XZ for Java's
+- An optional output size limit, to defend against "decompression bomb" attacks
 - No dependencies, runs in browsers, workers, Node.js, Deno and Bun
 
 ## Installation
@@ -278,6 +279,18 @@ and xz do:
 ```js
 decompress(data, { strict: true });
 new Decompress({ strict: true });
+```
+
+When decompressing data from an untrusted source, `maxOutputLength` can defend
+against a "decompression bomb" attack, where a few bytes of crafted data expand
+to gigabytes. It limits the output in bytes, for every decoder except raw LZMA2.
+With `strict`, and for raw LZMA1, a larger declared size throws an
+`OutputLimitError` before anything is allocated. Otherwise, as with an unknown
+size, decoding throws one once the output passes the limit, since an end marker
+could still end the data within it:
+
+```js
+decompress(data, { maxOutputLength: 1_000_000 });
 ```
 
 ### HTML example
