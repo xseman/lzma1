@@ -22,18 +22,21 @@ import {
 /**
  * Decompresses a stream of raw LZMA1 data, which has no `.lzma` header. An
  * end marker before a known size is an error, as with `strict`. Invalid
- * options throw a `RangeError`, and a dictionary over `memoryLimitKb` throws
- * a `MemoryLimitError`, both from the constructor.
+ * options throw a `RangeError`, a dictionary over `memoryLimitKb` throws a
+ * `MemoryLimitError`, and an `uncompressedSize` over `maxOutputLength` throws
+ * `OutputLimitError`. All of these are thrown by the constructor. If the
+ * output would exceed `maxOutputLength` while decoding, the stream fails with
+ * `OutputLimitError`.
  *
  * @example
  * const output = packed.pipeThrough(new DecompressRawLzma1({ lc: 3, lp: 0, pb: 2, dictSize: 1 << 16 }));
  */
 export class DecompressRawLzma1 extends TransformStreamBase<BinaryInput, Uint8Array> {
 	constructor(options: RawLzma1Options) {
-		const header = resolveRawLzma1Options(options);
+		const { header, maxOutputLength } = resolveRawLzma1Options(options);
 
 		super(createDecoderTransformer((sink) => {
-			const decoder = new AloneDecoder(sink, 0, false, true);
+			const decoder = new AloneDecoder(sink, 0, false, true, maxOutputLength);
 			decoder.start(header);
 
 			return decoder;

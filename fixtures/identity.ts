@@ -192,6 +192,42 @@ export function rawMalformedChecks(library: Library, manifest: Manifest, records
 	}));
 }
 
+/**
+ * Tests `maxOutputLength` right at the edge, for every committed `.lzma`
+ * fixture and every malformed `.lzma` and raw LZMA1 case, decoding `.lzma`
+ * data both with and without `strict`. With the limit at the output length,
+ * the output must match the unlimited decoder's, and with one byte less, it
+ * must throw `OutputLimitError`. If the unlimited decoder rejects a case, then
+ * it must be rejected with the same error when the limit is too large to
+ * reach.
+ */
+export function outputLimitChecks(library: Library, manifest: Manifest): IdentityCheck[] {
+	const corpusDir = path.join(FIXTURES_DIR, "corpus");
+	const fixtures = fs.readdirSync(corpusDir).filter((name) => name.endsWith(".lzma")).sort().map((name) => ({
+		name,
+		bytes: new Uint8Array(fs.readFileSync(path.join(corpusDir, name))),
+	}));
+
+	const lzmaChecks = [...fixtures, ...deriveCommittedMalformed(manifest).map((malformedCase) => ({ name: malformedCase.id, bytes: malformedCase.bytes }))]
+		.flatMap(({ name, bytes }) =>
+			[false, true].map((strict) => ({
+				name: strict ? `${name}@strict` : name,
+				run: async () => checkOutputLimitEdge(library, (maxOutputLength) => library.decompress(bytes, { strict, maxOutputLength })),
+			}))
+		);
+
+	const rawChecks = deriveCommittedRaw(manifest).flatMap((rawCase) =>
+		rawCase.format === "lzma1"
+			? [{
+				name: rawCase.id,
+				run: async () => checkOutputLimitEdge(library, (maxOutputLength) => library.decompressRawLzma1(rawCase.bytes, { ...rawCase.options, maxOutputLength })),
+			}]
+			: []
+	);
+
+	return [...lzmaChecks, ...rawChecks];
+}
+
 /** Checks of the records themselves, independent of the library. */
 export function recordChecks(manifest: Manifest, records: MalformedRecords, rawRecords: RawMalformedRecords): IdentityCheck[] {
 	return [
@@ -513,6 +549,48 @@ function sameOutcome(expected: DecodeOutcome, actual: DecodeOutcome, exactError:
 	}
 
 	return false;
+}
+
+function checkOutputLimitEdge(library: Library, decode: (maxOutputLength?: number) => Uint8Array): string | undefined {
+	let expected: Uint8Array;
+	try {
+		expected = decode();
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		try {
+			decode(Number.MAX_SAFE_INTEGER);
+		} catch (limited) {
+			const limitedMessage = limited instanceof Error ? limited.message : String(limited);
+			return limitedMessage === message ? undefined : `expected "${message}" under an unreachable limit, got "${limitedMessage}"`;
+		}
+
+		return `expected "${message}" under an unreachable limit, but the data decoded`;
+	}
+
+	const edge = expected.length;
+	let atLimit: Uint8Array;
+	try {
+		atLimit = decode(edge);
+	} catch (error) {
+		return `a limit of ${edge} threw: ${error instanceof Error ? error.message : String(error)}`;
+	}
+
+	const mismatch = describeDifference(atLimit, expected);
+	if (mismatch !== undefined) {
+		return `at the limit: ${mismatch}`;
+	}
+
+	if (edge > 0) {
+		try {
+			decode(edge - 1);
+		} catch (error) {
+			return error instanceof library.OutputLimitError ? undefined : `a limit of ${edge - 1} threw ${String(error)}`;
+		}
+
+		return `a limit of ${edge - 1} decoded`;
+	}
+
+	return undefined;
 }
 
 function describeDifference(actual: Uint8Array, expected: Uint8Array): string | undefined {

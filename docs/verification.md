@@ -522,6 +522,87 @@ are the same as without pauses:
   "Probability arrays reused between one-shot decoders" holds for interleaved
   calls.
 
+### Output limit
+
+`maxOutputLength` has no counterpart in XZ for Java. It applies to `.lzma` and
+raw LZMA1 data, which both decode through `AloneDecoder`, and changes four
+things, all outside the ported files:
+
+- _A declared size over the limit._ With `strict`, `start()` first calls
+  `checkDeclaredSize`, which throws an `OutputLimitError` if the header's size,
+  or the `uncompressedSize` of raw LZMA1, is over the limit, before anything is
+  allocated or taken from the probability spares. Raw LZMA1 is always strict,
+  and `resolveRawLzma1Options` also checks it with the other options, as it
+  checks `memoryLimitKb`, so that the async functions reject it before the first
+  `onProgressAsync` call. Without `strict`, an end marker can still end the data
+  within the limit, so `start()` leaves such a size to the cap and the counter,
+  as for an unknown size.
+- _Counting the output._ The sink wrapper in `start()` adds up the chunk lengths
+  and throws an `OutputLimitError` before passing on a chunk that would exceed
+  the limit. Bytes held back by `done` lie past the declared size, so they
+  aren't counted. With a known size, the count can only exceed the limit if the
+  size is over it, which only lenient decoding lets through, so the error
+  reports that size as `declaredSize`, as `checkDeclaredSize` does.
+- _The dictionary_ is capped at `maxOutputLength + 1` bytes. The sink receives
+  bytes only when the buffer ends and at the flushes in `decode`, which a
+  one-shot call reaches only near the end of its input. Without the cap, a
+  dictionary of up to 4 GiB, or one as large as a declared size over the limit,
+  could fill before the counter saw any of it. With the cap, the buffer ends at
+  `maxOutputLength + 1` bytes and passes them to the sink, which throws. A
+  dictionary that is already no larger, including any for a known size within
+  the limit, is unchanged, and it wraps every `dictSize` bytes.
+- _The output collection._ `createOneShotDecoder` sizes its first `OutputBuffer`
+  at four times the input with an unknown size, which junk after a valid stream
+  can make far larger than the output, and at the declared size up to 16 MiB
+  with a known one, which lenient decoding lets exceed the limit. The limit caps
+  both.
+
+Nothing else changes:
+
+- _Without the option._ The limit is `Infinity`, so `checkDeclaredSize` never
+  throws, the caps change nothing and the count never exceeds the limit. The
+  counter costs an addition and a comparison per chunk.
+- _Strict and lenient._ The two modes differ only for a known size over the
+  limit: strict throws before decoding, and lenient decodes it as an unknown
+  size, so a stream that an end marker ends within the limit decodes as it does
+  without the option.
+- _Output within the limit._ With a known size within the limit, the dictionary
+  is already no larger than the size, so neither cap applies. Otherwise the cap
+  changes the dictionary only if it is larger than `maxOutputLength + 1` bytes,
+  and then output within the limit reaches neither the capped size nor the
+  original one, so neither buffer wraps. Before a wrap, `repeat` checks
+  distances against `pos`, not the buffer size, the buffer holds output byte `i`
+  at index `i` whatever its size, and the indexes from `pos` on, which `getByte`
+  reads at the start of a stream, hold zeros. So the decoder writes the same
+  bytes and reaches the same end checks and errors. The capacity of the output
+  collection only decides when it grows.
+- _Output over the limit._ If the cap applies, the previous bullet's argument
+  holds for the first `maxOutputLength + 1` bytes, so a stream that fails before
+  then fails with the same error, and one that gets there throws an
+  `OutputLimitError` when the buffer ends. That includes a lenient declared size
+  of exactly `maxOutputLength + 1`, where the capped dictionary holds the whole
+  declared output at once (`contiguousOutput`): its buffer ends at the same
+  byte. If the cap doesn't apply, the decoder is unchanged, and the counter
+  throws at the next flush, at most `dictSize` bytes after the output exceeds
+  the limit, unless the stream fails first.
+- _The pool._ An `OutputLimitError` drops the decoder with its probability
+  array, as any other error does, which the one-owner argument of "Probability
+  arrays reused between one-shot decoders" covers. One from `checkDeclaredSize`
+  comes before the array is taken.
+
+`outputLimitChecks` in `fixtures/identity.ts` tests this on every committed
+`.lzma` fixture, half of them with an unknown size, and every malformed `.lzma`
+and raw LZMA1 case, decoding the `.lzma` data both with and without `strict`:
+1,694 cases. At a limit of the output's length, the output is unchanged, and one
+byte less throws an `OutputLimitError`. For a fixture with a known size, one
+byte less is the lenient `maxOutputLength + 1` case above. A case that fails
+without a limit fails the same way under a limit nothing reaches.
+
+Raw LZMA2 doesn't take the option. `Lzma2Decoder` would need the same counter
+and cap. The code would be small, but the argument that it changes nothing else
+would also have to cover dictionary resets and the uncompressed chunks that
+`copyUncompressed` writes directly.
+
 ### Java-to-JS hazard checklist
 
 - **Signed versus unsigned shifts:** every Java `>>>` kept as `>>>`; `>>` only

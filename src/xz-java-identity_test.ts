@@ -12,7 +12,10 @@
  * - with `strict`, the same holds and `end-marker-leniency` cases get the
  *   Java decoder's outcome;
  * - every raw LZMA2 fixture decodes to its input, and on the raw LZMA1 and
- *   LZMA2 sets the raw decoders' outcomes match the Java decoder's.
+ *   LZMA2 sets the raw decoders' outcomes match the Java decoder's;
+ * - with `maxOutputLength` set to the output length, every fixture and every
+ *   malformed `.lzma` case, with and without `strict`, and every raw LZMA1
+ *   case gives the same outcome, and one byte less throws `OutputLimitError`.
  *
  * The checks live in `fixtures/identity.ts`, shared with
  * `fixtures/verify.ts`, which runs them on Node.
@@ -30,6 +33,7 @@ import {
 	loadManifest,
 	loadRawMalformedRecords,
 	malformedChecks,
+	outputLimitChecks,
 	rawMalformedChecks,
 	recordChecks,
 	strictMalformedChecks,
@@ -82,4 +86,12 @@ describe("raw streams match the Java decoder", () => {
 
 		expect(mismatch).toBeUndefined();
 	});
+});
+
+describe("output limit at the edge of every output", () => {
+	test.each(outputLimitChecks(library, manifest).map((check) => [check.name, check] as const))("%s", async (_, check) => {
+		const mismatch = await check.run();
+
+		expect(mismatch).toBeUndefined();
+	}, CELL_TIMEOUT_MS);
 });

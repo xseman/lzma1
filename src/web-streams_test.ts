@@ -12,6 +12,7 @@ import {
 	DecompressRawLzma1,
 	DecompressRawLzma2,
 	MemoryLimitError,
+	OutputLimitError,
 } from "./index.js";
 
 function createRandom(seed: number): () => number {
@@ -131,6 +132,33 @@ describe("Decompress", () => {
 
 	test("rejects an invalid strict on construction", () => {
 		expect(() => new Decompress({ strict: 1 } as never)).toThrow(RangeError);
+	});
+
+	test.each([1, 7, 4096])("hands out the output within maxOutputLength, then errors, in chunks of %i bytes", async (chunkSize) => {
+		const unknownSize = compressed.slice().fill(0xFF, 5, 13);
+		const maxOutputLength = input.length - 1000;
+		const reader = chunked(unknownSize, chunkSize).pipeThrough(new Decompress({ maxOutputLength })).getReader();
+		let received = 0;
+		const readAll = async () => {
+			for (let result = await reader.read(); !result.done; result = await reader.read()) {
+				received += result.value.length;
+			}
+		};
+
+		const promise = readAll();
+
+		await expect(promise).rejects.toBeInstanceOf(OutputLimitError);
+		expect(received).toBeLessThanOrEqual(maxOutputLength);
+	});
+
+	test("accepts output of exactly maxOutputLength", async () => {
+		const output = await collect(chunked(compressed, 64).pipeThrough(new Decompress({ maxOutputLength: input.length })));
+
+		expect(output).toEqual(input);
+	});
+
+	test("rejects an invalid maxOutputLength on construction", () => {
+		expect(() => new Decompress({ maxOutputLength: -1 })).toThrow(RangeError);
 	});
 });
 
@@ -294,5 +322,17 @@ describe("DecompressRawLzma1", () => {
 		const create = () => new DecompressRawLzma1({ ...properties, dictSize: 1 << 30, memoryLimitKb: 1024 });
 
 		expect(create).toThrow(MemoryLimitError);
+	});
+
+	test("rejects a given size over the output limit on construction", () => {
+		const create = () => new DecompressRawLzma1({ ...properties, uncompressedSize: input.length, maxOutputLength: input.length - 1 });
+
+		expect(create).toThrow(OutputLimitError);
+	});
+
+	test("rejects an unknown size once the output exceeds the output limit", async () => {
+		const promise = collect(chunked(withMarker, 100).pipeThrough(new DecompressRawLzma1({ ...properties, maxOutputLength: input.length - 1 })));
+
+		await expect(promise).rejects.toBeInstanceOf(OutputLimitError);
 	});
 });
