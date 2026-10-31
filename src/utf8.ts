@@ -1,4 +1,14 @@
 /**
+ * @license
+ * Copyright (c) Filip Seman and lzma1 contributors
+ * Copyright (c) 2016 Nathan Rugg <nmrugg@gmail.com>
+ * SPDX-License-Identifier: MIT
+ *
+ * `decodeModifiedUtf8` is derived from LZMA-JS, `decode()` in
+ * `src/lzma-d.js`, by Nathan Rugg.
+ */
+
+/**
  * String <-> bytes conversion.
  *
  * Strings are encoded as standard UTF-8. Up to v0.3.0, this library used
