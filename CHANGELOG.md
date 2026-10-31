@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.4](https://github.com/xseman/lzma1/compare/v0.6.3...v0.6.4) (2026-10-31)
+
+
+### Bug Fixes
+
+* accept undefined for optional options with exactOptionalPropertyTypes ([#48](https://github.com/xseman/lzma1/issues/48)) ([298637e](https://github.com/xseman/lzma1/commit/298637e1072d6e57501d1402bb355462a9accb77))
+
+
+### Maintenance
+
+* dual-license as MIT OR Apache-2.0 ([#53](https://github.com/xseman/lzma1/issues/53)) ([7345da0](https://github.com/xseman/lzma1/commit/7345da057f4585e11fb0cf9b735c3f777e036667))
+
 ## [0.6.3](https://github.com/xseman/lzma1/compare/v0.6.2...v0.6.3) (2026-10-30)
 
 
