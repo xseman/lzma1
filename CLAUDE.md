@@ -39,7 +39,7 @@ generator.
   malformed-stream deviation needs a maintainer decision.
 - A logical change needs its tests added or adjusted, and `README.md` brought up
   to date (sections: Why, Features, Installation, Quick start, How it works,
-  Verification, Related).
+  Verification, Related, License).
 - Do not edit `CHANGELOG.md`: release-please writes it from the commit types.
   Commits and PR titles are lowercase conventional commits.
 
