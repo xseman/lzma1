@@ -2,10 +2,12 @@
  * @license
  * Copyright (c) Filip Seman and lzma1 contributors
  * Copyright (c) 2016 Nathan Rugg <nmrugg@gmail.com>
- * SPDX-License-Identifier: MIT
+ * Copyright (C) 2009 Archie L. Cobbs. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 AND MIT
  *
- * `decodeModifiedUtf8` is derived from LZMA-JS, `decode()` in
- * `src/lzma-d.js`, by Nathan Rugg.
+ * `decodeModifiedUtf8` was modified for lzma1 from `decode()` in LZMA-JS's
+ * `src/lzma-d.js` by Nathan Rugg, which in turn derives from
+ * `UTF8.decode()` in gwt-lzma's `UTF8.java` by Archie L. Cobbs.
  */
 
 /**
