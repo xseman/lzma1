@@ -132,8 +132,8 @@ export async function decompressAsync(data: BinaryInput, options?: DecompressAsy
 }
 
 /**
- * Decompresses `.lzma` data into a string. The data is decoded as UTF-8;
- * data compressed by lzma1 v0.3.0 and older is also supported.
+ * Decompresses `.lzma` data into a string. The data is decoded as UTF-8,
+ * and each invalid sequence becomes U+FFFD; use `decompress` for binary data.
  *
  * @param data Compressed data
  * @param options `strict` rejects an end marker before the declared size,

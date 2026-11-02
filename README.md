@@ -97,9 +97,10 @@ that the caller can yield to the event loop, show progress or cancel. The
 callback's doc comment has an example. Important: the caller can read `data`
 but must not modify it until the returned promise has settled.
 
-Strings are encoded as UTF-8. `decompressString` also decodes data compressed
-by v0.3.0 and older, which used Java's "modified UTF-8". The `LZMA` class
-from v0.2.0 is exported again; its `decompress` now returns a `Uint8Array`.
+Strings are encoded as UTF-8, and `decompressString` replaces each invalid
+sequence with U+FFFD, the Unicode replacement character, like `TextDecoder`;
+use `decompress` for binary data. The `LZMA` class from v0.2.0 is exported
+again; its `decompress` now returns a `Uint8Array`.
 
 ### Compressing a string
 
@@ -419,7 +420,7 @@ Licensed under either of
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
 - MIT license ([LICENSE-MIT](LICENSE-MIT))
 
-at your option, except files whose license header states otherwise.
+at your option.
 
 Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0
