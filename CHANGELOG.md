@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/xseman/lzma1/compare/v0.6.4...v0.6.5) (2026-11-02)
+
+
+### Maintenance
+
+* add gwt-lzma's Apache-2.0 notice to the modified UTF-8 decoder ([#55](https://github.com/xseman/lzma1/issues/55)) ([90047c2](https://github.com/xseman/lzma1/commit/90047c2e78275fb62878250caeafb198ac21b30e))
+
 ## [0.6.4](https://github.com/xseman/lzma1/compare/v0.6.3...v0.6.4) (2026-10-31)
 
 
