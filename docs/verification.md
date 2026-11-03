@@ -277,7 +277,8 @@ bytes. The first two sometimes produced wrong bytes. Nothing else changes:
   after a wrap, but only right before the decoder throws.
 - _Valid streams._ The encoder's output passes in both forms. Without a marker,
   the range coder is finished at the declared size; with a known size and a
-  marker, as `compress()` writes by default, the extra symbol is the marker.
+  marker, as `compress()` writes with `endMarker: true`, the extra symbol is the
+  marker.
 - _Chunked input._ The extra symbol is decoded only when `INPUT_MARGIN` bytes are
   left or the input has ended, like every other symbol. Otherwise the decoder
   keeps the bytes and waits, so splitting the input anywhere gives the same

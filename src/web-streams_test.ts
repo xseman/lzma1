@@ -49,10 +49,18 @@ async function collect(stream: ReadableStream<Uint8Array>): Promise<Uint8Array> 
 
 describe("Decompress", () => {
 	const input = sampleData(50_000);
-	const compressed = compress(input);
+	const compressed = compress(input, { endMarker: true });
+	// The default for a known size
+	const withoutMarker = compress(input);
 
-	test.each([1, 7, 64, 4096, 1 << 20])("decodes input in chunks of %i bytes", async (chunkSize) => {
+	test.each([1, 7, 64, 4096, 1 << 20])("decodes input with an end marker in chunks of %i bytes", async (chunkSize) => {
 		const output = await collect(chunked(compressed, chunkSize).pipeThrough(new Decompress()));
+		expect(output).toEqual(input);
+	});
+
+	test.each([1, 7, 64, 4096, 1 << 20])("decodes input without an end marker in chunks of %i bytes", async (chunkSize) => {
+		const output = await collect(chunked(withoutMarker, chunkSize).pipeThrough(new Decompress()));
+
 		expect(output).toEqual(input);
 	});
 
@@ -288,7 +296,7 @@ describe("DecompressRawLzma2", () => {
 describe("DecompressRawLzma1", () => {
 	const input = sampleData(50_000);
 	const properties = { lc: 3, lp: 0, pb: 2, dictSize: 1 << 16 };
-	const withMarker = compress(input).subarray(13);
+	const withMarker = compress(input, { endMarker: true }).subarray(13);
 	const withoutMarker = compress(input, { endMarker: false }).subarray(13);
 
 	test.each([1, 7, 4093, 65_537])("decodes input in chunks of %i bytes", async (chunkSize) => {

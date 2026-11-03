@@ -159,7 +159,7 @@ const compressed = compress(data, {
 	niceLen: 64, // match length that is good enough, 8-273
 	matchFinder: "bt4", // "hc4" (hash chain) or "bt4" (binary tree)
 	depth: 0, // match finder search depth, 0 = automatic
-	endMarker: true, // false omits the end marker, see below
+	endMarker: false, // true adds an end marker, see below
 });
 ```
 
@@ -167,16 +167,15 @@ A dictionary larger than the input is reduced to fit it, which saves memory
 when compressing and decompressing. Data with `lc + lp > 4` from other
 encoders (e.g. 7-Zip) can still be decompressed.
 
-The header holds the uncompressed size, so the end marker after the data is
-redundant for decoders that read it. `endMarker: false` omits it, like XZ for
-Java and 7-Zip without `-eos`, and saves 5-6 bytes, which matters for small
-payloads such as QR codes. Decoders that don't know the size need the marker to
-find the end: raw LZMA decoders (`xz --format=raw`, Python's `FORMAT_RAW`)
-report an error or decode past the end without it. Omit it only when the data
-is decoded with its header (this library, `xz --format=lzma`, 7-Zip) or the
-size is known from elsewhere. Strict decoders that know the size may reject a
-marker, e.g. XZ for Java's raw `LZMAInputStream` constructor without
-`enableRelaxedEndCondition()`.
+The header holds the uncompressed size, so `compress` writes no end marker
+after the data by default, like XZ for Java and 7-Zip without `-eos`. That
+saves 5-6 bytes, which matters for small payloads such as QR codes. Decoders
+that don't know the size need the marker to find the end: raw LZMA decoders
+(`xz --format=raw`, Python's `FORMAT_RAW`) report an error or decode past the
+end without it. Pass `endMarker: true` when the data is decoded without its
+header and without its size, e.g. when you strip the header. Strict decoders
+that know the size may reject a marker, e.g. XZ for Java's raw `LZMAInputStream`
+constructor without `enableRelaxedEndCondition()`.
 
 ### Raw LZMA1 and LZMA2
 

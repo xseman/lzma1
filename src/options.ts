@@ -46,20 +46,22 @@ export interface CompressionOptions {
 	/** Maximum match finder search depth, 0 = automatic. */
 	depth?: number | undefined;
 	/**
-	 * Write an end marker after the data, default `true`. The header also
-	 * holds the uncompressed size, so the marker is redundant for decoders
-	 * that read it: `false` omits it and saves 5-6 bytes, like XZ for Java
-	 * and 7-Zip without `-eos`.
+	 * Write an end marker after the data. The default is `false` when the
+	 * size is known, as in `compress`, and `true` when it isn't, as in
+	 * `Compress`, like XZ for Java. The header holds a known size, so the
+	 * marker is redundant for decoders that read it, and omitting it saves
+	 * 5-6 bytes.
 	 *
-	 * Safe to turn off when the decoder knows the size: this library,
+	 * Omitting it is safe when the decoder knows the size: this library,
 	 * `xz --format=lzma`, 7-Zip, or a format that stores the size elsewhere.
-	 * Not safe for decoders of raw LZMA data or streams that don't know the
-	 * size (e.g. `xz --format=raw`, Python's `FORMAT_RAW`): without the marker
-	 * they report an error or decode past the end. Strict decoders that know
-	 * the size may reject a marker, e.g. XZ for Java's raw `LZMAInputStream`
-	 * constructor without `enableRelaxedEndCondition()`.
+	 * Decoders of raw LZMA data or streams that don't know the size (e.g.
+	 * `xz --format=raw`, Python's `FORMAT_RAW`) need `true`: without the
+	 * marker they report an error or decode past the end. Strict decoders
+	 * that know the size may reject a marker, e.g. XZ for Java's raw
+	 * `LZMAInputStream` constructor without `enableRelaxedEndCondition()`.
 	 *
-	 * Requires a known size: `Compress` throws a `RangeError` for `false`.
+	 * Omitting it requires a known size: `Compress` throws a `RangeError` for
+	 * `false`.
 	 */
 	endMarker?: boolean | undefined;
 }
@@ -136,7 +138,11 @@ export interface ResolvedOptions {
 	niceLen: number;
 	matchFinder: MatchFinderType;
 	depth: number;
-	endMarker: boolean;
+	/**
+	 * `undefined` leaves it to `AloneEncoder`, which knows whether the size
+	 * is known.
+	 */
+	endMarker: boolean | undefined;
 }
 
 export const DEFAULT_LEVEL: CompressionMode = 5;
@@ -184,7 +190,7 @@ export function resolveOptions(options: CompressionMode | CompressionOptions = {
 		niceLen: options.niceLen ?? preset.niceLen,
 		matchFinder: options.matchFinder ?? preset.matchFinder,
 		depth: options.depth ?? preset.depth,
-		endMarker: options.endMarker ?? true,
+		endMarker: options.endMarker,
 	};
 
 	checkInteger("lc", resolved.lc, 0, 4);
@@ -203,7 +209,7 @@ export function resolveOptions(options: CompressionMode | CompressionOptions = {
 	if (resolved.matchFinder !== "hc4" && resolved.matchFinder !== "bt4") {
 		throw new RangeError(`Invalid matchFinder: ${resolved.matchFinder}`);
 	}
-	if (typeof resolved.endMarker !== "boolean") {
+	if (resolved.endMarker !== undefined && typeof resolved.endMarker !== "boolean") {
 		throw new RangeError(`Invalid endMarker: ${resolved.endMarker} (expected a boolean)`);
 	}
 

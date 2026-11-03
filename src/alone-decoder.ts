@@ -182,7 +182,8 @@ export class AloneDecoder {
 
 		// At the declared size the range coder has to be finished, or one
 		// end marker has to follow, as in XZ for Java's relaxed end
-		// condition: `compress()` writes both the size and the marker.
+		// condition: `compress()` with `endMarker: true` writes both the size
+		// and the marker.
 		if (!endMarker && lzma.outPos === size && !rc.isFinished() && rc.pos <= inLimit) {
 			// The sink gets every byte up to the declared size now, and none
 			// of what the symbol after it writes: `done` holds it back, and
