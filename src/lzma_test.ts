@@ -126,7 +126,8 @@ describe("default output is identical to v0.4.0", () => {
 
 describe("compatibility with v0.3.0 output", () => {
 	// Produced by lzma1 v0.3.0, which used a different encoder and
-	// encoded strings as Java's "modified UTF-8".
+	// encoded strings as Java's "modified UTF-8". Its forms of NUL and of
+	// characters outside the BMP are invalid UTF-8.
 	test("hello world", () => {
 		const compressed = fromHex("5d 00 00 01 00 0b 00 00 00 00 00 00 00 00 34 19 49 ee 8d e9 17 89 3a 33 60 05 f7 cf 64 ff fb 78 20 00");
 		expect(decompressString(compressed)).toBe("hello world");
@@ -137,9 +138,9 @@ describe("compatibility with v0.3.0 output", () => {
 		expect(decompressString(compressed)).toStartWith("Lorem ipsum dolor sit amet");
 	});
 
-	test("string with NUL and characters outside the BMP", () => {
+	test("string with NUL and characters outside the BMP decodes them as U+FFFD", () => {
 		const compressed = fromHex("5d 00 00 20 00 1a 00 00 00 00 00 00 00 00 34 30 d1 26 cc 55 f1 95 a0 c0 2f ed 00 5b 6e f3 33 0e 9a ed 25 09 6b f7 90 e3 22 fa 43 d8 fb ff ff b0 5a 80 00");
-		expect(decompressString(compressed)).toBe("héllo\0 wörld 😀 ∆");
+		expect(decompressString(compressed)).toBe("héllo\uFFFD\uFFFD wörld \uFFFD\uFFFD\uFFFD\uFFFD\uFFFD\uFFFD ∆");
 	});
 
 	test("binary data at mode 9", () => {
@@ -165,11 +166,15 @@ describe("strings", () => {
 		expect(decompressString(compressString("﻿abc"))).toBe("﻿abc");
 	});
 
-	test("non-text data decodes as Latin-1", () => {
-		const bytes = Uint8Array.from({ length: 200_000 }, (_, i) => 0x80 + (i % 0x80));
-		const text = decompressString(compress(bytes, 1));
-		expect(text.length).toBe(bytes.length);
-		expect(text.charCodeAt(0)).toBe(0x80);
+	test.each([
+		["decompressString", decompressString],
+		["LZMA#decompressString", (data: Uint8Array) => new LZMA().decompressString(data)],
+	])("%s decodes invalid UTF-8 as U+FFFD", (_, decode) => {
+		const compressed = compress(Uint8Array.of(0x61, 0xFF, 0x62, 0xC3));
+
+		const text = decode(compressed);
+
+		expect(text).toBe("a\uFFFDb\uFFFD");
 	});
 });
 
