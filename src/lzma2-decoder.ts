@@ -37,10 +37,10 @@
  * `lz/LZDecoder.java` as functions, by Lasse Collin and Igor Pavlov.
  */
 
-import { INPUT_MARGIN } from "./alone-decoder.js";
 import { LzDecoder } from "./lz-decoder.js";
 import { LzmaDecoder } from "./lzma-decoder.js";
 import {
+	INPUT_MARGIN,
 	RANGE_DECODER_INIT_SIZE,
 	RangeDecoder,
 } from "./range-decoder.js";

@@ -79,7 +79,9 @@ translation:
   Chunked input via `setInput` with a throwing `readByte` replaces the input
   stream, whose read past the end throws `EOFException`. `init` makes two header
   checks, including a `code == range` check the Java decoder does not make; the
-  malformed-stream records cover both.
+  malformed-stream records cover both. `INPUT_MARGIN` has no Java counterpart:
+  it is the library's own bound on the bytes one symbol reads, which
+  `alone-decoder.ts` and `lzma2-decoder.ts` use for their input buffers.
 - **lzma-coder.ts** (`LZMACoder.java`, `State.java`): structured probability
   arrays (`isMatch[12][16]`, per-tree `Uint16Array`s, the ten `distSpecial`
   trees of 2 to 32 leaves) and the `State` class with the Java code's

@@ -29,6 +29,17 @@ import {
 /** Number of bytes the range decoder reads on initialization. */
 export const RANGE_DECODER_INIT_SIZE = 5;
 
+/**
+ * Upper bound of input bytes a single symbol can consume. The range decoder
+ * reads at most one byte per bit, and the longest symbol (a match with the
+ * largest distance) is 48 bits.
+ *
+ * XZ for Java has no such constant, because it reads from a stream. It lives
+ * here rather than in `alone-decoder.ts`, so that a bundle that decodes only
+ * LZMA2 doesn't pull in the `.lzma` decoder.
+ */
+export const INPUT_MARGIN = 64;
+
 export class RangeDecoder {
 	range = 0;
 	code = 0;
