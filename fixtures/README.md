@@ -37,14 +37,10 @@ or the name of the `IOException` it threw. The Java decoder reads the header
 itself, which turns on its relaxed end condition: at a known size, the range
 coder must be finished or one end marker must follow. The library's decoder
 checks the same condition. It must produce the same outcome kind (and, on
-success, the same bytes), except in two classes of corrupt input that it accepts
-where the Java decoder rejects them. Those cases carry the class (`deviation`)
+success, the same bytes), except in one class of corrupt input that it accepts
+where the Java decoder rejects it. Those cases carry the class (`deviation`)
 and the library's own outcome (`port`):
 
-- `end-marker-leniency`: an end marker before the declared size is accepted;
-  some producers write a size that is too large, and the marker is the recovery
-  mechanism. The output must equal the original input. The `strict` option turns
-  this leniency off.
 - `dict-size-clamp`: a header dictionary size beyond the Java code's supported
   range is clamped to the declared size instead of rejected. The output must
   equal the original input.
@@ -66,11 +62,12 @@ does, and `node fixtures/verify.ts` runs the same checks on Node (V8): every
 fixture's hash against `manifest.json`, `compress()` against every `.lzma`
 fixture byte for byte (each compressed twice in a row, so encoders reused from
 the pool are checked too), `decompress()` of every `.lzma` fixture against its
-input, and every
-malformed case against its recorded outcome, with the expected count of each
-class. The malformed cases run a second time with `strict`, where the
-`end-marker-leniency` cases must get the Java decoder's outcome. Every `.lzma2`
-fixture has to decode to its input, and every raw case has to match its
+input, and every malformed case against its recorded outcome, with the expected
+count of each class. The malformed cases run a second time with
+`tolerateEarlyEndMarker`, which has no Java counterpart: a case whose declared
+size exceeds its input must decode to exactly that input, and every other case
+must get the same outcome as without the option, down to the error class. Every
+`.lzma2` fixture has to decode to its input, and every raw case has to match its
 recorded outcome, with the expected count per format and outcome.
 
 ## CI

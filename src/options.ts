@@ -236,12 +236,12 @@ export interface OutputLimitOptions {
 	 * bomb" attacks where a few bytes of compressed data expand to gigabytes.
 	 *
 	 * If the header (or `uncompressedSize`) declares a size larger than the
-	 * limit, `OutputLimitError` is thrown before anything gets allocated, with
-	 * `strict` and for raw LZMA1. Without `strict`, an end marker can still
-	 * end the data within the limit, so such a size is treated like an
-	 * unknown one: `OutputLimitError` is thrown as soon as the output exceeds
-	 * the limit, and none of the excess bytes are returned or enqueued. An
-	 * output of exactly `maxOutputLength` bytes is allowed.
+	 * limit, `OutputLimitError` is thrown before anything gets allocated. With
+	 * `tolerateEarlyEndMarker`, an end marker can still end the data within the
+	 * limit, so such a size is treated like an unknown one: `OutputLimitError`
+	 * is thrown as soon as the output exceeds the limit, and none of the excess
+	 * bytes are returned or enqueued. An output of exactly `maxOutputLength`
+	 * bytes is allowed.
 	 *
 	 * For `decompressString()`, the limit counts UTF-8 bytes, not characters.
 	 */
@@ -251,25 +251,26 @@ export interface OutputLimitOptions {
 /** Options of `decompress`, `decompressString` and `Decompress`. */
 export interface DecompressionOptions extends OutputLimitOptions {
 	/**
-	 * Reject an end marker before the size the header declares, default
-	 * false. By default the data ends at such a marker, because some
-	 * producers write a size that is too large. XZ for Java and xz reject
-	 * it.
+	 * Tolerate an end marker before the size the header declares, which the
+	 * LZMA specification forbids, default false. The data then ends at the
+	 * marker, with less output than the header declares. Data that goes on
+	 * past the declared size is still an error. XZ for Java and xz reject
+	 * such a marker.
 	 */
-	strict?: boolean | undefined;
+	tolerateEarlyEndMarker?: boolean | undefined;
 }
 
 /** Options of `decompressAsync`. */
 export interface DecompressAsyncOptions extends DecompressionOptions, AsyncProgressOptions {}
 
-/** Validates the decompression options. Returns `strict`. */
-export function resolveStrict(options: DecompressionOptions = {}): boolean {
-	const strict = options.strict ?? false;
-	if (typeof strict !== "boolean") {
-		throw new RangeError(`Invalid strict: ${strict} (expected a boolean)`);
+/** Validates the decompression options. Returns `tolerateEarlyEndMarker`. */
+export function resolveTolerateEarlyEndMarker(options: DecompressionOptions = {}): boolean {
+	const tolerateEarlyEndMarker = options.tolerateEarlyEndMarker ?? false;
+	if (typeof tolerateEarlyEndMarker !== "boolean") {
+		throw new RangeError(`Invalid tolerateEarlyEndMarker: ${tolerateEarlyEndMarker} (expected a boolean)`);
 	}
 
-	return strict;
+	return tolerateEarlyEndMarker;
 }
 
 /**

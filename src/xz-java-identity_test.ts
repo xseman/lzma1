@@ -9,13 +9,15 @@
  * - on the malformed-stream set, the decoder's outcome matches the
  *   Java decoder's recorded outcome, except for the reviewed
  *   deviation classes, which carry the library's own recorded outcome;
- * - with `strict`, the same holds and `end-marker-leniency` cases get the
- *   Java decoder's outcome;
+ * - with `tolerateEarlyEndMarker`, which XZ for Java lacks, a case whose
+ *   declared size exceeds its input decodes to that input, and every other
+ *   case gets the same outcome as without it, down to the error class;
  * - every raw LZMA2 fixture decodes to its input, and on the raw LZMA1 and
  *   LZMA2 sets the raw decoders' outcomes match the Java decoder's;
  * - with `maxOutputLength` set to the output length, every fixture and every
- *   malformed `.lzma` case, with and without `strict`, and every raw LZMA1
- *   case gives the same outcome, and one byte less throws `OutputLimitError`.
+ *   malformed `.lzma` case, with and without `tolerateEarlyEndMarker`, and
+ *   every raw LZMA1 case gives the same outcome, and one byte less throws
+ *   `OutputLimitError`.
  *
  * The checks live in `fixtures/identity.ts`, shared with
  * `fixtures/verify.ts`, which runs them on Node.
@@ -36,7 +38,7 @@ import {
 	outputLimitChecks,
 	rawMalformedChecks,
 	recordChecks,
-	strictMalformedChecks,
+	tolerantMalformedChecks,
 } from "../fixtures/identity.ts";
 import * as library from "./index.js";
 
@@ -72,8 +74,8 @@ describe("malformed streams match recorded decoder expectations", () => {
 	});
 });
 
-describe("malformed streams in strict mode", () => {
-	test.each(strictMalformedChecks(library, manifest, records).map((check) => [check.name, check] as const))("%s", async (_, check) => {
+describe("malformed streams with tolerateEarlyEndMarker", () => {
+	test.each(tolerantMalformedChecks(library, manifest).map((check) => [check.name, check] as const))("%s", async (_, check) => {
 		const mismatch = await check.run();
 
 		expect(mismatch).toBeUndefined();

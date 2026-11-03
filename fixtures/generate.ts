@@ -485,12 +485,6 @@ function classifyDeviation(malformedCase: MalformedCase, java: DecodeOutcome, po
 	const restoresInput = port.length === input.length && port.sha256 === sha256(input);
 	const op = malformedCase.op;
 
-	// An end marker before the declared size is accepted (alone-decoder.ts:
-	// recovery for producers that write a size that is too large).
-	if (op.kind === "declaredSize" && restoresInput) {
-		return "end-marker-leniency";
-	}
-
 	// A header dictionary size beyond the Java code's supported range is
 	// clamped to the declared size instead of rejected.
 	if (op.kind === "header" && op.field === "dictSize" && restoresInput) {

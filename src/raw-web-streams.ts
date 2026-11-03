@@ -20,11 +20,11 @@ import {
 } from "./web-streams.js";
 
 /**
- * Decompresses a stream of raw LZMA1 data, which has no `.lzma` header. An
- * end marker before a known size is an error, as with `strict`. Invalid
- * options throw a `RangeError`, a dictionary over `memoryLimitKb` throws a
- * `MemoryLimitError`, and an `uncompressedSize` over `maxOutputLength` throws
- * `OutputLimitError`. All of these are thrown by the constructor. If the
+ * Decompresses a stream of raw LZMA1 data, which has no `.lzma` header. An end
+ * marker before a known size is an error, as in `Decompress` by default.
+ * Invalid options throw a `RangeError`, a dictionary over `memoryLimitKb`
+ * throws a `MemoryLimitError`, and an `uncompressedSize` over `maxOutputLength`
+ * throws `OutputLimitError`. All of these are thrown by the constructor. If the
  * output would exceed `maxOutputLength` while decoding, the stream fails with
  * `OutputLimitError`.
  *
@@ -36,7 +36,7 @@ export class DecompressRawLzma1 extends TransformStreamBase<BinaryInput, Uint8Ar
 		const { header, maxOutputLength } = resolveRawLzma1Options(options);
 
 		super(createDecoderTransformer((sink) => {
-			const decoder = new AloneDecoder(sink, 0, false, true, maxOutputLength);
+			const decoder = new AloneDecoder(sink, 0, false, false, maxOutputLength);
 			decoder.start(header);
 
 			return decoder;

@@ -215,7 +215,7 @@ describe("options", () => {
 		// exactOptionalPropertyTypes, fails if one stops accepting undefined.
 		// A new optional field has to be added here to be covered.
 		const compression: CompressAsyncOptions = { level: undefined, dictSize: undefined, lc: undefined, lp: undefined, pb: undefined, mode: undefined, niceLen: undefined, matchFinder: undefined, depth: undefined, endMarker: undefined, onProgressAsync: undefined };
-		const decompression: DecompressAsyncOptions = { strict: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
+		const decompression: DecompressAsyncOptions = { tolerateEarlyEndMarker: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
 		const rawLzma1: RawLzma1AsyncOptions = { lc: 3, lp: 0, pb: 2, dictSize: 1 << 16, uncompressedSize: undefined, memoryLimitKb: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
 		const rawLzma2: RawLzma2Options = { dictSize: 1 << 16, memoryLimitKb: undefined };
 
@@ -407,25 +407,11 @@ describe("decompression errors", () => {
 		expect(() => decompress(bad)).toThrow("Corrupted input");
 	});
 
-	test("declared size larger than the data ends at the end marker", () => {
+	test("declared size larger than the data with an end marker", () => {
 		const tooLarge = compressed.slice();
 		new DataView(tooLarge.buffer).setUint32(5, 0xFFFF, true);
 
-		expect(decompress(tooLarge)).toEqual(input);
-	});
-
-	test("declared size larger than the data, decoded in place", () => {
-		// A dictionary larger than the declared size: the output buffer is
-		// allocated at once and returned without copying.
-		const tooLarge = compressed.slice();
-		const view = new DataView(tooLarge.buffer);
-		view.setUint32(1, 1 << 20, true);
-		view.setUint32(5, 0xFFFF, true);
-
-		const output = decompress(tooLarge);
-
-		expect(output).toEqual(input);
-		expect(output.byteLength).toBe(input.length);
+		expect(() => decompress(tooLarge)).toThrow("Corrupted input: end marker before the declared size");
 	});
 
 	test("declared size larger than the data without an end marker", () => {
@@ -574,40 +560,62 @@ describe("decoder reuse", () => {
 	});
 });
 
-describe("strict", () => {
-	const input = new TextEncoder().encode("An end marker before the declared size ends the data. ".repeat(10));
-	const compressed = compress(input);
+describe("tolerateEarlyEndMarker", () => {
+	const text = "An end marker before the declared size ends the data. ".repeat(10);
+	const input = new TextEncoder().encode(text);
+	const compressed = compress(input, { endMarker: true });
 	const tooLarge = compressed.slice();
 	new DataView(tooLarge.buffer).setUint32(5, input.length + 100, true);
 	const unknownSize = compressed.slice();
 	unknownSize.fill(0xFF, 5, 13);
 
-	test("rejects an end marker before the declared size", () => {
-		expect(() => decompress(tooLarge, { strict: true })).toThrow("Corrupted input: end marker before the declared size");
+	test("rejects an end marker before the declared size by default", () => {
+		expect(() => decompress(tooLarge)).toThrow("Corrupted input: end marker before the declared size");
 	});
 
-	test("accepts that marker without strict", () => {
-		const output = decompress(tooLarge);
+	test("accepts that marker when set", () => {
+		const output = decompress(tooLarge, { tolerateEarlyEndMarker: true });
 
 		expect(output).toEqual(input);
+	});
+
+	test("decodes that marker in place when set", () => {
+		// A dictionary larger than the declared size: the output buffer is
+		// allocated at once and returned without copying.
+		const inPlace = tooLarge.slice();
+		new DataView(inPlace.buffer).setUint32(1, 1 << 20, true);
+
+		const output = decompress(inPlace, { tolerateEarlyEndMarker: true });
+
+		expect(output).toEqual(input);
+		expect(output.byteLength).toBe(input.length);
+	});
+
+	test("still rejects data past the declared size when set", () => {
+		const tooSmall = compressed.slice();
+		new DataView(tooSmall.buffer).setUint32(5, input.length - 10, true);
+
+		expect(() => decompress(tooSmall, { tolerateEarlyEndMarker: true })).toThrow("Corrupted input");
 	});
 
 	test.each([
 		["an end marker at the declared size", compressed],
 		["a known size without an end marker", compress(input, { endMarker: false })],
 		["an unknown size", unknownSize],
-	])("accepts %s", (_, data) => {
-		const output = decompress(data, { strict: true });
+	])("accepts %s by default", (_, data) => {
+		const output = decompress(data);
 
 		expect(output).toEqual(input);
 	});
 
 	test("applies to decompressString", () => {
-		expect(() => decompressString(tooLarge, { strict: true })).toThrow("end marker before the declared size");
+		const output = decompressString(tooLarge, { tolerateEarlyEndMarker: true });
+
+		expect(output).toBe(text);
 	});
 
-	test.each([1, "yes"])("rejects strict: %p", (strict) => {
-		expect(() => decompress(compressed, { strict } as never)).toThrow(RangeError);
+	test.each([1, "yes"])("rejects tolerateEarlyEndMarker: %p", (tolerateEarlyEndMarker) => {
+		expect(() => decompress(compressed, { tolerateEarlyEndMarker } as never)).toThrow(RangeError);
 	});
 });
 
@@ -644,8 +652,8 @@ describe("maxOutputLength", () => {
 		expect(output).toEqual(input);
 	});
 
-	test.each([false, true])("rejects a declared size over the limit with strict: %p", (strict) => {
-		const error = thrownBy(() => decompress(compressed, { strict, maxOutputLength: input.length - 1 }));
+	test.each([false, true])("rejects a declared size over the limit with tolerateEarlyEndMarker: %p", (tolerateEarlyEndMarker) => {
+		const error = thrownBy(() => decompress(compressed, { tolerateEarlyEndMarker, maxOutputLength: input.length - 1 }));
 
 		expect(error).toBeInstanceOf(OutputLimitError);
 		expect(error).toMatchObject({ name: "OutputLimitError", declaredSize: input.length, maxOutputLength: input.length - 1 });
@@ -661,13 +669,14 @@ describe("maxOutputLength", () => {
 	});
 
 	test.each([
-		["an unknown size", unknownSizeBomb],
-		["a known size over the limit, without strict", knownSizeBomb],
-	])("stops a small input that expands far past the limit, with %s", async (_, bomb) => {
+		["an unknown size", unknownSizeBomb, false],
+		["a known size over the limit, with tolerateEarlyEndMarker", knownSizeBomb, true],
+	])("stops a small input that expands far past the limit, with %s", async (_, bomb, tolerateEarlyEndMarker) => {
 		let calls = 0;
 
-		const run = () => decompress(bomb, { maxOutputLength: 1 << 20 });
+		const run = () => decompress(bomb, { tolerateEarlyEndMarker, maxOutputLength: 1 << 20 });
 		const result = decompressAsync(bomb, {
+			tolerateEarlyEndMarker,
 			maxOutputLength: 1 << 20,
 			onProgressAsync: () => {
 				calls++;
@@ -712,11 +721,10 @@ describe("maxOutputLength", () => {
 		expect(unknown).toMatchObject({ name: "OutputLimitError", declaredSize: undefined });
 	});
 
-	test("rejects a declared size after the first progress call with strict, like other errors in the header", async () => {
+	test("rejects a declared size after the first progress call, like other errors in the header", async () => {
 		const progress: number[] = [];
 
 		const result = decompressAsync(compressed, {
-			strict: true,
 			maxOutputLength: input.length - 1,
 			onProgressAsync: ({ progress: value }) => {
 				progress.push(value);
@@ -1030,11 +1038,12 @@ describe("async decompression", () => {
 	test.each([
 		["a small input", compress(sample(1000), 1), {}],
 		["a known size with an end marker", compress(sample(600_000), 1), {}],
-		["a known size without one, strict", compress(sample(600_000), { level: 1, endMarker: false }), { strict: true }],
+		["a known size with an end marker, tolerating an early one", compress(sample(600_000), 1), { tolerateEarlyEndMarker: true }],
+		["a known size without one", compress(sample(600_000), { level: 1, endMarker: false }), {}],
 		["an unknown size", withUnknownSize(compress(sample(600_000), 1)), {}],
 		// A multiple of the 256 KiB pause, where the last pause is the end, and one byte more.
-		["524,288 bytes", compress(sample(524_288), { level: 1, endMarker: false }), { strict: true }],
-		["524,289 bytes", compress(sample(524_289), { level: 1, endMarker: false }), { strict: true }],
+		["524,288 bytes", compress(sample(524_288), { level: 1, endMarker: false }), {}],
+		["524,289 bytes", compress(sample(524_289), { level: 1, endMarker: false }), {}],
 	] as [string, Uint8Array, DecompressionOptions][])("output for %s equals decompress", async (_, compressed, options) => {
 		const decompressed = await decompressAsync(compressed, { ...options, onProgressAsync: yieldToTimer });
 

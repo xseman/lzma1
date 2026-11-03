@@ -112,10 +112,10 @@ export function deriveBadHeaders(source: string, fixture: Uint8Array): Malformed
 }
 
 /**
- * Declared-size patches on a stream that carries an end marker: the cases
- * where the library's documented leniency (an end marker before the
- * declared size is accepted, for producers that write a size that is too
- * large) legitimately diverges from the Java code.
+ * Declared-size patches on a stream that carries an end marker: the size
+ * matches the data, or the marker comes before or after the declared size.
+ * The decoder rejects a marker before the size, as the Java code does, and
+ * `tolerateEarlyEndMarker` accepts it.
  */
 export function deriveMarkerSizePatches(source: string, fixture: Uint8Array, actualSize: number): MalformedCase[] {
 	const bytes = copyBytes(fixture);

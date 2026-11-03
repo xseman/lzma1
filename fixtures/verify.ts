@@ -24,7 +24,7 @@ import {
 	outputLimitChecks,
 	rawMalformedChecks,
 	recordChecks,
-	strictMalformedChecks,
+	tolerantMalformedChecks,
 } from "./identity.ts";
 
 const repoRoot = path.join(import.meta.dirname, "..");
@@ -41,7 +41,7 @@ const groups: [string, IdentityCheck[]][] = [
 	["fixture records", recordChecks(manifest, records, rawRecords)],
 	["byte identity with XZ for Java", cellChecks(library, manifest)],
 	["malformed streams match recorded decoder expectations", malformedChecks(library, manifest, records)],
-	["malformed streams in strict mode", strictMalformedChecks(library, manifest, records)],
+	["malformed streams with tolerateEarlyEndMarker", tolerantMalformedChecks(library, manifest)],
 	["raw streams match the Java decoder", rawMalformedChecks(library, manifest, rawRecords)],
 	["output limit at the edge of every output", outputLimitChecks(library, manifest)],
 ];

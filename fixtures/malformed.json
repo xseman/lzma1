@@ -7232,12 +7232,6 @@
 			"java": {
 				"status": "error",
 				"error": "CorruptedInputException"
-			},
-			"deviation": "end-marker-leniency",
-			"port": {
-				"status": "ok",
-				"length": 100,
-				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
 			}
 		},
 		{
@@ -7250,12 +7244,6 @@
 			"java": {
 				"status": "error",
 				"error": "CorruptedInputException"
-			},
-			"deviation": "end-marker-leniency",
-			"port": {
-				"status": "ok",
-				"length": 100,
-				"sha256": "daadd785d925826f2236ce4ddd402efdce24773205d566547222310938f1e719"
 			}
 		},
 		{

@@ -58,7 +58,7 @@ export class AloneDecoder {
 	private paused = false;
 	private readonly preallocateLimit: number;
 	private readonly reuse: boolean;
-	private readonly strict: boolean;
+	private readonly tolerateEarlyEndMarker: boolean;
 	private readonly maxOutputLength: number;
 	/** The number of bytes that have been passed to the sink so far. */
 	private outputLength = 0;
@@ -77,15 +77,16 @@ export class AloneDecoder {
 	 * @param preallocateLimit Largest declared size for which the output
 	 *        buffer is allocated at once
 	 * @param reuse Reuse probability arrays of earlier decoders.
-	 * @param strict Reject an end marker before the declared size
+	 * @param tolerateEarlyEndMarker Accept an end marker before the declared
+	 *        size
 	 * @param maxOutputLength Throw `OutputLimitError` if the output would
 	 *        exceed this many bytes
 	 */
-	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false, strict = false, maxOutputLength = Infinity) {
+	constructor(sink: (chunk: Uint8Array) => void, preallocateLimit = 0, reuse = false, tolerateEarlyEndMarker = false, maxOutputLength = Infinity) {
 		this.sink = sink;
 		this.preallocateLimit = preallocateLimit;
 		this.reuse = reuse;
-		this.strict = strict;
+		this.tolerateEarlyEndMarker = tolerateEarlyEndMarker;
 		this.maxOutputLength = maxOutputLength;
 	}
 
@@ -198,10 +199,10 @@ export class AloneDecoder {
 		lz.flush();
 
 		if (endMarker) {
-			// An end marker before the declared size is accepted too, as in
-			// earlier versions: some producers write a size that is too large.
-			// `strict` rejects it. An unknown size is -1, so it is never early.
-			if (this.strict && lzma.outPos < size) {
+			// An end marker before the declared size breaks the LZMA
+			// specification, and XZ for Java rejects it. An unknown size is -1,
+			// so it is never early.
+			if (!this.tolerateEarlyEndMarker && lzma.outPos < size) {
 				throw new Error("Corrupted input: end marker before the declared size");
 			}
 
@@ -234,12 +235,12 @@ export class AloneDecoder {
 	 * header; for raw data, which has none, the caller does before `write`.
 	 */
 	start(header: LzmaHeader): void {
-		// In strict mode, a declared size over the limit can never decode
-		// within it, so check it first, before anything gets allocated or taken
-		// from the spare probability arrays. In lenient mode, an end marker may
-		// still end the data within the limit, so the cap and the counter below
-		// handle it like an unknown size.
-		if (this.strict) {
+		// By default, a declared size over the limit can never decode within
+		// it, so check it first, before anything gets allocated or taken from
+		// the spare probability arrays. With `tolerateEarlyEndMarker`, an end
+		// marker may still end the data within the limit, so the cap and the
+		// counter below handle it like an unknown size.
+		if (!this.tolerateEarlyEndMarker) {
 			checkDeclaredSize(header.uncompressedSize, this.maxOutputLength);
 		}
 
@@ -256,8 +257,8 @@ export class AloneDecoder {
 		// reaches limit + 1 bytes, the buffer fills up and flushes to the sink,
 		// which then throws. Without this cap, a small input could decode up to
 		// 4 GiB before the first flush gives the counter a chance to notice.
-		// This applies to a known size too, which lenient mode lets exceed the
-		// limit.
+		// This applies to a known size too, which `tolerateEarlyEndMarker` lets
+		// exceed the limit.
 		dictSize = Math.min(dictSize, this.maxOutputLength + 1);
 
 		const size = header.uncompressedSize;

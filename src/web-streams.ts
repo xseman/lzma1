@@ -15,7 +15,7 @@ import {
 	type DecompressionOptions,
 	resolveMaxOutputLength,
 	resolveOptions,
-	resolveStrict,
+	resolveTolerateEarlyEndMarker,
 } from "./options.js";
 
 // Resolved at construction time, so importing this module doesn't fail in
@@ -55,11 +55,10 @@ export class Compress extends TransformStreamBase<BinaryInput, Uint8Array> {
 }
 
 /**
- * Decompresses a stream of `.lzma` data. `{ strict: true }` rejects an end
- * marker before the declared size; an invalid option throws a `RangeError`.
- * If the output would exceed `maxOutputLength`, the stream fails with
- * `OutputLimitError`, after first delivering the chunks that fit within the
- * limit.
+ * Decompresses a stream of `.lzma` data. An invalid option throws a
+ * `RangeError`. If the output would exceed `maxOutputLength`, the stream fails
+ * with `OutputLimitError`, after first delivering the chunks that fit within
+ * the limit.
  *
  * @example
  * const response = await fetch("data.lzma");
@@ -67,10 +66,10 @@ export class Compress extends TransformStreamBase<BinaryInput, Uint8Array> {
  */
 export class Decompress extends TransformStreamBase<BinaryInput, Uint8Array> {
 	constructor(options?: DecompressionOptions) {
-		const strict = resolveStrict(options);
+		const tolerateEarlyEndMarker = resolveTolerateEarlyEndMarker(options);
 		const maxOutputLength = resolveMaxOutputLength(options);
 
-		super(createDecoderTransformer((sink) => new AloneDecoder(sink, 0, false, strict, maxOutputLength)));
+		super(createDecoderTransformer((sink) => new AloneDecoder(sink, 0, false, tolerateEarlyEndMarker, maxOutputLength)));
 	}
 }
 
