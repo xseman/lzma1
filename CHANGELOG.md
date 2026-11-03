@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0](https://github.com/xseman/lzma1/compare/v0.6.5...v0.7.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* `decompressString` now decodes invalid UTF-8 as U+FFFD without an error. Strings that lzma1 v0.3.0 and older (the latest release until 2026-09-30) or LZMA-JS compressed lose any NUL and any character beyond U+FFFF, such as emoji. To read them, convert them once with 0.6.x, or where that isn't possible, such as in links, QR codes, or client-side storage, decode them with 0.6.x installed as `"lzma1-legacy": "npm:lzma1@0.6.x"`, or pass the output of `decompress` to your own decoder. Use `decompress` for binary data.
+
+### Features
+
+* remove the modified UTF-8 fallback, decoding invalid UTF-8 as U+FFFD ([#56](https://github.com/xseman/lzma1/issues/56)) ([523d00d](https://github.com/xseman/lzma1/commit/523d00d065788feace18efc01d2fd4e96e00b4f9))
+
 ## [0.6.5](https://github.com/xseman/lzma1/compare/v0.6.4...v0.6.5) (2026-11-02)
 
 
