@@ -16,6 +16,7 @@ import {
 	decompressRawLzma1,
 	decompressRawLzma1Async,
 	decompressRawLzma2,
+	decompressRawLzma2Async,
 	decompressString,
 	MemoryLimitError,
 	OutputLimitError,
@@ -29,7 +30,7 @@ import {
 	type DecompressionOptions,
 	type ProgressEventArgs,
 	type RawLzma1AsyncOptions,
-	type RawLzma2Options,
+	type RawLzma2AsyncOptions,
 	resolveOptions,
 } from "./options.js";
 
@@ -216,7 +217,7 @@ describe("options", () => {
 		const compression: CompressAsyncOptions = { level: undefined, dictSize: undefined, lc: undefined, lp: undefined, pb: undefined, mode: undefined, niceLen: undefined, matchFinder: undefined, depth: undefined, endMarker: undefined, onProgressAsync: undefined };
 		const decompression: DecompressAsyncOptions = { tolerateEarlyEndMarker: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
 		const rawLzma1: RawLzma1AsyncOptions = { lc: 3, lp: 0, pb: 2, dictSize: 1 << 16, uncompressedSize: undefined, memoryLimitKb: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
-		const rawLzma2: RawLzma2Options = { dictSize: 1 << 16, memoryLimitKb: undefined, maxOutputLength: undefined };
+		const rawLzma2: RawLzma2AsyncOptions = { dictSize: 1 << 16, memoryLimitKb: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
 
 		const outputs = [
 			compress(input, compression),
@@ -226,10 +227,10 @@ describe("options", () => {
 			decompressRawLzma1(raw, rawLzma1),
 			await decompressRawLzma1Async(raw, rawLzma1),
 		];
-		const emptyLzma2 = decompressRawLzma2(new Uint8Array([0x00]), rawLzma2);
+		const emptyLzma2 = [decompressRawLzma2(new Uint8Array([0x00]), rawLzma2), await decompressRawLzma2Async(new Uint8Array([0x00]), rawLzma2)];
 
 		expect(outputs).toEqual([compressed, compressed, input, input, input, input]);
-		expect(emptyLzma2).toEqual(new Uint8Array(0));
+		expect(emptyLzma2).toEqual([new Uint8Array(0), new Uint8Array(0)]);
 	});
 
 	test("level as a string, like v0.3.0", () => {

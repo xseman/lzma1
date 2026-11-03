@@ -69,6 +69,7 @@ describe("tree shaking", () => {
 	test.each([
 		[["decompressRawLzma2"]],
 		[["DecompressRawLzma2"]],
+		[["decompressRawLzma2Async"]],
 	])("leaves the .lzma decoder out of an app that imports %p", async (names) => {
 		const code = await bundle(names);
 

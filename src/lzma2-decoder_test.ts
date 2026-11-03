@@ -3,13 +3,17 @@ import {
 	expect,
 	test,
 } from "bun:test";
+import { readFileSync } from "node:fs";
 
 import {
 	compress,
 	type CompressionOptions,
 	decompressRawLzma2,
+	decompressRawLzma2Async,
 	MemoryLimitError,
 	OutputLimitError,
+	type ProgressEventArgs,
+	type RawLzma2AsyncOptions,
 } from "./index.js";
 import { LzDecoder } from "./lz-decoder.js";
 import {
@@ -363,6 +367,128 @@ describe("LZMA2 maxOutputLength", () => {
 		const run = () => decompressRawLzma2(stream, { dictSize: 0xFFFFFFFF, memoryLimitKb: 1, maxOutputLength: -1 });
 
 		expect(run).toThrow(RangeError);
+	});
+});
+
+describe("decompressRawLzma2Async", () => {
+	const yieldToTimer = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+	// 650 KB in alternating LZMA chunks of 100 KB and uncompressed chunks of
+	// 30 KB. Decoding pauses after an LZMA chunk and after an uncompressed
+	// chunk.
+	const large = concat(
+		...[1, 2, 3, 4, 5].flatMap((seed) => [lzmaChunk(0xE0, sample(100_000, seed)), uncompressedChunk(0x01, sample(30_000, seed + 10))]),
+		END,
+	);
+	const largeOptions = { dictSize: 1 << 20 };
+
+	// XZ for Java's output: a chunk of 2,097,078 bytes, then a 0x80 chunk,
+	// which keeps the LZMA state and has matches reaching back into the
+	// first chunk. The first pause falls between them.
+	const longDistance = new Uint8Array(readFileSync(new URL("../fixtures/corpus/longdist-2m-fast.lzma2", import.meta.url)));
+
+	test.each([
+		["every kind of chunk", stream, { dictSize: 1 << 16 }],
+		["several pauses", large, largeOptions],
+		["a pause before a chunk without a reset", longDistance, { dictSize: 1 << 22 }],
+		["an empty stream", END, { dictSize: 4096 }],
+	])("output for %s equals decompressRawLzma2", async (_, data, options) => {
+		const decompressed = await decompressRawLzma2Async(data, { ...options, onProgressAsync: yieldToTimer });
+
+		expect(decompressed).toEqual(decompressRawLzma2(data, options));
+	});
+
+	test("progress starts at 0, never decreases, and reports 1 once, at the end", async () => {
+		const progress: number[] = [];
+
+		await decompressRawLzma2Async(large, {
+			...largeOptions,
+			onProgressAsync: (eventArgs) => {
+				progress.push(eventArgs.progress);
+			},
+		});
+
+		expect(progress[0]).toBe(0);
+		expect([...progress].sort((a, b) => a - b)).toEqual(progress);
+		expect(progress.indexOf(1)).toBe(progress.length - 1);
+		expect(progress.length).toBeGreaterThan(2);
+	});
+
+	test("pauses once after each chunk that is larger than the pause interval", async () => {
+		const zeros = lzmaChunk(0xE0, new Uint8Array(2 << 20));
+		const data = concat(zeros, zeros, zeros, zeros, END);
+		const pauses = [1, 2, 3, 4].map((chunks) => (chunks * zeros.length) / data.length);
+		const progress: number[] = [];
+
+		await decompressRawLzma2Async(data, {
+			dictSize: 1 << 22,
+			onProgressAsync: (eventArgs) => {
+				progress.push(eventArgs.progress);
+			},
+		});
+
+		expect(progress).toEqual([0, ...pauses, 1]);
+	});
+
+	test.each(
+		[
+			["first", (progress: number) => progress === 0],
+			["middle", (progress: number) => progress > 0 && progress < 1],
+			["last", (progress: number) => progress === 1],
+		] as const,
+	)("cancelling at the %s call rejects, and a later call is unaffected", async (_, isTarget) => {
+		const error = new Error("cancelled");
+		const onProgressAsync = async ({ progress }: ProgressEventArgs) => {
+			await yieldToTimer();
+			if (isTarget(progress)) {
+				throw error;
+			}
+		};
+
+		const cancelled = await decompressRawLzma2Async(large, { ...largeOptions, onProgressAsync }).catch((reason: unknown) => reason);
+		const again = await decompressRawLzma2Async(large, { ...largeOptions, onProgressAsync: yieldToTimer });
+
+		expect(cancelled).toBe(error);
+		expect(again).toEqual(decompressRawLzma2(large, largeOptions));
+	});
+
+	test("truncated input rejects with the error of decompressRawLzma2", async () => {
+		const truncated = large.subarray(0, large.length - 100);
+
+		const rejection = await decompressRawLzma2Async(truncated, { ...largeOptions, onProgressAsync: yieldToTimer }).catch((reason: unknown) => reason);
+
+		expect(rejection).toBeInstanceOf(Error);
+		expect(() => decompressRawLzma2(truncated, largeOptions)).toThrow((rejection as Error).message);
+	});
+
+	test("applies maxOutputLength", async () => {
+		const expected = decompressRawLzma2(large, largeOptions);
+
+		const atLimit = await decompressRawLzma2Async(large, { ...largeOptions, maxOutputLength: expected.length, onProgressAsync: yieldToTimer });
+		const overLimit = decompressRawLzma2Async(large, { ...largeOptions, maxOutputLength: expected.length - 1, onProgressAsync: yieldToTimer });
+
+		expect(atLimit).toEqual(expected);
+		await expect(overLimit).rejects.toBeInstanceOf(OutputLimitError);
+	});
+
+	test("rejects invalid options before the first progress call", async () => {
+		let calls = 0;
+
+		const result = decompressRawLzma2Async(stream, {
+			dictSize: 100,
+			onProgressAsync: () => {
+				calls++;
+			},
+		});
+
+		await expect(result).rejects.toBeInstanceOf(RangeError);
+		expect(calls).toBe(0);
+	});
+
+	test("a non-function onProgressAsync rejects with a RangeError", async () => {
+		const result = decompressRawLzma2Async(stream, { dictSize: 1 << 16, onProgressAsync: "not a function" } as unknown as RawLzma2AsyncOptions);
+
+		await expect(result).rejects.toBeInstanceOf(RangeError);
 	});
 });
 

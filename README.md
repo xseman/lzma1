@@ -71,7 +71,7 @@ npm install lzma1
 
 ## Quick start
 
-Six functions compress and decompress the `.lzma` format, and three decode
+Six functions compress and decompress the `.lzma` format, and four decode
 raw data:
 
 ```ts
@@ -89,6 +89,7 @@ decompressString(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOpt
 decompressRawLzma1(data: ArrayBuffer | ArrayBufferView, options: RawLzma1Options): Uint8Array
 decompressRawLzma1Async(data: ArrayBuffer | ArrayBufferView, options: RawLzma1AsyncOptions): Promise<Uint8Array>
 decompressRawLzma2(data: ArrayBuffer | ArrayBufferView, options: RawLzma2Options): Uint8Array
+decompressRawLzma2Async(data: ArrayBuffer | ArrayBufferView, options: RawLzma2AsyncOptions): Promise<Uint8Array>
 ```
 
 The `Async` functions return the same bytes as the functions without the

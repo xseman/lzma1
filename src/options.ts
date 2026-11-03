@@ -351,6 +351,9 @@ export interface RawLzma2Options extends OutputLimitOptions {
 	memoryLimitKb?: number | undefined;
 }
 
+/** Options of `decompressRawLzma2Async`. */
+export interface RawLzma2AsyncOptions extends RawLzma2Options, AsyncProgressOptions {}
+
 /** Largest dictionary size a container can declare: 4 GiB - 1. */
 const RAW_DICT_SIZE_MAX = 0xFFFFFFFF;
 

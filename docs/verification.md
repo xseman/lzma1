@@ -540,6 +540,50 @@ are the same as without pauses:
   "Probability arrays reused between one-shot decoders" holds for interleaved
   calls.
 
+`decompressRawLzma2Async` decodes with the same `Lzma2Decoder` as
+`decompressRawLzma2`. Both get it from `createLzma2OneShotDecoder`, so both
+paths build the same sink and output collection. Without a callback, the async
+function runs `decompressRawLzma2Data`. With one, `decodeInMemory` decodes the
+whole input, which is all in memory, and stops once the output reaches the pause
+point. The driver then awaits `onProgressAsync` and sets the next pause point
+`DECOMPRESS_SLICE_SIZE` bytes past the output so far. One ported file changes:
+the loop of `Lzma2Decoder.write` moves into a private method,
+`decode(input, pos, pauseAt)`. It starts at `pos` and returns the position it
+reached. It has one more loop condition, `outputLength < pauseAt`, where
+`outputLength` counts the bytes each step decodes. Unlike LZMA1, a pause doesn't
+stop inside `LzmaDecoder.decode`. With the whole input available, every step
+that produces output completes its chunk, so a pause comes at the end of a
+chunk, at most 2 MiB past the pause point. The output and the errors are the
+same as without pauses:
+
+- _`write` is unchanged._ It calls `decode` with `pos` 0 and `pauseAt`
+  `Infinity`, so the extra condition always holds and the loop is the old one.
+- _A pause is a split of the input._ `decode` checks its condition only at the
+  top of the loop, between steps. After every step, the decoder's state is all
+  in fields: the chunk header collected so far, the sizes left in the chunk,
+  `inBuf` and `inPos`, the reset flags, `outPos`, the LZMA state and the
+  dictionary. `write` already stops at such a point at the end of every piece of
+  input that the stream receives, and the next `write` starts at position 0 of
+  the next piece. A pause stops at the same kind of point. The next call
+  continues on the same `input` from `inputPos`, and the public functions ask
+  the caller not to change `input` until the promise settles. So a decode with
+  pauses runs the same steps as `write` would, given the input split at the
+  pause positions, and the decoder handles input split anywhere
+  (lzma2-decoder.ts entry).
+- _The end checks are the same._ The chunk checks run inside the steps, as
+  before. `decode` stops early only on the pause condition, so `decodeInMemory`
+  returns `false` only when the data hasn't ended and input is left. Otherwise
+  it calls `end()`, which throws `Truncated input` if the end marker hasn't been
+  read, as `decompressRawLzma2Data` does after `write`. Both paths ignore input
+  after the end marker, because the loop stops at `endReached`.
+- _The same bytes reach the output._ The loop flushes the dictionary after every
+  step, so the sink receives the same bytes after each step on both paths. The
+  output collection appends them in order. The `limitSink` wrapper sees the same
+  byte counts, so `maxOutputLength` throws at the same chunk.
+- _Cancellation and interleaved calls._ The decoder is created after the first
+  callback returns, and LZMA2 doesn't use the probability spares, so concurrent
+  calls don't share anything. A call cancelled at a callback drops its decoder.
+
 ### Output limit
 
 `maxOutputLength` has no counterpart in XZ for Java. For `.lzma` and raw LZMA1

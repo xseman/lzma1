@@ -164,7 +164,7 @@ return out.finish();
 - Acronyms follow camel/Pascal case (`decodeUtf8`, `toUint8Array`); the legacy
   `LZMA` class keeps its name
 - Class privacy is the `private` modifier (plus `readonly` where it holds),
-  never `#field` and no `_` prefix
+  never `#field`; a `_` prefix only for a field behind a same-named getter
 - Full names; short ones only in a tight scope (loop variables, lambda
   parameters) or where they mirror XZ for Java (`lc`, `lp`, `pb`, `rep0`)
 
