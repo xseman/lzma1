@@ -1,7 +1,8 @@
 /**
  * Output limit for decoding untrusted input, where a few bytes can declare or
  * expand to gigabytes. The limit lets a caller refuse such data: up front when
- * a strict decoder knows the size, otherwise once the output passes the limit.
+ * the decoder knows the size and holds the data to it (unless
+ * `tolerateEarlyEndMarker` is set), otherwise once the output passes the limit.
  */
 
 import { UNKNOWN_SIZE } from "./header.js";

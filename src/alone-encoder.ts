@@ -55,7 +55,10 @@ export class AloneEncoder {
 	 */
 	constructor(options: ResolvedOptions, uncompressedSize: number = UNKNOWN_SIZE, reuse = false) {
 		const knownSize = uncompressedSize !== UNKNOWN_SIZE;
-		if (!knownSize && !options.endMarker) {
+		// A known size in the header ends the data, so the marker is opt-in
+		// there, as in XZ for Java's `LZMAOutputStream`.
+		const endMarker = options.endMarker ?? !knownSize;
+		if (!knownSize && !endMarker) {
 			throw new RangeError("Invalid endMarker: false (the end marker is required when the size is unknown, e.g. in a stream)");
 		}
 
@@ -64,7 +67,7 @@ export class AloneEncoder {
 			: options.dictSize;
 
 		this.expectedSize = uncompressedSize;
-		this.endMarker = options.endMarker;
+		this.endMarker = endMarker;
 		this.rc = new RangeEncoder(knownSize ? Math.min(uncompressedSize >>> 1, 1 << 20) + 64 : 1 << 16);
 		this.rc.writeBytes(encodeHeader({
 			lc: options.lc,

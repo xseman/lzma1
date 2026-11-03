@@ -143,20 +143,18 @@ describe("bad files", () => {
 		expect(decode).toThrow(message);
 	});
 
-	test("rejects bad-too_big_size-with_eopm.lzma with strict", () => {
+	test("rejects bad-too_big_size-with_eopm.lzma", () => {
 		const file = read("bad-too_big_size-with_eopm.lzma");
 
-		const decode = () => decompress(file, { strict: true });
+		const decode = () => decompress(file);
 
 		expect(decode).toThrow("Corrupted input: end marker before the declared size");
 	});
 
-	// Without strict, an end marker before the declared size ends the data,
-	// for producers that write a size that is too large.
-	test("decodes bad-too_big_size-with_eopm.lzma to its data without strict", () => {
+	test("decodes bad-too_big_size-with_eopm.lzma to its data with tolerateEarlyEndMarker", () => {
 		const file = read("bad-too_big_size-with_eopm.lzma");
 
-		const output = decompress(file);
+		const output = decompress(file, { tolerateEarlyEndMarker: true });
 
 		expect(output).toEqual(decompress(read("good-known_size-with_eopm.lzma")));
 	});

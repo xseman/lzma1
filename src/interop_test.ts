@@ -103,7 +103,7 @@ describe("round trip", () => {
 
 		test(`${name} without end marker at every level`, () => {
 			for (const level of levels) {
-				const withMarker = compress(input, { level });
+				const withMarker = compress(input, { level, endMarker: true });
 
 				const withoutMarker = compress(input, { level, endMarker: false });
 
@@ -140,9 +140,9 @@ describe("round trip", () => {
 
 describe.skipIf(!hasXz)("xz interoperability", () => {
 	for (const [name, input] of corpus()) {
-		test(`xz decodes ${name}`, () => {
+		test(`xz decodes ${name} with end marker`, () => {
 			for (const options of optionSets) {
-				const compressed = compress(input, options);
+				const compressed = compress(input, { ...options, endMarker: true });
 				expect(xz(["--decompress", "--format=lzma", "--stdout"], compressed)).toEqual(input);
 			}
 		});
@@ -177,7 +177,7 @@ describe.skipIf(!hasXz)("xz interoperability", () => {
 		const rawData = (options: CompressionOptions) => compress(input, options).subarray(13);
 		const args = ["--decompress", "--format=raw", "--stdout", "--lzma1=lc=3,lp=0,pb=2,dict=4KiB"];
 
-		const withMarker = spawnSync("xz", args, { input: rawData({}) });
+		const withMarker = spawnSync("xz", args, { input: rawData({ endMarker: true }) });
 		const withoutMarker = spawnSync("xz", args, { input: rawData({ endMarker: false }) });
 
 		expect(withMarker.status).toBe(0);

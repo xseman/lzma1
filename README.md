@@ -159,7 +159,7 @@ const compressed = compress(data, {
 	niceLen: 64, // match length that is good enough, 8-273
 	matchFinder: "bt4", // "hc4" (hash chain) or "bt4" (binary tree)
 	depth: 0, // match finder search depth, 0 = automatic
-	endMarker: true, // false omits the end marker, see below
+	endMarker: false, // true adds an end marker, see below
 });
 ```
 
@@ -167,16 +167,15 @@ A dictionary larger than the input is reduced to fit it, which saves memory
 when compressing and decompressing. Data with `lc + lp > 4` from other
 encoders (e.g. 7-Zip) can still be decompressed.
 
-The header holds the uncompressed size, so the end marker after the data is
-redundant for decoders that read it. `endMarker: false` omits it, like XZ for
-Java and 7-Zip without `-eos`, and saves 5-6 bytes, which matters for small
-payloads such as QR codes. Decoders that don't know the size need the marker to
-find the end: raw LZMA decoders (`xz --format=raw`, Python's `FORMAT_RAW`)
-report an error or decode past the end without it. Omit it only when the data
-is decoded with its header (this library, `xz --format=lzma`, 7-Zip) or the
-size is known from elsewhere. Strict decoders that know the size may reject a
-marker, e.g. XZ for Java's raw `LZMAInputStream` constructor without
-`enableRelaxedEndCondition()`.
+The header holds the uncompressed size, so `compress` writes no end marker
+after the data by default, like XZ for Java and 7-Zip without `-eos`. That
+saves 5-6 bytes, which matters for small payloads such as QR codes. Decoders
+that don't know the size need the marker to find the end: raw LZMA decoders
+(`xz --format=raw`, Python's `FORMAT_RAW`) report an error or decode past the
+end without it. Pass `endMarker: true` when the data is decoded without its
+header and without its size, e.g. when you strip the header. Strict decoders
+that know the size may reject a marker, e.g. XZ for Java's raw `LZMAInputStream`
+constructor without `enableRelaxedEndCondition()`.
 
 ### Raw LZMA1 and LZMA2
 
@@ -213,8 +212,8 @@ LZMA2 marks its own end and needs no size. Raw LZMA1 needs the uncompressed
 size or an end marker. 7-Zip writes no end
 marker by default, so pass the size from the 7z header.
 `xz --format=raw --lzma1` always writes one. With a known size, the data has to
-end there, with or without an end marker, as with `decompress`. An end marker
-before that size is an error, as with `strict`.
+end there, with or without an end marker, and an end marker before that size is
+an error, as with `decompress` by default.
 
 The dictionary size comes from the container, and a corrupt or hostile header
 can claim up to 4 GiB. `memoryLimitKb` works like XZ for Java's `memoryLimit`.
@@ -273,22 +272,23 @@ Invalid options throw a `RangeError`, and a dictionary over `memoryLimitKb`
 throws a `MemoryLimitError`.
 
 The data has to end at the size in the header, with or without an end marker
-after it. An end marker before that size ends the data too, because some
-producers write a size that is too large. `strict` rejects it, as XZ for Java
-and xz do:
+after it. An end marker before that size is an error, as in XZ for Java and xz,
+because the header and the data contradict each other.
+`tolerateEarlyEndMarker` accepts it and ends the data at the marker, as earlier
+versions did by default:
 
 ```js
-decompress(data, { strict: true });
-new Decompress({ strict: true });
+decompress(data, { tolerateEarlyEndMarker: true });
+new Decompress({ tolerateEarlyEndMarker: true });
 ```
 
 When decompressing data from an untrusted source, `maxOutputLength` can defend
 against a "decompression bomb" attack, where a few bytes of crafted data expand
 to gigabytes. It limits the output in bytes, for every decoder except raw LZMA2.
-With `strict`, and for raw LZMA1, a larger declared size throws an
-`OutputLimitError` before anything is allocated. Otherwise, as with an unknown
-size, decoding throws one once the output passes the limit, since an end marker
-could still end the data within it:
+A larger declared size throws an `OutputLimitError` before anything is
+allocated. With `tolerateEarlyEndMarker`, as with an unknown size, decoding
+throws one once the output passes the limit, since an end marker could still
+end the data within it:
 
 ```js
 decompress(data, { maxOutputLength: 1_000_000 });

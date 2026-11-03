@@ -277,7 +277,8 @@ bytes. The first two sometimes produced wrong bytes. Nothing else changes:
   after a wrap, but only right before the decoder throws.
 - _Valid streams._ The encoder's output passes in both forms. Without a marker,
   the range coder is finished at the declared size; with a known size and a
-  marker, as `compress()` writes by default, the extra symbol is the marker.
+  marker, as `compress()` writes with `endMarker: true`, the extra symbol is the
+  marker.
 - _Chunked input._ The extra symbol is decoded only when `INPUT_MARGIN` bytes are
   left or the input has ended, like every other symbol. Otherwise the decoder
   keeps the bytes and waits, so splitting the input anywhere gives the same
@@ -286,14 +287,29 @@ bytes. The first two sometimes produced wrong bytes. Nothing else changes:
   like every finished stream, and the one-owner argument of the pool entry
   covers it unchanged.
 
-One difference from the Java decoder remains at the end of a stream: an end
-marker before the declared size is accepted, because some producers write a size
-that is too large and the marker is how their data decodes. The `strict` option
-rejects it as the Java decoder does, and the identity checks decode the
-malformed set in both modes. The fixtures record
-every decoder outcome that differs from the Java decoder's, in two classes
-described in `fixtures/README.md`. `fixtures/generate.ts` stops on any other
-difference.
+An end marker before the declared size is an error, as in every mode of the
+Java decoder, where it reaches the `remainingSize != -1` rethrow. Earlier
+versions accepted it by default, and `tolerateEarlyEndMarker` keeps that as an
+opt-in, which has no counterpart in XZ for Java. The option skips that one
+throw, so the data ends at the marker. Nothing else changes:
+
+- _Other outcomes._ `AloneDecoder` reads the option in two places: the throw
+  above, and `start()`, where it decides whether a declared size over
+  `maxOutputLength` throws up front ("Output limit" below). Without a limit,
+  every other path runs the same code, so every other stream gets the same
+  output or the same error.
+- _Data past the declared size._ The end condition at the declared size is
+  unchanged, so a declared size smaller than the data is still an error.
+- _Output._ At the marker, the decoder has written exactly the bytes the data
+  encodes. When only the header's size is wrong, that is the encoder's input.
+
+The identity checks decode the malformed set in both modes. Without the option,
+every case gets the Java decoder's outcome, except for one reviewed class of
+corrupt input that the decoder accepts, described in `fixtures/README.md`, and
+`fixtures/generate.ts` stops on any other difference. With the option, a case
+whose declared size exceeds its input decodes to exactly that input, and every
+other case gets the outcome it gets without the option, down to the error
+class.
 
 ### Raw LZMA1
 
@@ -301,10 +317,10 @@ difference.
 `LZMAInputStream(in, uncompSize, lc, lp, pb, dictSize, presetDict)` decodes
 without a preset dictionary, with the relaxed end condition turned on when the
 size is known. It runs the `.lzma` path: `AloneDecoder.start()` takes the
-properties and the size that `decode` would read from a header, and the decoder
-is strict. For the same properties, size and data, it therefore behaves as on a
-`.lzma` stream with that header in strict mode, and the arguments for that path
-carry over. What remains to compare is the part the Java constructor does
+properties and the size that `decode` would read from a header, without
+`tolerateEarlyEndMarker`. For the same properties, size and data, it therefore
+behaves as on a `.lzma` stream with that header, and the arguments for that
+path carry over. What remains to compare is the part the Java constructor does
 differently from its header constructor:
 
 - _Validation._ `lc` 0-8, `lp` 0-4 and `pb` 0-4 are the ranges the Java
@@ -328,8 +344,8 @@ differently from its header constructor:
 - _End of the data._ With a known size, the relaxed end condition applies at
   that size (previous section). An end marker before it is an error in every
   mode of the Java code, where it reaches the `remainingSize != -1` rethrow, and
-  it is an error here because the decoder is strict. With an unknown size, the
-  data has to end with a marker in both.
+  it is an error here, as on the `.lzma` path by default. With an unknown size,
+  the data has to end with a marker in both.
 - _Size 0._ The Java constructor reads the five range coder bytes and checks the
   end condition. So does the library, because a size of 0 takes the general
   path (previous section).
@@ -528,21 +544,22 @@ are the same as without pauses:
 raw LZMA1 data, which both decode through `AloneDecoder`, and changes four
 things, all outside the ported files:
 
-- _A declared size over the limit._ With `strict`, `start()` first calls
+- _A declared size over the limit._ By default, `start()` first calls
   `checkDeclaredSize`, which throws an `OutputLimitError` if the header's size,
   or the `uncompressedSize` of raw LZMA1, is over the limit, before anything is
-  allocated or taken from the probability spares. Raw LZMA1 is always strict,
-  and `resolveRawLzma1Options` also checks it with the other options, as it
-  checks `memoryLimitKb`, so that the async functions reject it before the first
-  `onProgressAsync` call. Without `strict`, an end marker can still end the data
-  within the limit, so `start()` leaves such a size to the cap and the counter,
-  as for an unknown size.
+  allocated or taken from the probability spares. Raw LZMA1 has no
+  `tolerateEarlyEndMarker`, and `resolveRawLzma1Options` also checks it with the
+  other options, as it checks `memoryLimitKb`, so that the async functions
+  reject it before the first `onProgressAsync` call. With
+  `tolerateEarlyEndMarker`, an end marker can still end the data within the
+  limit, so `start()` leaves such a size to the cap and the counter, as for an
+  unknown size.
 - _Counting the output._ The sink wrapper in `start()` adds up the chunk lengths
   and throws an `OutputLimitError` before passing on a chunk that would exceed
   the limit. Bytes held back by `done` lie past the declared size, so they
   aren't counted. With a known size, the count can only exceed the limit if the
-  size is over it, which only lenient decoding lets through, so the error
-  reports that size as `declaredSize`, as `checkDeclaredSize` does.
+  size is over it, which only `tolerateEarlyEndMarker` lets through, so the
+  error reports that size as `declaredSize`, as `checkDeclaredSize` does.
 - _The dictionary_ is capped at `maxOutputLength + 1` bytes. The sink receives
   bytes only when the buffer ends and at the flushes in `decode`, which a
   one-shot call reaches only near the end of its input. Without the cap, a
@@ -554,18 +571,18 @@ things, all outside the ported files:
 - _The output collection._ `createOneShotDecoder` sizes its first `OutputBuffer`
   at four times the input with an unknown size, which junk after a valid stream
   can make far larger than the output, and at the declared size up to 16 MiB
-  with a known one, which lenient decoding lets exceed the limit. The limit caps
-  both.
+  with a known one, which `tolerateEarlyEndMarker` lets exceed the limit. The
+  limit caps both.
 
 Nothing else changes:
 
 - _Without the option._ The limit is `Infinity`, so `checkDeclaredSize` never
   throws, the caps change nothing and the count never exceeds the limit. The
   counter costs an addition and a comparison per chunk.
-- _Strict and lenient._ The two modes differ only for a known size over the
-  limit: strict throws before decoding, and lenient decodes it as an unknown
-  size, so a stream that an end marker ends within the limit decodes as it does
-  without the option.
+- _With and without `tolerateEarlyEndMarker`._ The two modes differ only for a
+  known size over the limit: by default the decoder throws before decoding, and
+  with the option it decodes the data as if the size were unknown, so a stream
+  that an end marker ends within the limit decodes as it does without a limit.
 - _Output within the limit._ With a known size within the limit, the dictionary
   is already no larger than the size, so neither cap applies. Otherwise the cap
   changes the dictionary only if it is larger than `maxOutputLength + 1` bytes,
@@ -579,10 +596,10 @@ Nothing else changes:
 - _Output over the limit._ If the cap applies, the previous bullet's argument
   holds for the first `maxOutputLength + 1` bytes, so a stream that fails before
   then fails with the same error, and one that gets there throws an
-  `OutputLimitError` when the buffer ends. That includes a lenient declared size
-  of exactly `maxOutputLength + 1`, where the capped dictionary holds the whole
-  declared output at once (`contiguousOutput`): its buffer ends at the same
-  byte. If the cap doesn't apply, the decoder is unchanged, and the counter
+  `OutputLimitError` when the buffer ends. That includes a tolerated declared
+  size of exactly `maxOutputLength + 1`, where the capped dictionary holds the
+  whole declared output at once (`contiguousOutput`): its buffer ends at the
+  same byte. If the cap doesn't apply, the decoder is unchanged, and the counter
   throws at the next flush, at most `dictSize` bytes after the output exceeds
   the limit, unless the stream fails first.
 - _The pool._ An `OutputLimitError` drops the decoder with its probability
@@ -592,11 +609,12 @@ Nothing else changes:
 
 `outputLimitChecks` in `fixtures/identity.ts` tests this on every committed
 `.lzma` fixture, half of them with an unknown size, and every malformed `.lzma`
-and raw LZMA1 case, decoding the `.lzma` data both with and without `strict`:
-1,694 cases. At a limit of the output's length, the output is unchanged, and one
-byte less throws an `OutputLimitError`. For a fixture with a known size, one
-byte less is the lenient `maxOutputLength + 1` case above. A case that fails
-without a limit fails the same way under a limit nothing reaches.
+and raw LZMA1 case, decoding the `.lzma` data both with and without
+`tolerateEarlyEndMarker`: 1,694 cases. At a limit of the output's length, the
+output is unchanged, and one byte less throws an `OutputLimitError`. For a
+fixture with a known size, one byte less with the option is the tolerated
+`maxOutputLength + 1` case above. A case that fails without a limit fails the
+same way under a limit nothing reaches.
 
 Raw LZMA2 doesn't take the option. `Lzma2Decoder` would need the same counter
 and cap. The code would be small, but the argument that it changes nothing else

@@ -60,8 +60,7 @@ export interface IdentityCheck {
  * has to change this table deliberately.
  */
 export const MALFORMED_OUTCOME_COUNTS = {
-	"matches-java": 576,
-	"end-marker-leniency": 2,
+	"matches-java": 578,
 	"dict-size-clamp": 1,
 };
 
@@ -139,29 +138,27 @@ export function malformedChecks(library: Library, manifest: Manifest, records: M
 }
 
 /**
- * The same cases decoded with `strict`, which rejects an end marker before
- * the declared size: `end-marker-leniency` cases must get the Java
- * decoder's outcome, and every other case the same outcome as without it.
+ * The same cases decoded with `tolerateEarlyEndMarker`, which has no
+ * counterpart in XZ for Java, so there is no Java outcome to compare
+ * against. The option must change nothing but the outcome of an end marker
+ * before the declared size: a `declaredSize` case whose size exceeds its
+ * source's input must decode to exactly that input, and every other case
+ * must get the default decoder's outcome, down to the error class.
  */
-export function strictMalformedChecks(library: Library, manifest: Manifest, records: MalformedRecords): IdentityCheck[] {
-	const cases = new Map(deriveCommittedMalformed(manifest).map((malformedCase) => [malformedCase.id, malformedCase]));
+export function tolerantMalformedChecks(library: Library, manifest: Manifest): IdentityCheck[] {
+	const cells = new Map(manifest.cells.map((cell) => [cell.id, cell]));
 
-	return records.cases.map((record) => ({
-		name: record.id,
+	return deriveCommittedMalformed(manifest).map((malformedCase) => ({
+		name: malformedCase.id,
 		run: async () => {
-			const malformedCase = cases.get(record.id);
-			if (malformedCase === undefined) {
-				return "recorded case is not derived from the committed fixtures";
+			const early = earlyEndMarkerOutcome(malformedCase, cells);
+			if (typeof early === "string") {
+				return early;
 			}
 
-			const lenient = record.deviation !== undefined && record.deviation !== "end-marker-leniency";
-			const expected = lenient ? record.port : record.java;
-			if (expected === undefined) {
-				return "deviation record without a port outcome";
-			}
-
+			const expected = early ?? decodeOutcome(library, malformedCase.bytes);
 			const actual = decodeOutcome(library, malformedCase.bytes, true);
-			if (!sameOutcome(expected, actual, lenient)) {
+			if (!sameOutcome(expected, actual, early === undefined)) {
 				return `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`;
 			}
 
@@ -194,12 +191,12 @@ export function rawMalformedChecks(library: Library, manifest: Manifest, records
 
 /**
  * Tests `maxOutputLength` right at the edge, for every committed `.lzma`
- * fixture and every malformed `.lzma` and raw LZMA1 case, decoding `.lzma`
- * data both with and without `strict`. With the limit at the output length,
- * the output must match the unlimited decoder's, and with one byte less, it
- * must throw `OutputLimitError`. If the unlimited decoder rejects a case, then
- * it must be rejected with the same error when the limit is too large to
- * reach.
+ * fixture and every malformed `.lzma` and raw LZMA1 case, decoding `.lzma` data
+ * both with and without `tolerateEarlyEndMarker`. With the limit at the output
+ * length, the output must match the unlimited decoder's, and with one byte
+ * less, it must throw `OutputLimitError`. If the unlimited decoder rejects a
+ * case, then it must be rejected with the same error when the limit is too
+ * large to reach.
  */
 export function outputLimitChecks(library: Library, manifest: Manifest): IdentityCheck[] {
 	const corpusDir = path.join(FIXTURES_DIR, "corpus");
@@ -210,9 +207,9 @@ export function outputLimitChecks(library: Library, manifest: Manifest): Identit
 
 	const lzmaChecks = [...fixtures, ...deriveCommittedMalformed(manifest).map((malformedCase) => ({ name: malformedCase.id, bytes: malformedCase.bytes }))]
 		.flatMap(({ name, bytes }) =>
-			[false, true].map((strict) => ({
-				name: strict ? `${name}@strict` : name,
-				run: async () => checkOutputLimitEdge(library, (maxOutputLength) => library.decompress(bytes, { strict, maxOutputLength })),
+			[false, true].map((tolerateEarlyEndMarker) => ({
+				name: tolerateEarlyEndMarker ? `${name}@tolerateEarlyEndMarker` : name,
+				run: async () => checkOutputLimitEdge(library, (maxOutputLength) => library.decompress(bytes, { tolerateEarlyEndMarker, maxOutputLength })),
 			}))
 		);
 
@@ -512,9 +509,28 @@ function readFixture(id: string, variant: FixtureVariant): Uint8Array<ArrayBuffe
 	return new Uint8Array(fs.readFileSync(path.join(FIXTURES_DIR, "corpus", fixtureFileName(id, variant))));
 }
 
-function decodeOutcome(library: Library, bytes: Uint8Array, strict = false): DecodeOutcome {
+/**
+ * For a `declaredSize` case whose size exceeds its source's input, the
+ * outcome `tolerateEarlyEndMarker` must give: that input, byte for byte.
+ * `undefined` for any other case, and a description if the source isn't in
+ * the manifest.
+ */
+function earlyEndMarkerOutcome(malformedCase: MalformedCase, cells: Map<string, ManifestCell>): DecodeOutcome | string | undefined {
+	if (malformedCase.op.kind !== "declaredSize") {
+		return undefined;
+	}
+
+	const cell = cells.get(malformedCase.source.replace(/\.marker$/, ""));
+	if (cell === undefined) {
+		return "source not recorded in manifest.json";
+	}
+
+	return malformedCase.op.size > cell.input.size ? { status: "ok", length: cell.input.size, sha256: cell.inputSha256 } : undefined;
+}
+
+function decodeOutcome(library: Library, bytes: Uint8Array, tolerateEarlyEndMarker = false): DecodeOutcome {
 	try {
-		const output = library.decompress(bytes, { strict });
+		const output = library.decompress(bytes, { tolerateEarlyEndMarker });
 
 		return { status: "ok", length: output.length, sha256: sha256(output) };
 	} catch (error) {

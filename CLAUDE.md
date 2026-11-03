@@ -21,9 +21,9 @@ generator.
 
 ## Rules
 
-- The one-shot `compress` writes a known size and an end marker. Keep the
-  marker on by default: bysquare relies on it to recover from a wrong length
-  header. Omitting it is opt-in only (`endMarker: false`).
+- The one-shot `compress` writes a known size and no end marker, as XZ for
+  Java does; adding the marker is opt-in (`endMarker: true`). `Compress` writes
+  an unknown size, so it always writes the marker.
 - Output stays interoperable with `xz --format=lzma`, 7-Zip and the LZMA SDK;
   `interop_test.ts` checks it.
 - Encoder output is byte-identical to XZ for Java at the commit pinned in

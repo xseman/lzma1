@@ -46,20 +46,22 @@ export interface CompressionOptions {
 	/** Maximum match finder search depth, 0 = automatic. */
 	depth?: number | undefined;
 	/**
-	 * Write an end marker after the data, default `true`. The header also
-	 * holds the uncompressed size, so the marker is redundant for decoders
-	 * that read it: `false` omits it and saves 5-6 bytes, like XZ for Java
-	 * and 7-Zip without `-eos`.
+	 * Write an end marker after the data. The default is `false` when the
+	 * size is known, as in `compress`, and `true` when it isn't, as in
+	 * `Compress`, like XZ for Java. The header holds a known size, so the
+	 * marker is redundant for decoders that read it, and omitting it saves
+	 * 5-6 bytes.
 	 *
-	 * Safe to turn off when the decoder knows the size: this library,
+	 * Omitting it is safe when the decoder knows the size: this library,
 	 * `xz --format=lzma`, 7-Zip, or a format that stores the size elsewhere.
-	 * Not safe for decoders of raw LZMA data or streams that don't know the
-	 * size (e.g. `xz --format=raw`, Python's `FORMAT_RAW`): without the marker
-	 * they report an error or decode past the end. Strict decoders that know
-	 * the size may reject a marker, e.g. XZ for Java's raw `LZMAInputStream`
-	 * constructor without `enableRelaxedEndCondition()`.
+	 * Decoders of raw LZMA data or streams that don't know the size (e.g.
+	 * `xz --format=raw`, Python's `FORMAT_RAW`) need `true`: without the
+	 * marker they report an error or decode past the end. Strict decoders
+	 * that know the size may reject a marker, e.g. XZ for Java's raw
+	 * `LZMAInputStream` constructor without `enableRelaxedEndCondition()`.
 	 *
-	 * Requires a known size: `Compress` throws a `RangeError` for `false`.
+	 * Omitting it requires a known size: `Compress` throws a `RangeError` for
+	 * `false`.
 	 */
 	endMarker?: boolean | undefined;
 }
@@ -136,7 +138,11 @@ export interface ResolvedOptions {
 	niceLen: number;
 	matchFinder: MatchFinderType;
 	depth: number;
-	endMarker: boolean;
+	/**
+	 * `undefined` leaves it to `AloneEncoder`, which knows whether the size
+	 * is known.
+	 */
+	endMarker: boolean | undefined;
 }
 
 export const DEFAULT_LEVEL: CompressionMode = 5;
@@ -184,7 +190,7 @@ export function resolveOptions(options: CompressionMode | CompressionOptions = {
 		niceLen: options.niceLen ?? preset.niceLen,
 		matchFinder: options.matchFinder ?? preset.matchFinder,
 		depth: options.depth ?? preset.depth,
-		endMarker: options.endMarker ?? true,
+		endMarker: options.endMarker,
 	};
 
 	checkInteger("lc", resolved.lc, 0, 4);
@@ -203,7 +209,7 @@ export function resolveOptions(options: CompressionMode | CompressionOptions = {
 	if (resolved.matchFinder !== "hc4" && resolved.matchFinder !== "bt4") {
 		throw new RangeError(`Invalid matchFinder: ${resolved.matchFinder}`);
 	}
-	if (typeof resolved.endMarker !== "boolean") {
+	if (resolved.endMarker !== undefined && typeof resolved.endMarker !== "boolean") {
 		throw new RangeError(`Invalid endMarker: ${resolved.endMarker} (expected a boolean)`);
 	}
 
@@ -236,12 +242,12 @@ export interface OutputLimitOptions {
 	 * bomb" attacks where a few bytes of compressed data expand to gigabytes.
 	 *
 	 * If the header (or `uncompressedSize`) declares a size larger than the
-	 * limit, `OutputLimitError` is thrown before anything gets allocated, with
-	 * `strict` and for raw LZMA1. Without `strict`, an end marker can still
-	 * end the data within the limit, so such a size is treated like an
-	 * unknown one: `OutputLimitError` is thrown as soon as the output exceeds
-	 * the limit, and none of the excess bytes are returned or enqueued. An
-	 * output of exactly `maxOutputLength` bytes is allowed.
+	 * limit, `OutputLimitError` is thrown before anything gets allocated. With
+	 * `tolerateEarlyEndMarker`, an end marker can still end the data within the
+	 * limit, so such a size is treated like an unknown one: `OutputLimitError`
+	 * is thrown as soon as the output exceeds the limit, and none of the excess
+	 * bytes are returned or enqueued. An output of exactly `maxOutputLength`
+	 * bytes is allowed.
 	 *
 	 * For `decompressString()`, the limit counts UTF-8 bytes, not characters.
 	 */
@@ -251,25 +257,26 @@ export interface OutputLimitOptions {
 /** Options of `decompress`, `decompressString` and `Decompress`. */
 export interface DecompressionOptions extends OutputLimitOptions {
 	/**
-	 * Reject an end marker before the size the header declares, default
-	 * false. By default the data ends at such a marker, because some
-	 * producers write a size that is too large. XZ for Java and xz reject
-	 * it.
+	 * Tolerate an end marker before the size the header declares, which the
+	 * LZMA specification forbids, default false. The data then ends at the
+	 * marker, with less output than the header declares. Data that goes on
+	 * past the declared size is still an error. XZ for Java and xz reject
+	 * such a marker.
 	 */
-	strict?: boolean | undefined;
+	tolerateEarlyEndMarker?: boolean | undefined;
 }
 
 /** Options of `decompressAsync`. */
 export interface DecompressAsyncOptions extends DecompressionOptions, AsyncProgressOptions {}
 
-/** Validates the decompression options. Returns `strict`. */
-export function resolveStrict(options: DecompressionOptions = {}): boolean {
-	const strict = options.strict ?? false;
-	if (typeof strict !== "boolean") {
-		throw new RangeError(`Invalid strict: ${strict} (expected a boolean)`);
+/** Validates the decompression options. Returns `tolerateEarlyEndMarker`. */
+export function resolveTolerateEarlyEndMarker(options: DecompressionOptions = {}): boolean {
+	const tolerateEarlyEndMarker = options.tolerateEarlyEndMarker ?? false;
+	if (typeof tolerateEarlyEndMarker !== "boolean") {
+		throw new RangeError(`Invalid tolerateEarlyEndMarker: ${tolerateEarlyEndMarker} (expected a boolean)`);
 	}
 
-	return strict;
+	return tolerateEarlyEndMarker;
 }
 
 /**
