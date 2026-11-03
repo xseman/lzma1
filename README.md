@@ -284,11 +284,10 @@ new Decompress({ tolerateEarlyEndMarker: true });
 
 When decompressing data from an untrusted source, `maxOutputLength` can defend
 against a "decompression bomb" attack, where a few bytes of crafted data expand
-to gigabytes. It limits the output in bytes, for every decoder except raw LZMA2.
-A larger declared size throws an `OutputLimitError` before anything is
-allocated. With `tolerateEarlyEndMarker`, as with an unknown size, decoding
-throws one once the output passes the limit, since an end marker could still
-end the data within it:
+to gigabytes. It limits the output in bytes. A larger declared size throws an
+`OutputLimitError` before anything is allocated. With `tolerateEarlyEndMarker`,
+as with an unknown size, decoding throws one once the output passes the limit,
+since an end marker could still end the data within it:
 
 ```js
 decompress(data, { maxOutputLength: 1_000_000 });

@@ -9,6 +9,7 @@ import {
 	type CompressionOptions,
 	decompressRawLzma2,
 	MemoryLimitError,
+	OutputLimitError,
 } from "./index.js";
 import { LzDecoder } from "./lz-decoder.js";
 import {
@@ -305,8 +306,61 @@ describe("LZMA2 errors", () => {
 		{ dictSize: undefined },
 		{ dictSize: 4096, memoryLimitKb: -1 },
 		{ dictSize: 4096, memoryLimitKb: Infinity },
+		{ dictSize: 4096, maxOutputLength: -1 },
+		{ dictSize: 4096, maxOutputLength: Infinity },
 	])("rejects %o", (options) => {
 		const run = () => decompressRawLzma2(stream, options as never);
+
+		expect(run).toThrow(RangeError);
+	});
+});
+
+describe("LZMA2 maxOutputLength", () => {
+	test("accepts output of exactly the limit", () => {
+		const output = decompressRawLzma2(stream, { dictSize: 1 << 16, maxOutputLength: expected.length });
+
+		expect(output).toEqual(expected);
+	});
+
+	test("rejects output over the limit", () => {
+		let error: unknown;
+
+		try {
+			decompressRawLzma2(stream, { dictSize: 1 << 16, maxOutputLength: expected.length - 1 });
+		} catch (caught) {
+			error = caught;
+		}
+
+		expect(error).toBeInstanceOf(OutputLimitError);
+		expect(error).toMatchObject({
+			name: "OutputLimitError",
+			declaredSize: undefined,
+			maxOutputLength: expected.length - 1,
+			message: `Output exceeds the limit of ${expected.length - 1} bytes`,
+		});
+	});
+
+	test("stops a small input that expands far past the limit", () => {
+		// Eight LZMA chunks of 2 MiB of zeros each, in a few kilobytes
+		const zeros = lzmaChunk(0xE0, new Uint8Array(2 << 20));
+		const bomb = concat(...Array.from({ length: 8 }, () => zeros), END);
+
+		const run = () => decompressRawLzma2(bomb, { dictSize: 0xFFFFFFFF, maxOutputLength: 1 << 20 });
+
+		expect(bomb.length).toBeLessThan(5000);
+		expect(run).toThrow(OutputLimitError);
+	});
+
+	test("accepts a limit of 0 for empty output and rejects one byte", () => {
+		const empty = decompressRawLzma2(END, { dictSize: 4096, maxOutputLength: 0 });
+		const oneByte = () => decompressRawLzma2(concat(uncompressedChunk(0x01, new Uint8Array(1)), END), { dictSize: 4096, maxOutputLength: 0 });
+
+		expect(empty).toEqual(new Uint8Array(0));
+		expect(oneByte).toThrow(OutputLimitError);
+	});
+
+	test("validates maxOutputLength before checking the memory limit", () => {
+		const run = () => decompressRawLzma2(stream, { dictSize: 0xFFFFFFFF, memoryLimitKb: 1, maxOutputLength: -1 });
 
 		expect(run).toThrow(RangeError);
 	});

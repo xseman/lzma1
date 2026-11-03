@@ -16,6 +16,7 @@ import {
 	resolveOptions,
 } from "./options.js";
 import { OutputBuffer } from "./output-buffer.js";
+import { limitSink } from "./output-limit.js";
 import {
 	decodeUtf8,
 	encodeUtf8,
@@ -158,16 +159,21 @@ export async function decompressDataAsync(
 	return result;
 }
 
-/** Decompresses raw LZMA2 data with the given dictionary size. */
-export function decompressRawLzma2Data(data: Uint8Array, dictSize: number): Uint8Array {
+/**
+ * Decompresses raw LZMA2 data with the given dictionary size. If the output
+ * would exceed `maxOutputLength`, `OutputLimitError` is thrown.
+ */
+export function decompressRawLzma2Data(data: Uint8Array, dictSize: number, maxOutputLength: number): Uint8Array {
 	let out: OutputBuffer | undefined;
 
-	// LZMA2 declares no size. The first output creates the buffer from a
-	// guess, capped as for a declared size, so empty output allocates nothing.
-	const decoder = new Lzma2Decoder(dictSize, (chunk) => {
-		out ??= new OutputBuffer(Math.min(data.length * 4, 1 << 24));
+	// LZMA2 doesn't declare its size, so the buffer's initial size is a guess,
+	// capped as for a declared size and also by the limit. The first output
+	// creates the buffer, so empty output allocates nothing.
+	const sink = limitSink((chunk) => {
+		out ??= new OutputBuffer(Math.min(data.length * 4, 1 << 24, maxOutputLength));
 		out.write(chunk);
-	});
+	}, maxOutputLength);
+	const decoder = new Lzma2Decoder(dictSize, sink);
 	decoder.write(data);
 	decoder.end();
 

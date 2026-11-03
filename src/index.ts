@@ -201,12 +201,16 @@ export async function decompressRawLzma1Async(data: BinaryInput, options: RawLzm
  * entries. Its dictionary size comes from the container.
  *
  * @param data Compressed data
- * @param options Dictionary size and a memory limit
+ * @param options Dictionary size, a memory limit, and an output limit
  * @returns Decompressed data
  * @throws {RangeError} If an option is invalid
  * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb`
+ * @throws {OutputLimitError} If the output would exceed `maxOutputLength`
  * @throws {Error} If the data is truncated or corrupted
  */
 export function decompressRawLzma2(data: BinaryInput, options: RawLzma2Options): Uint8Array {
-	return decompressRawLzma2Data(toUint8Array(data), resolveRawLzma2Options(options));
+	const input = toUint8Array(data);
+	const { dictSize, maxOutputLength } = resolveRawLzma2Options(options);
+
+	return decompressRawLzma2Data(input, dictSize, maxOutputLength);
 }

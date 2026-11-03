@@ -542,9 +542,9 @@ are the same as without pauses:
 
 ### Output limit
 
-`maxOutputLength` has no counterpart in XZ for Java. It applies to `.lzma` and
-raw LZMA1 data, which both decode through `AloneDecoder`, and changes four
-things, all outside the ported files:
+`maxOutputLength` has no counterpart in XZ for Java. For `.lzma` and raw LZMA1
+data, which both decode through `AloneDecoder`, it changes four things, all
+outside the ported files:
 
 - _A declared size over the limit._ By default, `start()` first calls
   `checkDeclaredSize`, which throws an `OutputLimitError` if the header's size,
@@ -609,19 +609,29 @@ Nothing else changes:
   arrays reused between one-shot decoders" covers. One from `checkDeclaredSize`
   comes before the array is taken.
 
-`outputLimitChecks` in `fixtures/identity.ts` tests this on every committed
-`.lzma` fixture, half of them with an unknown size, and every malformed `.lzma`
-and raw LZMA1 case, decoding the `.lzma` data both with and without
-`tolerateEarlyEndMarker`: 1,694 cases. At a limit of the output's length, the
-output is unchanged, and one byte less throws an `OutputLimitError`. For a
-fixture with a known size, one byte less with the option is the tolerated
-`maxOutputLength + 1` case above. A case that fails without a limit fails the
-same way under a limit nothing reaches.
+Raw LZMA2 data doesn't declare its size, so only the counter applies.
+`decompressRawLzma2` and `DecompressRawLzma2` wrap their sink with `limitSink`,
+which counts the output like the sink wrapper in `start()`, with `declaredSize`
+undefined. None of the ported files change. The wrapper only reads the chunks it
+receives, and either passes them on unchanged or throws, so it can't change what
+`Lzma2Decoder` decodes or which errors it throws before the limit. Without the
+option, the limit is `Infinity`, so the wrapper never throws. The dictionary
+doesn't need a cap. `write` flushes after every LZMA2 chunk, whose uncompressed
+size is at most 2 MiB, so the counter throws within 2 MiB of output after the
+limit is exceeded, unless decoding fails first. The dictionary buffer grows with
+the output by doubling, so before the error its capacity can reach twice the
+bytes decoded, about `2 * (maxOutputLength + 2 MiB)`. The option limits the
+output, not the memory. `decompressRawLzma2` caps its first `OutputBuffer` at
+the limit, as `createOneShotDecoder` does.
 
-Raw LZMA2 doesn't take the option. `Lzma2Decoder` would need the same counter
-and cap. The code would be small, but the argument that it changes nothing else
-would also have to cover dictionary resets and the uncompressed chunks that
-`copyUncompressed` writes directly.
+`outputLimitChecks` in `fixtures/identity.ts` tests this on every committed
+`.lzma` fixture, half of them with an unknown size, every `.lzma2` fixture and
+every malformed `.lzma`, raw LZMA1 and raw LZMA2 case, decoding the `.lzma` data
+both with and without `tolerateEarlyEndMarker`: 1,915 cases. At a limit of the
+output's length, the output is unchanged, and one byte less throws an
+`OutputLimitError`. For a fixture with a known size, one byte less with the
+option is the tolerated `maxOutputLength + 1` case above. A case that fails
+without a limit fails the same way under a limit nothing reaches.
 
 ### Java-to-JS hazard checklist
 

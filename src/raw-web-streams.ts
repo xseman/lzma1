@@ -14,6 +14,7 @@ import {
 	resolveRawLzma1Options,
 	resolveRawLzma2Options,
 } from "./options.js";
+import { limitSink } from "./output-limit.js";
 import {
 	createDecoderTransformer,
 	TransformStreamBase,
@@ -48,15 +49,16 @@ export class DecompressRawLzma1 extends TransformStreamBase<BinaryInput, Uint8Ar
  * Decompresses a stream of raw LZMA2 data, the format inside `.xz` blocks
  * and 7z LZMA2 entries. Invalid options throw a `RangeError`, and a
  * dictionary over `memoryLimitKb` throws a `MemoryLimitError`, both from the
- * constructor.
+ * constructor. If the output would exceed `maxOutputLength`, the stream fails
+ * with `OutputLimitError`.
  *
  * @example
  * const output = packed.pipeThrough(new DecompressRawLzma2({ dictSize: 1 << 20 }));
  */
 export class DecompressRawLzma2 extends TransformStreamBase<BinaryInput, Uint8Array> {
 	constructor(options: RawLzma2Options) {
-		const dictSize = resolveRawLzma2Options(options);
+		const { dictSize, maxOutputLength } = resolveRawLzma2Options(options);
 
-		super(createDecoderTransformer((sink) => new Lzma2Decoder(dictSize, sink)));
+		super(createDecoderTransformer((sink) => new Lzma2Decoder(dictSize, limitSink(sink, maxOutputLength))));
 	}
 }

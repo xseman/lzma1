@@ -291,6 +291,32 @@ describe("DecompressRawLzma2", () => {
 
 		expect(create).toThrow(MemoryLimitError);
 	});
+
+	test.each([1, 7, 4096])("hands out the output within maxOutputLength, then errors, in chunks of %i bytes", async (chunkSize) => {
+		const maxOutputLength = input.length - 1000;
+		const reader = chunked(packed, chunkSize).pipeThrough(new DecompressRawLzma2({ dictSize: 1 << 16, maxOutputLength })).getReader();
+		let received = 0;
+		const readAll = async () => {
+			for (let result = await reader.read(); !result.done; result = await reader.read()) {
+				received += result.value.length;
+			}
+		};
+
+		const promise = readAll();
+
+		await expect(promise).rejects.toBeInstanceOf(OutputLimitError);
+		expect(received).toBeLessThanOrEqual(maxOutputLength);
+	});
+
+	test("accepts output of exactly maxOutputLength", async () => {
+		const output = await collect(chunked(packed, 64).pipeThrough(new DecompressRawLzma2({ dictSize: 1 << 16, maxOutputLength: input.length })));
+
+		expect(output).toEqual(input);
+	});
+
+	test("rejects an invalid maxOutputLength on construction", () => {
+		expect(() => new DecompressRawLzma2({ dictSize: 1 << 16, maxOutputLength: -1 })).toThrow(RangeError);
+	});
 });
 
 describe("DecompressRawLzma1", () => {

@@ -234,7 +234,7 @@ export function fitDictSize(dictSize: number, inputSize: number): number {
 	return dictSize;
 }
 
-/** Options for the functions and streams that decode `.lzma` and raw LZMA1 data. */
+/** Options for the functions and streams that decode `.lzma`, raw LZMA1, and raw LZMA2 data. */
 export interface OutputLimitOptions {
 	/**
 	 * The maximum number of bytes of output, or no limit if omitted. Use this
@@ -246,7 +246,8 @@ export interface OutputLimitOptions {
 	 * `tolerateEarlyEndMarker`, an end marker can still end the data within the
 	 * limit, so such a size is treated like an unknown one: `OutputLimitError`
 	 * is thrown as soon as the output exceeds the limit, and none of the excess
-	 * bytes are returned or enqueued. An output of exactly `maxOutputLength`
+	 * bytes are returned or enqueued. Raw LZMA2 data doesn't declare its size,
+	 * so it is always limited that way. An output of exactly `maxOutputLength`
 	 * bytes is allowed.
 	 *
 	 * For `decompressString()`, the limit counts UTF-8 bytes, not characters.
@@ -332,7 +333,7 @@ export interface RawLzma1AsyncOptions extends RawLzma1Options, AsyncProgressOpti
  * Properties of raw LZMA2 data, the format inside `.xz` blocks and 7z
  * LZMA2 entries.
  */
-export interface RawLzma2Options {
+export interface RawLzma2Options extends OutputLimitOptions {
 	/**
 	 * Dictionary size in bytes, 4 KiB to 4 GiB - 1. It comes from the
 	 * container's LZMA2 properties byte. The uncompressed size, if known and
@@ -345,8 +346,7 @@ export interface RawLzma2Options {
 	 * Memory limit in KiB, default none. If decoding would need more, the
 	 * call throws a `MemoryLimitError` before it allocates anything. The
 	 * estimate counts the dictionary at `dictSize`, as XZ for Java does. It
-	 * doesn't count the output buffer, which `decompressRawLzma2` creates with
-	 * the first output, at 4 times the input length up to 16 MiB.
+	 * doesn't count the buffer that collects the output.
 	 */
 	memoryLimitKb?: number | undefined;
 }
@@ -394,17 +394,30 @@ export function resolveRawLzma1Options(options: RawLzma1Options): ResolvedRawLzm
 	return { header, maxOutputLength };
 }
 
+/** The options of raw LZMA2 decoding, validated. */
+export interface ResolvedRawLzma2Options {
+	/** The dictionary size in bytes */
+	dictSize: number;
+	/** The output limit, `Infinity` if none was given */
+	maxOutputLength: number;
+}
+
 /**
  * Validates the options of raw LZMA2 decoding and checks the memory limit.
- * Returns the dictionary size.
+ * Returns the dictionary size and the output limit.
  */
-export function resolveRawLzma2Options(options: RawLzma2Options): number {
+export function resolveRawLzma2Options(options: RawLzma2Options): ResolvedRawLzma2Options {
 	const { dictSize, memoryLimitKb } = options;
 
 	checkInteger("dictSize", dictSize, DICT_SIZE_MIN, RAW_DICT_SIZE_MAX);
+
+	// Before the memory limit, so that an invalid maxOutputLength throws a
+	// RangeError rather than a MemoryLimitError, as for raw LZMA1.
+	const maxOutputLength = resolveMaxOutputLength(options);
+
 	checkMemoryLimit(Lzma2Decoder.getMemoryUsageKb(dictSize), memoryLimitKb);
 
-	return dictSize;
+	return { dictSize, maxOutputLength };
 }
 
 /**

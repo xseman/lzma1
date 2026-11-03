@@ -216,7 +216,7 @@ describe("options", () => {
 		const compression: CompressAsyncOptions = { level: undefined, dictSize: undefined, lc: undefined, lp: undefined, pb: undefined, mode: undefined, niceLen: undefined, matchFinder: undefined, depth: undefined, endMarker: undefined, onProgressAsync: undefined };
 		const decompression: DecompressAsyncOptions = { tolerateEarlyEndMarker: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
 		const rawLzma1: RawLzma1AsyncOptions = { lc: 3, lp: 0, pb: 2, dictSize: 1 << 16, uncompressedSize: undefined, memoryLimitKb: undefined, maxOutputLength: undefined, onProgressAsync: undefined };
-		const rawLzma2: RawLzma2Options = { dictSize: 1 << 16, memoryLimitKb: undefined };
+		const rawLzma2: RawLzma2Options = { dictSize: 1 << 16, memoryLimitKb: undefined, maxOutputLength: undefined };
 
 		const outputs = [
 			compress(input, compression),
