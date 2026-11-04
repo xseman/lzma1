@@ -11,6 +11,7 @@ import {
 	decompressData,
 	decompressDataAsync,
 	decompressRawLzma2Data,
+	decompressRawLzma2DataAsync,
 	toUint8Array,
 } from "./lzma.js";
 import {
@@ -22,6 +23,7 @@ import {
 	DEFAULT_LEVEL,
 	type RawLzma1AsyncOptions,
 	type RawLzma1Options,
+	type RawLzma2AsyncOptions,
 	type RawLzma2Options,
 	resolveMaxOutputLength,
 	resolveOnProgressAsync,
@@ -37,7 +39,7 @@ import {
 export { CRC32_TABLE } from "./crc32.js";
 export { type BinaryInput, LZMA } from "./lzma.js";
 export { MemoryLimitError } from "./memory-limit.js";
-export type { AsyncProgressOptions, CompressAsyncOptions, CompressionMode, CompressionOptions, DecompressAsyncOptions, DecompressionOptions, OutputLimitOptions, ProgressEventArgs, RawLzma1AsyncOptions, RawLzma1Options, RawLzma2Options } from "./options.js";
+export type { AsyncProgressOptions, CompressAsyncOptions, CompressionMode, CompressionOptions, DecompressAsyncOptions, DecompressionOptions, OutputLimitOptions, ProgressEventArgs, RawLzma1AsyncOptions, RawLzma1Options, RawLzma2AsyncOptions, RawLzma2Options } from "./options.js";
 export { OutputLimitError } from "./output-limit.js";
 export { DecompressRawLzma1, DecompressRawLzma2 } from "./raw-web-streams.js";
 export { Compress, Decompress } from "./web-streams.js";
@@ -201,12 +203,42 @@ export async function decompressRawLzma1Async(data: BinaryInput, options: RawLzm
  * entries. Its dictionary size comes from the container.
  *
  * @param data Compressed data
- * @param options Dictionary size and a memory limit
+ * @param options Dictionary size, a memory limit, and an output limit
  * @returns Decompressed data
  * @throws {RangeError} If an option is invalid
  * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb`
+ * @throws {OutputLimitError} If the output would exceed `maxOutputLength`
  * @throws {Error} If the data is truncated or corrupted
  */
 export function decompressRawLzma2(data: BinaryInput, options: RawLzma2Options): Uint8Array {
-	return decompressRawLzma2Data(toUint8Array(data), resolveRawLzma2Options(options));
+	const input = toUint8Array(data);
+	const { dictSize, maxOutputLength } = resolveRawLzma2Options(options);
+
+	return decompressRawLzma2Data(input, dictSize, maxOutputLength);
+}
+
+/**
+ * Decompresses raw LZMA2 data like `decompressRawLzma2`, pausing regularly
+ * to await `onProgressAsync`. The callback can update a progress bar, yield
+ * so that a web page stays responsive, or cancel by throwing.
+ *
+ * The output is the same as `decompressRawLzma2(data, options)`. Without
+ * `onProgressAsync`, the whole decompression runs before the promise is
+ * returned.
+ *
+ * @param data Compressed data; the caller can read it but must not modify it
+ *        until the returned promise has settled
+ * @param options Dictionary size, a memory limit, and an output limit
+ * @returns Decompressed data
+ * @throws {RangeError} If an option is invalid (the promise rejects)
+ * @throws {MemoryLimitError} If decoding would need more memory than `memoryLimitKb` (the promise rejects)
+ * @throws {OutputLimitError} If the output would exceed `maxOutputLength` (the promise rejects)
+ * @throws {Error} If the data is truncated or corrupted (the promise rejects)
+ * @throws Any error that `onProgressAsync` throws
+ */
+export async function decompressRawLzma2Async(data: BinaryInput, options: RawLzma2AsyncOptions): Promise<Uint8Array> {
+	const input = toUint8Array(data);
+	const { dictSize, maxOutputLength } = resolveRawLzma2Options(options);
+
+	return decompressRawLzma2DataAsync(input, dictSize, resolveOnProgressAsync(options), maxOutputLength);
 }

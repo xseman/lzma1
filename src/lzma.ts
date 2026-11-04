@@ -16,6 +16,7 @@ import {
 	resolveOptions,
 } from "./options.js";
 import { OutputBuffer } from "./output-buffer.js";
+import { limitSink } from "./output-limit.js";
 import {
 	decodeUtf8,
 	encodeUtf8,
@@ -105,10 +106,11 @@ export function decompressData(data: Uint8Array, tolerateEarlyEndMarker = false,
 }
 
 /**
- * Bytes of output decoded between calls to `onProgressAsync`, plus up to
- * 272 more, because a pause waits for the end of the current symbol. The
- * value isn't tuned. It is measured in output, because a few bytes of input
- * can expand to many kilobytes, and it is larger than
+ * Bytes of output decoded between calls to `onProgressAsync`. A pause waits
+ * for the end of the current symbol, which can add up to 272 bytes. For raw
+ * LZMA2, a pause waits for the end of the current chunk instead, which can add
+ * up to 2 MiB. The value isn't tuned. It is measured in output, because a few
+ * bytes of input can expand to many kilobytes, and it is larger than
  * `COMPRESS_SLICE_SIZE` because decompressing is much faster.
  */
 const DECOMPRESS_SLICE_SIZE = 256 << 10;
@@ -158,20 +160,54 @@ export async function decompressDataAsync(
 	return result;
 }
 
-/** Decompresses raw LZMA2 data with the given dictionary size. */
-export function decompressRawLzma2Data(data: Uint8Array, dictSize: number): Uint8Array {
-	let out: OutputBuffer | undefined;
-
-	// LZMA2 declares no size. The first output creates the buffer from a
-	// guess, capped as for a declared size, so empty output allocates nothing.
-	const decoder = new Lzma2Decoder(dictSize, (chunk) => {
-		out ??= new OutputBuffer(Math.min(data.length * 4, 1 << 24));
-		out.write(chunk);
-	});
+/**
+ * Decompresses raw LZMA2 data with the given dictionary size. If the output
+ * would exceed `maxOutputLength`, `OutputLimitError` is thrown.
+ */
+export function decompressRawLzma2Data(data: Uint8Array, dictSize: number, maxOutputLength: number): Uint8Array {
+	const { decoder, output } = createLzma2OneShotDecoder(data.length, dictSize, maxOutputLength);
 	decoder.write(data);
 	decoder.end();
 
-	return out?.finish() ?? new Uint8Array(0);
+	return output();
+}
+
+/**
+ * Implements `decompressRawLzma2Async`: decompresses like
+ * `decompressRawLzma2Data`, awaiting `onProgressAsync` between chunks of the
+ * data once about `DECOMPRESS_SLICE_SIZE` bytes of output have been decoded.
+ * The output is the same as `decompressRawLzma2Data`'s.
+ */
+export async function decompressRawLzma2DataAsync(
+	data: Uint8Array,
+	dictSize: number,
+	onProgressAsync: AsyncProgressOptions["onProgressAsync"],
+	maxOutputLength: number,
+): Promise<Uint8Array> {
+	if (onProgressAsync === undefined) {
+		return decompressRawLzma2Data(data, dictSize, maxOutputLength);
+	}
+
+	await onProgressAsync({ progress: 0 });
+
+	// Created after the first call, as in `decompressDataAsync`, so that
+	// cancelling there allocates nothing.
+	const { decoder, output } = createLzma2OneShotDecoder(data.length, dictSize, maxOutputLength);
+
+	let pauseAt = DECOMPRESS_SLICE_SIZE;
+	while (!decoder.decodeInMemory(data, pauseAt)) {
+		// A pause comes before the end of the input, so this stays below 1.
+		await onProgressAsync({ progress: decoder.inputPos / data.length });
+
+		// A pause waits for the end of a chunk, up to 2 MiB past `pauseAt`.
+		// Counting the next slice from there keeps the pauses apart.
+		pauseAt = decoder.outputLength + DECOMPRESS_SLICE_SIZE;
+	}
+
+	const result = output();
+	await onProgressAsync({ progress: 1 });
+
+	return result;
 }
 
 /**
@@ -201,6 +237,32 @@ function compressResolved(data: Uint8Array, options: ResolvedOptions): Uint8Arra
 	const encoder = new AloneEncoder(options, data.length, true);
 	encoder.write(data);
 	return encoder.finish();
+}
+
+interface Lzma2OneShotDecoder {
+	decoder: Lzma2Decoder;
+	/** Returns the decompressed data, once the data has ended. */
+	output(): Uint8Array;
+}
+
+/** Creates an `Lzma2Decoder` that collects its output in one buffer. */
+function createLzma2OneShotDecoder(compressedSize: number, dictSize: number, maxOutputLength: number): Lzma2OneShotDecoder {
+	let out: OutputBuffer | undefined;
+
+	// LZMA2 doesn't declare its size, so the buffer's initial size is a guess,
+	// capped as for a declared size and also by the limit. The first output
+	// creates the buffer, so empty output allocates nothing.
+	const sink = limitSink((chunk) => {
+		out ??= new OutputBuffer(Math.min(compressedSize * 4, 1 << 24, maxOutputLength));
+		out.write(chunk);
+	}, maxOutputLength);
+
+	return {
+		decoder: new Lzma2Decoder(dictSize, sink),
+		output() {
+			return out?.finish() ?? new Uint8Array(0);
+		},
+	};
 }
 
 interface OneShotDecoder {

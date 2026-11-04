@@ -71,7 +71,7 @@ npm install lzma1
 
 ## Quick start
 
-Six functions compress and decompress the `.lzma` format, and three decode
+Six functions compress and decompress the `.lzma` format, and four decode
 raw data:
 
 ```ts
@@ -89,6 +89,7 @@ decompressString(data: ArrayBuffer | ArrayBufferView, options?: DecompressionOpt
 decompressRawLzma1(data: ArrayBuffer | ArrayBufferView, options: RawLzma1Options): Uint8Array
 decompressRawLzma1Async(data: ArrayBuffer | ArrayBufferView, options: RawLzma1AsyncOptions): Promise<Uint8Array>
 decompressRawLzma2(data: ArrayBuffer | ArrayBufferView, options: RawLzma2Options): Uint8Array
+decompressRawLzma2Async(data: ArrayBuffer | ArrayBufferView, options: RawLzma2AsyncOptions): Promise<Uint8Array>
 ```
 
 The `Async` functions return the same bytes as the functions without the
@@ -284,11 +285,10 @@ new Decompress({ tolerateEarlyEndMarker: true });
 
 When decompressing data from an untrusted source, `maxOutputLength` can defend
 against a "decompression bomb" attack, where a few bytes of crafted data expand
-to gigabytes. It limits the output in bytes, for every decoder except raw LZMA2.
-A larger declared size throws an `OutputLimitError` before anything is
-allocated. With `tolerateEarlyEndMarker`, as with an unknown size, decoding
-throws one once the output passes the limit, since an end marker could still
-end the data within it:
+to gigabytes. It limits the output in bytes. A larger declared size throws an
+`OutputLimitError` before anything is allocated. With `tolerateEarlyEndMarker`,
+as with an unknown size, decoding throws one once the output passes the limit,
+since an end marker could still end the data within it:
 
 ```js
 decompress(data, { maxOutputLength: 1_000_000 });

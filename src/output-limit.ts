@@ -39,3 +39,21 @@ export function checkDeclaredSize(declaredSize: number, maxOutputLength: number)
 		throw new OutputLimitError(declaredSize, maxOutputLength);
 	}
 }
+
+/**
+ * Wraps `sink` to count the output and throw `OutputLimitError` instead of
+ * passing on a chunk that would bring it over `maxOutputLength` bytes. Used
+ * for raw LZMA2, which doesn't declare its size.
+ */
+export function limitSink(sink: (chunk: Uint8Array) => void, maxOutputLength: number): (chunk: Uint8Array) => void {
+	let outputLength = 0;
+
+	return (chunk) => {
+		outputLength += chunk.length;
+		if (outputLength > maxOutputLength) {
+			throw new OutputLimitError(undefined, maxOutputLength);
+		}
+
+		sink(chunk);
+	};
+}

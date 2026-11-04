@@ -18,6 +18,9 @@ const INDEX = fileURLToPath(new URL("index.ts", import.meta.url));
 const RAW = ["KiB of memory would be needed", "memoryLimitKb"];
 const LZMA2 = ["LZMA2", "getMemoryUsageKb"];
 
+// Text only the `.lzma` decoder in `alone-decoder.ts` contains.
+const ALONE = ["end marker before the declared size"];
+
 // The LZMA2-only dictionary and range decoder functions. A bundle shows their
 // names only if they become methods of a class that decompress() uses too,
 // such as `LzDecoder` or `RangeDecoder`.
@@ -59,6 +62,18 @@ describe("tree shaking", () => {
 		}
 
 		for (const text of LZMA2) {
+			expect(code).not.toContain(text);
+		}
+	});
+
+	test.each([
+		[["decompressRawLzma2"]],
+		[["DecompressRawLzma2"]],
+		[["decompressRawLzma2Async"]],
+	])("leaves the .lzma decoder out of an app that imports %p", async (names) => {
+		const code = await bundle(names);
+
+		for (const text of ALONE) {
 			expect(code).not.toContain(text);
 		}
 	});

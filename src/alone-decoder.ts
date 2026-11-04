@@ -23,16 +23,10 @@ import {
 	OutputLimitError,
 } from "./output-limit.js";
 import {
+	INPUT_MARGIN,
 	RANGE_DECODER_INIT_SIZE,
 	RangeDecoder,
 } from "./range-decoder.js";
-
-/**
- * Upper bound of input bytes a single symbol can consume. The range decoder
- * reads at most one byte per bit, and the longest symbol (a match with the
- * largest distance) is 48 bits.
- */
-export const INPUT_MARGIN = 64;
 
 const DICT_SIZE_MIN = 1 << 12;
 

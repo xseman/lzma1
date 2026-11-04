@@ -190,13 +190,13 @@ export function rawMalformedChecks(library: Library, manifest: Manifest, records
 }
 
 /**
- * Tests `maxOutputLength` right at the edge, for every committed `.lzma`
- * fixture and every malformed `.lzma` and raw LZMA1 case, decoding `.lzma` data
- * both with and without `tolerateEarlyEndMarker`. With the limit at the output
- * length, the output must match the unlimited decoder's, and with one byte
- * less, it must throw `OutputLimitError`. If the unlimited decoder rejects a
- * case, then it must be rejected with the same error when the limit is too
- * large to reach.
+ * Tests `maxOutputLength` right at the edge, for every committed `.lzma` and
+ * `.lzma2` fixture and every malformed `.lzma`, raw LZMA1, and raw LZMA2 case,
+ * decoding `.lzma` data both with and without `tolerateEarlyEndMarker`. With
+ * the limit at the output length, the output must match the unlimited
+ * decoder's, and with one byte less, it must throw `OutputLimitError`. If the
+ * unlimited decoder rejects a case, then it must be rejected with the same
+ * error when the limit is too large to reach.
  */
 export function outputLimitChecks(library: Library, manifest: Manifest): IdentityCheck[] {
 	const corpusDir = path.join(FIXTURES_DIR, "corpus");
@@ -213,16 +213,31 @@ export function outputLimitChecks(library: Library, manifest: Manifest): Identit
 			}))
 		);
 
-	const rawChecks = deriveCommittedRaw(manifest).flatMap((rawCase) =>
-		rawCase.format === "lzma1"
-			? [{
-				name: rawCase.id,
-				run: async () => checkOutputLimitEdge(library, (maxOutputLength) => library.decompressRawLzma1(rawCase.bytes, { ...rawCase.options, maxOutputLength })),
-			}]
-			: []
-	);
+	const recorded = new Map(manifest.cells.map((cell) => [cell.id, cell]));
+	const lzma2Checks = CORPUS.filter((cell) => fixtureVariants(cell).includes("lzma2")).map((cell) => ({
+		name: fixtureFileName(cell.id, "lzma2"),
+		run: async () => {
+			const record = recorded.get(cell.id);
+			if (record === undefined) {
+				return "not recorded in manifest.json";
+			}
 
-	return [...lzmaChecks, ...rawChecks];
+			const bytes = readFixture(cell.id, "lzma2");
+
+			return checkOutputLimitEdge(library, (maxOutputLength) => library.decompressRawLzma2(bytes, { dictSize: record.fittedDictSize, maxOutputLength }));
+		},
+	}));
+
+	const rawChecks = deriveCommittedRaw(manifest).map((rawCase) => ({
+		name: rawCase.id,
+		run: async () =>
+			checkOutputLimitEdge(library, (maxOutputLength) =>
+				rawCase.format === "lzma1"
+					? library.decompressRawLzma1(rawCase.bytes, { ...rawCase.options, maxOutputLength })
+					: library.decompressRawLzma2(rawCase.bytes, { ...rawCase.options, maxOutputLength })),
+	}));
+
+	return [...lzmaChecks, ...lzma2Checks, ...rawChecks];
 }
 
 /** Checks of the records themselves, independent of the library. */

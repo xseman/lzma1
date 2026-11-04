@@ -79,7 +79,9 @@ translation:
   Chunked input via `setInput` with a throwing `readByte` replaces the input
   stream, whose read past the end throws `EOFException`. `init` makes two header
   checks, including a `code == range` check the Java decoder does not make; the
-  malformed-stream records cover both.
+  malformed-stream records cover both. `INPUT_MARGIN` has no Java counterpart:
+  it is the library's own bound on the bytes one symbol reads, which
+  `alone-decoder.ts` and `lzma2-decoder.ts` use for their input buffers.
 - **lzma-coder.ts** (`LZMACoder.java`, `State.java`): structured probability
   arrays (`isMatch[12][16]`, per-tree `Uint16Array`s, the ten `distSpecial`
   trees of 2 to 32 leaves) and the `State` class with the Java code's
@@ -538,11 +540,55 @@ are the same as without pauses:
   "Probability arrays reused between one-shot decoders" holds for interleaved
   calls.
 
+`decompressRawLzma2Async` decodes with the same `Lzma2Decoder` as
+`decompressRawLzma2`. Both get it from `createLzma2OneShotDecoder`, so both
+paths build the same sink and output collection. Without a callback, the async
+function runs `decompressRawLzma2Data`. With one, `decodeInMemory` decodes the
+whole input, which is all in memory, and stops once the output reaches the pause
+point. The driver then awaits `onProgressAsync` and sets the next pause point
+`DECOMPRESS_SLICE_SIZE` bytes past the output so far. One ported file changes:
+the loop of `Lzma2Decoder.write` moves into a private method,
+`decode(input, pos, pauseAt)`. It starts at `pos` and returns the position it
+reached. It has one more loop condition, `outputLength < pauseAt`, where
+`outputLength` counts the bytes each step decodes. Unlike LZMA1, a pause doesn't
+stop inside `LzmaDecoder.decode`. With the whole input available, every step
+that produces output completes its chunk, so a pause comes at the end of a
+chunk, at most 2 MiB past the pause point. The output and the errors are the
+same as without pauses:
+
+- _`write` is unchanged._ It calls `decode` with `pos` 0 and `pauseAt`
+  `Infinity`, so the extra condition always holds and the loop is the old one.
+- _A pause is a split of the input._ `decode` checks its condition only at the
+  top of the loop, between steps. After every step, the decoder's state is all
+  in fields: the chunk header collected so far, the sizes left in the chunk,
+  `inBuf` and `inPos`, the reset flags, `outPos`, the LZMA state and the
+  dictionary. `write` already stops at such a point at the end of every piece of
+  input that the stream receives, and the next `write` starts at position 0 of
+  the next piece. A pause stops at the same kind of point. The next call
+  continues on the same `input` from `inputPos`, and the public functions ask
+  the caller not to change `input` until the promise settles. So a decode with
+  pauses runs the same steps as `write` would, given the input split at the
+  pause positions, and the decoder handles input split anywhere
+  (lzma2-decoder.ts entry).
+- _The end checks are the same._ The chunk checks run inside the steps, as
+  before. `decode` stops early only on the pause condition, so `decodeInMemory`
+  returns `false` only when the data hasn't ended and input is left. Otherwise
+  it calls `end()`, which throws `Truncated input` if the end marker hasn't been
+  read, as `decompressRawLzma2Data` does after `write`. Both paths ignore input
+  after the end marker, because the loop stops at `endReached`.
+- _The same bytes reach the output._ The loop flushes the dictionary after every
+  step, so the sink receives the same bytes after each step on both paths. The
+  output collection appends them in order. The `limitSink` wrapper sees the same
+  byte counts, so `maxOutputLength` throws at the same chunk.
+- _Cancellation and interleaved calls._ The decoder is created after the first
+  callback returns, and LZMA2 doesn't use the probability spares, so concurrent
+  calls don't share anything. A call cancelled at a callback drops its decoder.
+
 ### Output limit
 
-`maxOutputLength` has no counterpart in XZ for Java. It applies to `.lzma` and
-raw LZMA1 data, which both decode through `AloneDecoder`, and changes four
-things, all outside the ported files:
+`maxOutputLength` has no counterpart in XZ for Java. For `.lzma` and raw LZMA1
+data, which both decode through `AloneDecoder`, it changes four things, all
+outside the ported files:
 
 - _A declared size over the limit._ By default, `start()` first calls
   `checkDeclaredSize`, which throws an `OutputLimitError` if the header's size,
@@ -607,19 +653,29 @@ Nothing else changes:
   arrays reused between one-shot decoders" covers. One from `checkDeclaredSize`
   comes before the array is taken.
 
-`outputLimitChecks` in `fixtures/identity.ts` tests this on every committed
-`.lzma` fixture, half of them with an unknown size, and every malformed `.lzma`
-and raw LZMA1 case, decoding the `.lzma` data both with and without
-`tolerateEarlyEndMarker`: 1,694 cases. At a limit of the output's length, the
-output is unchanged, and one byte less throws an `OutputLimitError`. For a
-fixture with a known size, one byte less with the option is the tolerated
-`maxOutputLength + 1` case above. A case that fails without a limit fails the
-same way under a limit nothing reaches.
+Raw LZMA2 data doesn't declare its size, so only the counter applies.
+`decompressRawLzma2` and `DecompressRawLzma2` wrap their sink with `limitSink`,
+which counts the output like the sink wrapper in `start()`, with `declaredSize`
+undefined. None of the ported files change. The wrapper only reads the chunks it
+receives, and either passes them on unchanged or throws, so it can't change what
+`Lzma2Decoder` decodes or which errors it throws before the limit. Without the
+option, the limit is `Infinity`, so the wrapper never throws. The dictionary
+doesn't need a cap. `write` flushes after every LZMA2 chunk, whose uncompressed
+size is at most 2 MiB, so the counter throws within 2 MiB of output after the
+limit is exceeded, unless decoding fails first. The dictionary buffer grows with
+the output by doubling, so before the error its capacity can reach twice the
+bytes decoded, about `2 * (maxOutputLength + 2 MiB)`. The option limits the
+output, not the memory. `decompressRawLzma2` caps its first `OutputBuffer` at
+the limit, as `createOneShotDecoder` does.
 
-Raw LZMA2 doesn't take the option. `Lzma2Decoder` would need the same counter
-and cap. The code would be small, but the argument that it changes nothing else
-would also have to cover dictionary resets and the uncompressed chunks that
-`copyUncompressed` writes directly.
+`outputLimitChecks` in `fixtures/identity.ts` tests this on every committed
+`.lzma` fixture, half of them with an unknown size, every `.lzma2` fixture and
+every malformed `.lzma`, raw LZMA1 and raw LZMA2 case, decoding the `.lzma` data
+both with and without `tolerateEarlyEndMarker`: 1,915 cases. At a limit of the
+output's length, the output is unchanged, and one byte less throws an
+`OutputLimitError`. For a fixture with a known size, one byte less with the
+option is the tolerated `maxOutputLength + 1` case above. A case that fails
+without a limit fails the same way under a limit nothing reaches.
 
 ### Java-to-JS hazard checklist
 

@@ -37,10 +37,10 @@
  * `lz/LZDecoder.java` as functions, by Lasse Collin and Igor Pavlov.
  */
 
-import { INPUT_MARGIN } from "./alone-decoder.js";
 import { LzDecoder } from "./lz-decoder.js";
 import { LzmaDecoder } from "./lzma-decoder.js";
 import {
+	INPUT_MARGIN,
 	RANGE_DECODER_INIT_SIZE,
 	RangeDecoder,
 } from "./range-decoder.js";
@@ -80,6 +80,9 @@ export class Lzma2Decoder {
 	private readonly inBuf = new Uint8Array(COMPRESSED_SIZE_MAX + INPUT_MARGIN);
 	private inPos = 0;
 
+	private _outputLength = 0;
+	private _inputPos = 0;
+
 	/**
 	 * @param dictSize Dictionary size in bytes
 	 * @param sink Receives decompressed data. The chunk is only valid during
@@ -100,11 +103,56 @@ export class Lzma2Decoder {
 		return 40 + COMPRESSED_SIZE_MAX / 1024 + Math.floor(getDictSize(dictSize) / 1024);
 	}
 
+	/** Bytes of output decoded so far, which `decodeInMemory` pauses on. */
+	get outputLength(): number {
+		return this._outputLength;
+	}
+
+	/** Bytes of input consumed so far by `decodeInMemory`. */
+	get inputPos(): number {
+		return this._inputPos;
+	}
+
 	/** Decodes as much of `input` as possible. */
 	write(input: Uint8Array): void {
-		let pos = 0;
+		this.decode(input, 0, Infinity);
+	}
 
-		while (pos < input.length && !this.endReached) {
+	/** Throws if the data ended before its end marker. */
+	end(): void {
+		if (!this.endReached) {
+			throw new Error("Truncated input");
+		}
+	}
+
+	/**
+	 * Decodes `input`, which holds the whole rest of the data, but stops at
+	 * the first chunk boundary once the output reaches `pauseAt` bytes. Call
+	 * it again with the same `input` to continue. Throws like `end()` if the
+	 * data is incomplete.
+	 *
+	 * @returns `true` once the data has ended
+	 */
+	decodeInMemory(input: Uint8Array, pauseAt: number): boolean {
+		this._inputPos = this.decode(input, this._inputPos, pauseAt);
+		if (!this.endReached && this._inputPos < input.length) {
+			return false;
+		}
+
+		this.end();
+
+		return true;
+	}
+
+	/**
+	 * Decodes `input` from `pos`, and returns the position after the input
+	 * consumed. Decoding stops at the end of the input, at the end of the
+	 * data, or once the output reaches `pauseAt` bytes. The output is checked
+	 * only between steps. When the whole input is available, every step that
+	 * produces output completes a chunk, so a pause comes between chunks.
+	 */
+	private decode(input: Uint8Array, pos: number, pauseAt: number): number {
+		while (pos < input.length && !this.endReached && this._outputLength < pauseAt) {
 			if (this.uncompressedSize === 0) {
 				pos = this.readChunkHeader(input, pos);
 				continue;
@@ -115,6 +163,7 @@ export class Lzma2Decoder {
 				copyUncompressed(this.lz, input, pos, copySize);
 				pos += copySize;
 				this.outPos += copySize;
+				this._outputLength += copySize;
 				this.uncompressedSize -= copySize;
 			} else {
 				const copySize = Math.min(this.compressedSize - this.inPos, input.length - pos);
@@ -129,13 +178,8 @@ export class Lzma2Decoder {
 
 			this.lz.flush();
 		}
-	}
 
-	/** Throws if the data ended before its end marker. */
-	end(): void {
-		if (!this.endReached) {
-			throw new Error("Truncated input");
-		}
+		return pos;
 	}
 
 	/** Collects the chunk header and decodes it once it is complete. */
@@ -180,7 +224,7 @@ export class Lzma2Decoder {
 			this.uncompressedSize = (control & 0x1F) << 16;
 			this.uncompressedSize += readUnsignedShort(header, 1) + 1;
 
-			// XZ for Java reads the compressed data here; `write` collects
+			// XZ for Java reads the compressed data here; `decode` collects
 			// it instead.
 			this.compressedSize = readUnsignedShort(header, 3) + 1;
 			this.inPos = 0;
@@ -235,6 +279,7 @@ export class Lzma2Decoder {
 		}
 
 		this.outPos = outLimit;
+		this._outputLength += this.uncompressedSize;
 		this.uncompressedSize = 0;
 	}
 }
