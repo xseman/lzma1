@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.0](https://github.com/xseman/lzma1/compare/v0.7.0...v0.8.0) (2026-11-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* `compress`, `compressAsync`, `compressString` and the `LZMA` class no longer write an end marker when the size is known, so their output is 5-6 bytes shorter. Data decoded with its header, as by lzma1, `xz --format=lzma` or 7-Zip, decodes as before. Callers that strip the header and decode without the size, e.g. with `xz --format=raw` or Python's `FORMAT_RAW`, must pass
+* An end marker before the declared size is now an error by default, and the `strict` option is removed. To keep the old behavior, pass `tolerateEarlyEndMarker: true`. The `LZMA` class's `decompress` and `decompressString` take no options, so their callers switch to the standalone functions with `tolerateEarlyEndMarker: true`. A leftover `strict` is ignored.
+
+### Features
+
+* add the output limit and async decoding to raw LZMA2 ([#61](https://github.com/xseman/lzma1/issues/61)) ([4c5bed6](https://github.com/xseman/lzma1/commit/4c5bed6db480d5debdec64e87c669c14feb4be97))
+* omit the end marker by default when the size is known ([7921520](https://github.com/xseman/lzma1/commit/79215201b5ed6aebcd81ec7459555656c5dfa338))
+* reject an early end marker by default, replacing `strict` with `tolerateEarlyEndMarker` ([f39dff3](https://github.com/xseman/lzma1/commit/f39dff35eefd8d4517f5bff8102ecc657a30675a))
+
 ## [0.7.0](https://github.com/xseman/lzma1/compare/v0.6.5...v0.7.0) (2026-11-03)
 
 
