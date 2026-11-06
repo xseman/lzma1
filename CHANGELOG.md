@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/xseman/lzma1/compare/v0.8.0...v0.8.1) (2026-11-06)
+
+
+### Documentation
+
+* rename CLAUDE.md to AGENTS.md ([1fc3bd3](https://github.com/xseman/lzma1/commit/1fc3bd3ebeb6da02a8fa25686f3f793c6eb1387a))
+
 ## [0.8.0](https://github.com/xseman/lzma1/compare/v0.7.0...v0.8.0) (2026-11-04)
 
 
